@@ -6,7 +6,13 @@ Crear una prueba mínima con Codex App Server por stdio, usando el protocolo doc
 
 Criterios: inicialización, estado de cuenta ChatGPT sin exponer tokens, crear sesión en carpeta ficticia, respuesta en streaming, detener tarea, cerrar y reanudar sesión; mostrar errores de autenticación y límites sin recurrir a una clave API. Comprobar carga de build-novel y permisos con un documento ficticio, no con los originales. Estado: prueba mínima completada el 2026-09-08; ver [resultados y límites](SMOKE_RESULTS.md). Errores de cuota y rechazo de cuenta API comprobados sin red; no se agotó la cuota real.
 
-## Arquitectura inicial propuesta
+## Corte 1: MVP local implementado
+
+Disponible con `python3 app.py`: navegador sin dependencias, servicio Python en loopback, Markdown privado, metadatos JSON, contexto explícito, App Server por stdio y propuestas por bloque. Ver [README](README.md) para uso y límites, y [MVP_RESULTS](MVP_RESULTS.md) para resultados. Se importan copias desde el navegador; no se abren carpetas de manuscritos originales.
+
+La arquitectura y la matriz siguientes son criterios de producto. Los casos implementados y comprobados están enumerados en MVP_RESULTS; las evaluaciones literarias, de series y de traducciones siguen pendientes.
+
+## Criterios de arquitectura
 
 Interfaz en navegador y un servicio local que inicia Codex App Server. Elegir dependencias cuando se implemente este corte, no generar ahora un monorepo vacío. Archivos Markdown como fuente de verdad; metadatos pequeños cuando sean necesarios. Git para historial local, no como sustituto de copias de seguridad.
 

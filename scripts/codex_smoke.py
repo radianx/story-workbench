@@ -51,6 +51,8 @@ class Server:
     # ponytail: un solo consumidor y una petición en vuelo; multiplexar para el editor.
     async def __aenter__(self):
         command, env = launch_settings()
+        for override in self.overrides:
+            command += ['-c', override]
         self.process = await asyncio.create_subprocess_exec(
             *command, env=env, cwd=self.cwd, stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
@@ -59,7 +61,8 @@ class Server:
         self.events = []
         try:
             await self.rpc('initialize', {'clientInfo': {
-                'name': 'story_workbench_smoke', 'version': '0.1.0'}})
+                'name': 'story_workbench_smoke', 'version': '0.1.0'},
+                'capabilities': {'experimentalApi': self.experimental}})
             await self.send({'method': 'initialized', 'params': {}})
             chatgpt_only(await self.rpc('account/read', {'refreshToken': False}))
         except BaseException:
@@ -68,8 +71,10 @@ class Server:
         print('OK initialize + cuenta ChatGPT', flush=True)
         return self
 
-    def __init__(self, cwd):
+    def __init__(self, cwd, overrides=(), experimental=False):
         self.cwd = str(cwd)
+        self.overrides = overrides
+        self.experimental = experimental
 
     async def __aexit__(self, *_):
         if self.process.returncode is None:
