@@ -4,7 +4,7 @@
 
 Crear una prueba mínima con Codex App Server por stdio, usando el protocolo documentado y comprobando la versión instalada. Registrar solo diagnóstico no sensible.
 
-Criterios: inicialización, estado de cuenta ChatGPT sin exponer tokens, crear sesión en carpeta ficticia, respuesta en streaming, detener tarea, cerrar y reanudar sesión; mostrar errores de autenticación y límites sin recurrir a una clave API. Comprobar carga de build-novel y permisos con un documento ficticio, no con los originales. Estado: pendiente.
+Criterios: inicialización, estado de cuenta ChatGPT sin exponer tokens, crear sesión en carpeta ficticia, respuesta en streaming, detener tarea, cerrar y reanudar sesión; mostrar errores de autenticación y límites sin recurrir a una clave API. Comprobar carga de build-novel y permisos con un documento ficticio, no con los originales. Estado: prueba mínima completada el 2026-09-08; ver [resultados y límites](SMOKE_RESULTS.md). Errores de cuota y rechazo de cuenta API comprobados sin red; no se agotó la cuota real.
 
 ## Arquitectura inicial propuesta
 
