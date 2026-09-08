@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import AppServer
 from playwright.sync_api import sync_playwright
@@ -94,11 +95,51 @@ def main():
                 page.screenshot(path='/tmp/story-workbench-mvp.png',full_page=True)
                 page.reload();page.wait_for_function("() => document.querySelector('#editor').value.includes('llave roja')")
                 # Cambio de proyecto: ni fuentes ni decisiones del anterior.
-                page.locator('#new-project').click();page.locator('#new-name').fill('Otro universo')
-                page.locator('#name-dialog button[value=ok]').click()
+                page.locator('#new-project').click();page.locator('#project-name').fill('Otro universo')
+                page.locator('#wizard-next').click();page.locator('#wizard-create').click()
                 page.wait_for_function("() => document.querySelector('#project-title').textContent==='Otro universo'")
                 assert 'La última luz' not in page.locator('#documents').inner_text()
                 assert 'Conservar incierto' not in page.locator('#decisions').inner_text()
+                assert page.locator('#editor').is_enabled()
+                assert len(server.store.list_projects())==2
+                # El wizard se puede cancelar sin crear nada.
+                page.locator('#new-project').click();page.locator('#project-name').fill('Cancelado')
+                page.locator('#wizard-next').click();page.locator('#wizard-back').click()
+                assert page.locator('#project-name').input_value()=='Cancelado'
+                page.locator('#wizard-cancel').click()
+                assert len(server.store.list_projects())==2
+                # Doble de prueba explícito: la integración real se verifica en live_mvp.py.
+                async def fake_interview(project,run,docs):
+                    server.assistant.update(project,run['id'],status='completed',text='Pregunta de prueba: ¿qué querés que sienta el lector?')
+                with patch.object(server.assistant,'execute',fake_interview):
+                    page.locator('#new-project').click();page.locator('#project-name').fill('Proyecto guiado')
+                    page.locator('#wizard-next').click()
+                    page.get_by_role('radio',name='Crear conversando').check()
+                    page.locator('#project-idea').fill('Una biblioteca a bordo de un barco.')
+                    page.locator('#wizard-create').click()
+                    page.get_by_text('Pregunta de prueba: ¿qué querés que sienta el lector?',exact=True).wait_for()
+                    guided=next(p for p in server.store.list_projects() if p['title']=='Proyecto guiado')['id']
+                    assert server.store.snapshot(guided)['documents']==[]
+                    assert page.locator('#mode').input_value()=='interview'
+                    assert page.locator('#skill').is_disabled() and page.locator('#skill').is_checked()
+                    assert page.locator('.sources').bounding_box()['x'] < page.locator('.assistant').bounding_box()['x'] < page.locator('.manuscript').bounding_box()['x']
+                    page.reload();page.get_by_text('Pregunta de prueba: ¿qué querés que sienta el lector?',exact=True).wait_for()
+                    assert len(server.store.load(guided)['runs'])==1
+                    assert page.locator('#workflow').input_value()=='guided'
+                    page.locator('#focus').click()
+                    assert page.locator('.assistant').is_visible() and not page.locator('.manuscript').is_visible()
+                    page.locator('#focus').click()
+                    page.locator('#workflow').select_option('writing')
+                    page.wait_for_function("() => !document.body.classList.contains('guided')")
+                    page.locator('#workflow').select_option('guided')
+                    page.wait_for_function("() => document.body.classList.contains('guided')")
+                    assert len(server.store.load(guided)['runs'])==1
+                    page.locator('#prompt').fill('Quiero asombro y esperanza.')
+                    page.locator('#send').click()
+                    page.wait_for_function("() => document.querySelectorAll('.run').length===2")
+                    assert server.store.load(guided)['runs'][-1]['mode']=='interview'
+                    assert server.store.load(guided)['runs'][-1]['prompt']=='Quiero asombro y esperanza.'
+                page.screenshot(path='/tmp/story-workbench-guided-test.png',full_page=True)
                 page.set_viewport_size({'width':390,'height':844})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 theme.select_option('light')
@@ -108,7 +149,7 @@ def main():
                 assert theme.input_value()=='system'
                 assert errors==[],errors
                 browser.close()
-                print('OK navegador: temas sistema/claro/oscuro, cambios del sistema, persistencia, edición, historial, conflicto, propuesta, decisión, importación segura, foco, exportación, recarga y aislamiento de proyectos.')
+                print('OK navegador: wizard, entrevista simulada sin fuentes, inicio único, chat central, cambio de modo, temas sistema/claro/oscuro, cambios del sistema, persistencia, edición, historial, conflicto, propuesta, decisión, importación segura, foco, exportación, recarga y aislamiento de proyectos.')
         finally:
             server.shutdown();server.server_close()
 

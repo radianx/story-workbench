@@ -10,6 +10,7 @@ import time
 import uuid
 
 MAX_TEXT = 250_000
+WORKFLOWS = ('writing', 'guided')
 ROLES = ('manuscrito', 'canon', 'estilo', 'referencia', 'plan', 'traducción')
 
 
@@ -98,21 +99,28 @@ class Store:
     def load(self, project):
         path = self.path(project, 'project.json')
         check(path.is_file(), 'Proyecto no encontrado.', 404)
-        return json.loads(path.read_text(encoding='utf-8'))
+        data = json.loads(path.read_text(encoding='utf-8'))
+        data.setdefault('workflow', 'writing')
+        data.setdefault('initial_idea', '')
+        return data
 
     def persist(self, data):
         data['updated'] = time.time()
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
-    def create(self, title, demo=False):
+    def create(self, title, demo=False, workflow='writing', initial_idea=''):
         text_value(title, 160, False)
+        check(workflow in WORKFLOWS, 'Forma de trabajo inválida.')
+        text_value(initial_idea, 6000)
+        check(not demo or workflow == 'writing', 'El ejemplo se abre en modo escritura.')
         project = uid()
         path = self.path(project)
         path.mkdir(mode=0o700)
         for name in ('documents', 'history', 'agent'):
             (path / name).mkdir(mode=0o700)
         data = dict(id=project, title=title, updated=time.time(), documents=[], proposals=[],
-                    decisions=[], runs=[], thread=None, context_key=None)
+                    decisions=[], runs=[], thread=None, context_key=None,
+                    workflow=workflow, initial_idea=initial_idea)
         self.persist(data)
         if demo:
             examples = [
@@ -122,6 +130,8 @@ class Store:
                 ('02 · El cuarto de radio.md', 'manuscrito', '# El cuarto de radio\n\nInés giró la llave roja. Tomás esperó al otro lado de la puerta.\n\nLa voz volvió a llamarla. Ella no contestó.\n')]
             for name, role, content in examples:
                 self.add_document(project, name, role, content)
+        elif workflow == 'writing':
+            self.add_document(project, 'Manuscrito.md', 'manuscrito', '')
         return self.load(project)
 
     def document(self, data, document):

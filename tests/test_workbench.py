@@ -18,6 +18,41 @@ class StoreTests(unittest.TestCase):
         self.store = Store(self.temp.name)
         self.project = self.store.create('Ficción de prueba', True)['id']
 
+    def test_workflows_and_legacy_projects(self):
+        guided=self.store.create('Idea nueva',workflow='guided',initial_idea='Una biblioteca en el mar.')
+        self.assertEqual(guided['documents'],[])
+        self.assertEqual(guided['workflow'],'guided')
+        self.assertEqual(self.store.load(guided['id'])['initial_idea'],'Una biblioteca en el mar.')
+        writing=self.store.create('Página en blanco')
+        self.assertEqual(len(writing['documents']),1)
+        self.assertEqual(self.store.document(writing,writing['documents'][0]['id'])['content'],'')
+        del writing['workflow'];del writing['initial_idea'];self.store.persist(writing)
+        self.assertEqual(self.store.load(writing['id'])['workflow'],'writing')
+        with self.assertRaises(Problem):
+            self.store.create('No crear',workflow='invalid')
+
+    def test_interview_without_sources_and_idempotent_start(self):
+        project=self.store.create('Entrevista',workflow='guided')['id']
+        assistant=Assistant(self.store)
+        with self.assertRaises(Problem):
+            assistant.start(project,'diagnosis','Sin fuentes')
+        with self.assertRaises(Problem):
+            assistant.start(project,'interview','Sin skill',False)
+        with patch('workbench_ai.threading.Thread.start') as start:
+            first=assistant.start_interview(project)
+            self.assertEqual(assistant.start_interview(project),first)
+            self.assertEqual(assistant.start_interview(project,True),first)
+            self.assertEqual(start.call_count,1)
+            run=self.store.load(project)['runs'][0]
+            self.assertTrue(run['skill']);self.assertEqual(run['sources'],[])
+            assistant.update(project,first['id'],status='failed',error='Fallo simulado')
+            assistant.active=None
+            self.assertEqual(assistant.start_interview(project),first)
+            retry=assistant.start_interview(project,True)
+            self.assertNotEqual(retry,first);self.assertEqual(start.call_count,2)
+        with self.assertRaises(Problem):
+            assistant.start_interview(self.project)
+
     def test_conflict_history_and_restore(self):
         data = self.store.load(self.project)
         doc = self.store.document(data, data['documents'][0]['id'])

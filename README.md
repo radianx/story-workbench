@@ -14,12 +14,13 @@ python3 app.py
 
 Abrí **el enlace completo que imprime la terminal**: incluye una clave temporal de acceso local en el fragmento. Solo escucha en `127.0.0.1:8765`. Detener con Ctrl+C. Después de reiniciar, abrí el nuevo enlace; los proyectos y las conversaciones siguen guardados. Para otro puerto: `python3 app.py --port 8766`.
 
-Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto e importá copias de archivos Markdown/TXT UTF-8. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
+Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto: el asistente inicial pide un nombre, cómo querés continuar y una idea opcional. «Escribir por mi cuenta» abre un manuscrito en blanco. «Crear conversando» pone el chat en el centro e inicia la entrevista real de build-novel, una pregunta por vez, incluso sin documentos. También podés importar copias de archivos Markdown/TXT UTF-8. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
 
 ## Funciones disponibles
 
 | Área | Qué hace el MVP |
 | --- | --- |
+| Inicio guiado | Wizard de dos pasos; escritura directa o entrevista con build-novel. La forma de trabajo se guarda por proyecto y se puede cambiar desde la biblioteca. Recargar no duplica la bienvenida; una entrevista fallida o interrumpida puede retomarse. |
 | Biblioteca | Varios proyectos, documentos nuevos e importados, búsqueda en nombre y contenido, nombre editable y roles: manuscrito, canon, estilo, referencia, planificación y traducción. |
 | Contexto | Selección explícita de fuentes, contador de tamaño, nombres y hashes del material enviado. No recorta fuentes en silencio. Retirar o agregar fuentes abre hilo nuevo para evitar conservar material retirado en el historial del agente. |
 | Escritura | Editor Markdown, formato básico, vista previa segura, palabras y tiempo de lectura, atajo Ctrl/Cmd+S, modo foco con Ctrl/Cmd+Shift+F. |
@@ -31,12 +32,12 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Ambiente | Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
 | Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. |
 
-La opción build-novel usa la instalación local descubierta por Codex. No la copiamos ni redistribuimos; su licencia sigue pendiente de resolver. Si no está instalada, se puede desmarcar para usar el asistente general. Diagnosticar nunca autoriza reescribir.
+La opción build-novel usa la instalación local descubierta por Codex. No la copiamos ni redistribuimos; su licencia sigue pendiente de resolver. La entrevista requiere build-novel e incluye su guía de preguntas desde la instalación local; si falta, muestra un error y permite reintentar. Para otras tareas se puede desmarcar y usar el asistente general. Diagnosticar nunca autoriza reescribir.
 
 ## Datos y límites
 
 - Todo el trabajo se guarda en `private/workbench/`, excluido de Git; documentos Markdown y metadatos JSON. La app también usa almacenamiento de sesión del navegador para recuperar borradores. Codex guarda su propio historial local en CODEX_HOME. El almacenamiento local no está cifrado por esta app.
-- Inferencia online con la cuenta ChatGPT: se envían la petición, las fuentes seleccionadas y las decisiones del proyecto. Consume su cuota. Se fuerza autenticación ChatGPT/proveedor OpenAI, sin claves API ni fallback de pago.
+- Inferencia online con la cuenta ChatGPT: se envían la petición, las fuentes seleccionadas y las decisiones del proyecto. Crear un proyecto guiado inicia un turno automáticamente; en escritura directa no se llama a Codex hasta enviar una petición. Las respuestas quedan en el historial del proyecto y no se convierten automáticamente en canon ni en un manuscrito. Consume su cuota. Se fuerza autenticación ChatGPT/proveedor OpenAI, sin claves API ni fallback de pago.
 - Contexto de fuentes: máximo 60.000 caracteres por envío; decisiones: máximo 30.000 caracteres serializados. Máximo 100 documentos por proyecto y 250 KB UTF-8 por documento. Una tarea IA global a la vez, hasta cuatro minutos. No son límites de Codex: son límites explícitos de este prototipo.
 - El agente tiene un perfil de lectura limitado a una carpeta vacía, archivos mínimos del sistema y el ejecutable de Codex. Las fuentes viajan como texto, sin conceder acceso a los originales. Shell, hooks, plugins, memorias, conectores configurados, navegador, computer use e imágenes quedan deshabilitados para estos trabajos. No hay endpoint genérico para ejecutar comandos.
 - El servicio valida Host, Origin y token; rechaza symlinks y rutas fuera del proyecto. Solo un proceso puede abrir un directorio de datos. Es un prototipo de un usuario local, no un servidor público ni una defensa ante procesos maliciosos ejecutados con tu mismo usuario del sistema.
@@ -59,6 +60,8 @@ Las pruebas HTTP necesitan permisos para abrir sockets de loopback. Node solo se
 python3 tests/browser_check.py
 # Prueba real con cuota ChatGPT y corpus ficticio temporal.
 python3 tests/live_mvp.py
+# Solo la entrevista real: dos turnos con ficción, sin documentos.
+python3 tests/live_mvp.py --interview-only
 ```
 
 Ver [resultados del MVP](MVP_RESULTS.md), [prueba inicial del motor](SMOKE_RESULTS.md), [producto](PRODUCT.md), [criterios de implementación](IMPLEMENTATION.md) y [comparación inicial](RESEARCH.md).

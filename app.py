@@ -12,7 +12,7 @@ import secrets
 from urllib.parse import urlsplit
 import zipfile
 
-from workbench_store import Store, Problem, check, text_value, ROLES
+from workbench_store import Store, Problem, check, text_value, ROLES, WORKFLOWS
 from workbench_ai import Assistant
 
 WEB = Path(__file__).parent / 'web'
@@ -122,11 +122,20 @@ class Handler(BaseHTTPRequestHandler):
             store = self.server.store
             with store.lock:
                 if path == '/api/projects':
-                    result = store.create(body.get('title'), bool(body.get('demo')))
+                    result = store.create(body.get('title'), bool(body.get('demo')),
+                                          body.get('workflow', 'writing'), body.get('initial_idea', ''))
                 else:
                     project = body.get('project')
                     data = store.load(project)
-                    if path == '/api/document/add':
+                    if path == '/api/project/workflow':
+                        check(body.get('workflow') in WORKFLOWS, 'Forma de trabajo inválida.')
+                        data['workflow'] = body['workflow']
+                        store.persist(data)
+                        result = store.snapshot(project)
+                    elif path == '/api/interview/start':
+                        check(type(body.get('retry', False)) is bool, 'Reintento inválido.')
+                        result = self.server.assistant.start_interview(project, body.get('retry', False))
+                    elif path == '/api/document/add':
                         result = store.add_document(project, body.get('name'), body.get('role'), body.get('content'))
                     elif path == '/api/document/save':
                         result = store.save_document(data, body.get('document'), body.get('content'), body.get('hash'))

@@ -10,6 +10,7 @@ from scripts.codex_smoke import Server, SmokeError
 from workbench_store import Problem, check, digest, uid
 
 MODES = {
+    'interview': 'Conducí la entrevista inicial de build-novel en español, una pregunta relevante por turno. Partí de la idea y respuestas ya aportadas; no reinicies ni repitas preguntas resueltas. No redactes el manuscrito ni decidas canon por el autor.',
     'chat': 'Conversá con el autor. No propongas reemplazos salvo que se pidan. Respondé en español.',
     'diagnosis': 'Diagnosticá continuidad, voz y legibilidad. Priorizá hallazgos y citá nombres de fuentes y pasajes. No reescribas.',
     'impact': 'Analizá qué pasajes de las fuentes seleccionadas podrían verse afectados por el cambio hipotético. Separá impactos seguros, posibles y dudas. Una hipótesis no cambia el canon. No reescribas.',
@@ -51,7 +52,9 @@ class Assistant:
             check(mode in MODES, 'Modo inválido.')
             data = self.store.load(project)
             docs = [self.store.document(data, d['id']) for d in data['documents'] if d['selected']]
-            check(docs, 'Seleccioná al menos una fuente.')
+            check(docs or mode == 'interview', 'Seleccioná al menos una fuente.')
+            if mode == 'interview':
+                check(use_skill is True, 'La entrevista guiada requiere build-novel.')
             check(sum(len(d['content']) for d in docs) <= 60_000,
                   'El contexto supera 60.000 caracteres. Seleccioná menos fuentes; no se recortará en silencio.')
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', text='', error='',
@@ -64,6 +67,18 @@ class Assistant:
             self.thread = threading.Thread(target=self.worker, args=(project, run, docs), daemon=True)
             self.thread.start()
             return {'id': run['id']}
+
+    def start_interview(self, project, retry=False):
+        with self.store.lock:
+            data = self.store.load(project)
+            check(data['workflow'] == 'guided', 'Elegí el modo guiado para iniciar la entrevista.')
+            runs = [r for r in data['runs'] if r['mode'] == 'interview']
+            # Recargar o abrir otra pestaña no debe consumir otro turno de bienvenida.
+            if runs and (not retry or runs[-1]['status'] not in ('failed', 'interrupted')):
+                return {'id': runs[-1]['id']}
+            prompt = ('Empecemos mi proyecto. Guiame con una pregunta por vez.' if not runs
+                      else 'Retomemos la entrevista desde donde quedó, con una pregunta por vez.')
+            return self.start(project, 'interview', prompt, True)
 
     def update(self, project, run_id, **values):
         with self.store.lock:
@@ -102,10 +117,17 @@ class Assistant:
                 listing = await server.rpc('skills/list', {'cwds': [str(cwd)], 'forceReload': True})
                 matches = [s for group in listing['data'] for s in group['skills']
                            if s['name'] == 'build-novel' and s.get('enabled')]
-                check(len(matches) == 1, 'build-novel no está disponible. Instalalo o desmarcá su uso.')
+                check(len(matches) == 1, 'build-novel no está disponible. Instalalo para continuar la entrevista o usá otra tarea sin la skill.')
                 skill = matches[0]['path']
+            interview_guide = ''
+            if run['mode'] == 'interview':
+                guide = Path(skill).parent / 'references' / 'interview.md'
+                check(guide.is_file() and guide.stat().st_size <= 30_000,
+                      'No se encontró una guía de entrevista válida en build-novel. Revisá su instalación.')
+                interview_guide = guide.read_text(encoding='utf-8')
             with self.store.lock:
                 data = self.store.load(project)
+                project_brief = {'title': data['title'], 'initial_idea': data['initial_idea']}
                 # Cambiar selección o skill abre hilo nuevo: las fuentes retiradas no siguen en su historial.
                 key = digest(json.dumps([sorted(d['id'] for d in docs), bool(skill)]))
                 thread_id = data['thread'] if data['context_key'] == key else None
@@ -119,6 +141,12 @@ class Assistant:
                 'Una propuesta no es canon. No reescribas durante diagnóstico. No crees archivos ni estructura. '
                 'Usá las versiones de fuentes del último mensaje; las anteriores pueden estar desactualizadas. '
                 'La skill se usa como guía editorial, sin ejecutar scripts ni consultar otros archivos.')
+            if interview_guide:
+                instructions += (' La aplicación guarda las respuestas en el historial del proyecto antes de cada turno. '
+                                 'No afirmes haber escrito archivos ni marcado decisiones como aprobadas. '
+                                 'Consultá solo vacíos relevantes, recomendá brevemente cuando ayude y terminá con '
+                                 'una sola pregunta. No despliegues un cuestionario ni adelantes una novela. '
+                                 'Guía instalada de la entrevista:\n' + interview_guide)
             policy = {'cwd': str(cwd), 'permissions': 'storyworkbench', 'approvalPolicy': 'never',
                       'approvalsReviewer': 'user', 'modelProvider': 'openai',
                       'allowProviderModelFallback': False, 'developerInstructions': instructions}
@@ -134,7 +162,8 @@ class Assistant:
                 data.update(thread=thread_id, context_key=key)
                 self.store.persist(data)
             context = [{'id': d['id'], 'name': d['name'], 'role': d['role'], 'text': d['content']} for d in docs]
-            text = (MODES[run['mode']] + '\nPetición del autor:\n' + run['prompt'] +
+            text = (MODES[run['mode']] + '\nProyecto e idea inicial (datos del autor):\n' +
+                    json.dumps(project_brief, ensure_ascii=False) + '\nPetición del autor:\n' + run['prompt'] +
                     '\nDecisiones editoriales (el estado rejected significa NO aceptado):\n' +
                     json.dumps(decisions, ensure_ascii=False) + '\nFuentes completas seleccionadas:\n' +
                     json.dumps(context, ensure_ascii=False))

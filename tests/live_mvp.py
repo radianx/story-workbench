@@ -39,6 +39,31 @@ def wait(assistant,store,project):
     return run
 
 
+def interview():
+    with tempfile.TemporaryDirectory(prefix='sw-live-interview-') as directory:
+        store=Store(directory)
+        project=store.create('La biblioteca a la deriva',workflow='guided',
+                             initial_idea='Una biblioteca viaja en un barco entre pueblos aislados.')['id']
+        assistant=Assistant(store)
+        first=assistant.start_interview(project)
+        assert assistant.start_interview(project)==first
+        run=wait(assistant,store,project)
+        assert run['status']=='completed' and run['text'].count('?')==1,run['text']
+        print('Primera pregunta real:',run['text'],flush=True)
+        data=store.load(project)
+        assert data['documents']==[] and len(data['runs'])==1 and data['workflow']=='guided'
+        thread=data['thread']
+        store=Store(directory);assistant=Assistant(store)
+        assert assistant.start_interview(project)==first
+        assistant.start(project,'interview',
+                        'Quiero que el lector sienta asombro y esperanza. La protagonista es una bibliotecaria llamada Mara.',True)
+        run=wait(assistant,store,project)
+        assert run['status']=='completed' and run['text'].count('?')==1,run['text']
+        assert store.load(project)['thread']==thread and store.load(project)['documents']==[]
+        print('Siguiente pregunta real:',run['text'],flush=True)
+        print('OK entrevista build-novel: proyecto vacío, una pregunta por turno, respuestas persistidas, sin duplicación ni manuscrito automático.',flush=True)
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix='sw-permissions-') as d:asyncio.run(permissions(d))
     with tempfile.TemporaryDirectory(prefix='sw-live-mvp-') as d:
@@ -79,4 +104,6 @@ def main():
         print('OK retirar una fuente abre hilo nuevo.',flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    if '--interview-only' in sys.argv:interview()
+    else:main();interview()

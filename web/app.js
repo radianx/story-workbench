@@ -20,7 +20,7 @@ window.addEventListener('storage', event => {
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
+const labels = {interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
 if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
@@ -57,14 +57,18 @@ async function openProject(id) {
   $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false;
   $('project').value=id; $('project-title').textContent=state.title;
   lastRuns=lastProposals=lastDecisions='';
-  renderDocuments(); renderAssistant();
+  applyWorkflow(); renderDocuments(); renderAssistant();
   if(state.documents.length) {const last=sessionStorage.getItem(`sw-doc-${id}`);openDocument(state.documents.some(d=>d.id===last)?last:state.documents[0].id,true);}
   else clearDocument();
+  showPanel('conversation');
+  if(state.workflow==='guided' && !state.runs.some(r=>r.mode==='interview')) {
+    try {await beginInterview();} catch(error) {notice(error.message,true);}
+  }
 }
 function clearDocument() {
   current=null; $('editor').value=''; $('doc-title').value=''; $('editor').disabled=true;
   for(const id of ['save','rename','role','download']) $(id).disabled=true;
-  $('history').textContent='Todavía no hay documentos.'; updateStats();
+  $('history').textContent='Todavía no hay documentos.'; $('preview').textContent=''; $('conflict').hidden=true; updateStats(); renderView();
 }
 function renderDocuments() {
   const term=$('search').value.toLocaleLowerCase();
@@ -130,21 +134,83 @@ async function nameDialog(title, value='') {
   $('dialog-title').textContent=title; $('new-name').value=value; $('name-dialog').showModal(); $('new-name').focus();
   return new Promise(resolve=>$('name-dialog').addEventListener('close',()=>resolve($('name-dialog').returnValue==='ok'?$('new-name').value.trim():null),{once:true}));
 }
+let wizardStep=1;
+function setWizardStep(step) {
+  wizardStep=step;
+  $('wizard-details').hidden=step!==1; $('wizard-approach').hidden=step!==2;
+  $('wizard-back').hidden=step!==2; $('wizard-next').hidden=step!==1; $('wizard-create').hidden=step!==2;
+  $('wizard-step').textContent=step===1?'PASO 1 DE 2 · TU PROYECTO':'PASO 2 DE 2 · TU PUNTO DE PARTIDA';
+  $('wizard-title').textContent=step===1?'Dale un espacio a tu historia.':'Elegí cómo querés continuar.';
+  (step===1?$('project-name'):document.querySelector('[name="start-workflow"]:checked')).focus();
+}
+function projectWizard() {
+  $('wizard-form').reset(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=true;
+  $('wizard-create').textContent='Crear proyecto'; $('project-wizard').showModal(); setWizardStep(1);
+  return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>resolve(
+    $('project-wizard').returnValue==='create'?{
+      title:$('project-name').value.trim(), workflow:document.querySelector('[name="start-workflow"]:checked').value,
+      initial_idea:$('project-idea').value.trim()}:null),{once:true}));
+}
+$('wizard-next').onclick=()=>{if($('project-name').reportValidity() && $('project-name').value.trim())setWizardStep(2);};
+$('wizard-back').onclick=()=>setWizardStep(1);
+$('wizard-cancel').onclick=()=>$('project-wizard').close('cancel');
+$('wizard-form').onsubmit=e=>{e.preventDefault();if(wizardStep===1)$('wizard-next').click();else $('project-wizard').close('create');};
+document.querySelectorAll('[name="start-workflow"]').forEach(input=>input.onchange=()=>{
+  const guided=document.querySelector('[name="start-workflow"]:checked').value==='guided';
+  $('wizard-guided-note').hidden=!guided; $('wizard-create').textContent=guided?'Crear e iniciar entrevista':'Crear proyecto';
+});
 async function createProject(demo=false) {
   if(!confirmLeave())return;
-  const title=demo?'El faro · proyecto ficticio':await nameDialog('Dale un nombre a tu historia');
-  if(!title)return;
-  const project=await api('/api/projects',{title,demo});dirty=false;
+  const setup=demo?{title:'El faro · proyecto ficticio',workflow:'writing'}:await projectWizard();
+  if(!setup)return;
+  const project=await api('/api/projects',{...setup,demo});dirty=false;
   await refreshProjects(); await openProject(project.id);
 }
+function applyWorkflow() {
+  const guided=state.workflow==='guided';
+  document.body.classList.toggle('guided',guided); $('workflow').value=guided?'guided':'writing';
+  const assistant=document.querySelector('.assistant'), manuscript=document.querySelector('.manuscript');
+  $('workspace').insertBefore(guided?assistant:manuscript,guided?manuscript:assistant);
+  $('assistant-title').textContent=guided?'Construyamos tu historia':'Asistente editorial';
+  $('assistant-eyebrow').textContent=guided?'UNA PREGUNTA POR VEZ':'UNA SEGUNDA MIRADA';
+  $('editor').placeholder=guided?'Tu material se reúne aquí. Podés crear notas o pasar a Escribir cuando quieras.':'Toda historia empieza en alguna parte…';
+  $('mode').value=guided?'interview':'chat'; setTaskMode();
+  lastRuns='';
+}
+function setTaskMode() {
+  const interview=$('mode').value==='interview';
+  if(interview)$('skill').checked=true;
+  $('skill').disabled=interview;
+  $('prompt').placeholder=interview?'Respondé con tus ideas. Vamos una pregunta por vez…':'¿Qué te gustaría trabajar en esta historia?';
+}
+async function beginInterview(retry=false) {
+  const project=state.id;
+  await api('/api/interview/start',{project,retry});
+  if(state.id!==project)return;
+  const incoming=await api(`/api/projects/${project}`);
+  if(state.id!==project)return;
+  state=incoming; renderAssistant();
+}
+$('workflow').onchange=action(async e=>{
+  state=await api('/api/project/workflow',{project:state.id,workflow:e.target.value});
+  applyWorkflow(); renderAssistant(); showPanel('conversation');
+  if(state.workflow==='guided' && !state.runs.some(r=>r.mode==='interview'))await beginInterview();
+});
+$('mode').onchange=setTaskMode;
+$('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
   const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active;
   $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
-  const runsKey=JSON.stringify([state.runs,state.documents.map(d=>d.hash)]);
+  const interview=state.runs.findLast(r=>r.mode==='interview');
+  $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
+  $('interview-start').textContent=interview?'Retomar entrevista':'Comenzar entrevista';
+  $('interview-hint').textContent=interview?'La entrevista quedó incompleta. Podés retomarla con el historial guardado.':'Podés empezar sin documentos. El agente te ayudará a encontrar el punto de partida.';
+  const runsKey=JSON.stringify([state.runs,state.documents.map(d=>d.hash),state.workflow]);
   if(runsKey!==lastRuns){
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
     $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}</div><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources"><summary>${r.sources.length} fuentes enviadas ${r.skill?'· build-novel':''}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}</div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>build-novel te acompaña, una pregunta por vez.</p></div>';
     if(nearBottom || state.runs.length===1)$('runs').scrollTop=$('runs').scrollHeight;
   }
   const proposalsKey=JSON.stringify(state.proposals);
@@ -167,7 +233,9 @@ async function poll() {
     const project=state.id, epoch=stateEpoch, incoming=await api(`/api/projects/${project}`);
     if(project!==state?.id || epoch!==stateEpoch)return;
     const wasBusy=!!busy();
+    const workflowChanged=state.workflow!==incoming.workflow;
     state=incoming;
+    if(workflowChanged)applyWorkflow();
     if(current){const latest=state.documents.find(d=>d.id===current.id);if(latest && latest.hash!==current.hash)$('conflict').hidden=false;}
     renderAssistant();
     if(wasBusy && !busy()) {renderDocuments();notice(state.runs.at(-1).status==='completed'?'La respuesta está lista.':'La tarea terminó. Revisá su estado.');}
@@ -195,7 +263,7 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.datase
 document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
 document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>{if(!current)return;view='edit';renderView();const e=$('editor'),start=e.selectionStart,end=e.selectionEnd,selected=e.value.slice(start,end),mark=b.dataset.format==='bold'?'**':b.dataset.format==='italic'?'*':'## ';e.setRangeText(mark+selected+(b.dataset.format==='heading'?'':mark),start,end,'select');e.focus();e.dispatchEvent(new Event('input'));});
 $('history').onclick=action(async e=>{const b=e.target.closest('[data-restore]');if(!b)return;if(dirty)throw new Error('Guardá o descargá tu borrador antes de restaurar.');if(!confirm('¿Restaurar esta versión? También conservaremos la versión actual.'))return;const doc=await api('/api/document/restore',{project:state.id,document:current.id,version:b.dataset.restore,hash:current.hash});state.documents=state.documents.map(d=>d.id===doc.id?doc:d);sessionStorage.removeItem(draftKey());openDocument(doc.id,true);notice('Versión restaurada.');});
-$('runs').onclick=action(async e=>{const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
+$('runs').onclick=action(async e=>{const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;setTaskMode();$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
 $('send').onclick=action(async()=>{if(dirty)throw new Error('Guardá el documento antes de enviarlo: Codex recibe la versión guardada.');if(!$('prompt').value.trim())return;await api('/api/run',{project:state.id,mode:$('mode').value,prompt:$('prompt').value.trim(),skill:$('skill').checked});$('prompt').value='';showPanel('conversation');await poll();});
 $('cancel').onclick=action(async()=>{const run=busy();if(run){await api('/api/run/cancel',{project:state.id,run:run.id});await poll();}});
 $('prompt').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('send').click();}};
@@ -203,7 +271,7 @@ $('proposals').onclick=action(async e=>{const b=e.target.closest('[data-accept],
 $('decision-form').onsubmit=action(async e=>{e.preventDefault();state=await api('/api/decision',{project:state.id,text:$('decision-text').value,status:$('decision-status').value});$('decision-text').value='';renderAssistant();notice('Decisión registrada.');});
 $('new-thread').onclick=action(async()=>{if(!confirm('¿Abrir una conversación nueva? Conservaremos las anteriores como historial y las decisiones registradas.'))return;state=await api('/api/thread/reset',{project:state.id});notice('El próximo mensaje abrirá una conversación nueva.');});
 $('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('Guardá antes de exportar el proyecto o descargá el borrador como Markdown.');const blob=await api(`/api/projects/${state.id}/export`);download(blob,'story-workbench.zip');});
-$('focus').onclick=()=>{const focused=document.body.classList.toggle('focus');$('focus').textContent=focused?'⛶ Salir de foco':'⛶ Modo foco';$('focus').setAttribute('aria-pressed',focused);if(current)$('editor').focus();};
+$('focus').onclick=()=>{const focused=document.body.classList.toggle('focus');$('focus').textContent=focused?'⛶ Salir de foco':'⛶ Modo foco';$('focus').setAttribute('aria-pressed',focused);if(state?.workflow==='guided')$('prompt').focus();else if(current)$('editor').focus();};
 $('inspire').onclick=()=>{if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}else $('background-file').click();};
 $('background-file').onchange=action(e=>{const file=e.target.files[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10000000)throw new Error('Usá una imagen PNG, JPEG o WebP de hasta 10 MB.');backgroundURL=URL.createObjectURL(file);$('ambient-image').src=backgroundURL;$('ambient-image').hidden=false;$('inspire').textContent='◑ Quitar ambiente';notice('Imagen local de esta pestaña. No se envía a Codex.');e.target.value='';});
 window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();$('save').click();}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();$('focus').click();}});

@@ -23,6 +23,7 @@ No se afirma exclusividad comercial ni detección perfecta. La hipótesis debe c
 
 Inspiración de interacción: NotebookLM, no copia de su identidad visual. Biblioteca y fuentes a la izquierda; manuscrito en el centro; asistente, contexto y decisiones a la derecha. Navegación por teclado y controles etiquetados desde el comienzo.
 
+- Inicio de proyecto: wizard con nombre, elección entre escritura directa y creación guiada, e idea inicial opcional. El modo guiado centra el chat e inicia la entrevista de build-novel con una pregunta por turno; funciona sin documentos y permite pasar al editor.
 - Apariencia: tema claro, oscuro o del sistema; del sistema por defecto, con elección recordada localmente.
 - Normal: paneles de trabajo visibles.
 - Foco: oculta paneles secundarios sin cambiar el documento ni detener tareas de manera implícita.

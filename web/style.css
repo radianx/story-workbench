@@ -6,3 +6,38 @@
 .theme-picker select{background:transparent;font-size:11px;padding:6px;max-width:95px}
 .top-actions{flex-wrap:wrap}
 @media(max-width:900px){.topbar{height:auto;min-height:82px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.top-actions{margin-left:auto}}
+.workflow-picker{display:flex;flex-direction:column;gap:7px;font-size:10px;color:var(--muted);margin:-8px 0 20px}
+.workflow-picker select{width:100%;font-size:11px;background:transparent;padding:7px}
+#project-wizard{width:540px;max-width:calc(100vw - 32px)}
+#project-wizard p{color:var(--muted);font-size:12px;line-height:1.8}
+#project-wizard textarea{width:100%}
+#project-wizard fieldset{border:0;padding:0;margin:0}
+#project-wizard legend{font-size:12px;margin-bottom:8px}
+#project-wizard .workflow-choice{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:16px;margin:10px 0;cursor:pointer}
+#project-wizard .workflow-choice:has(input:checked){background:var(--pale);border-color:var(--green)}
+#project-wizard .workflow-choice input{width:auto;margin:3px 0;accent-color:var(--green)}
+.workflow-choice strong{display:block;font-size:13px;margin-bottom:6px}
+.workflow-choice small{display:block;color:var(--muted);font-size:11px;line-height:1.7}
+.optional{color:var(--muted);font-weight:400}
+#wizard-guided-note{font-size:11px;border-left:2px solid var(--green);padding-left:12px;margin-top:16px}
+.interview-actions{padding:8px 22px 16px;font-size:11px;color:var(--muted);line-height:1.7}
+.guided .assistant{background:var(--paper);border-left:0;border-right:1px solid var(--line)}
+.guided .assistant-heading{padding:28px 36px 20px}
+.guided .assistant-heading h2{font-size:28px}
+.guided .assistant-tabs{padding-left:27px}
+.guided .runs{padding:28px 40px 15px}
+.guided .run{max-width:760px;margin:0 auto 28px}
+.guided .run-prompt{font-size:14px;margin-left:35px;padding:15px 20px}
+.guided .run-text{font-size:16px;line-height:1.9}
+.guided .composer{margin:0 30px 24px;padding:16px}
+.guided .composer textarea{font-size:14px}
+.guided .manuscript .editor-heading{padding:28px 22px 18px}
+.guided .manuscript .document-title-row input{font-size:22px}
+.guided .manuscript .paper{padding:24px}
+.guided .manuscript .paper textarea{font-size:15px}
+.guided .manuscript .format-actions,.guided .manuscript kbd{display:none}
+.guided .manuscript .editor-toolbar{padding:8px 12px}
+.guided.focus .assistant{display:flex}
+.guided.focus .manuscript{display:none}
+@media(max-width:900px){.guided .assistant{grid-column:2;grid-row:1;height:calc(100dvh - 82px);min-height:550px}.guided .manuscript{grid-column:2;grid-row:2;height:550px}.guided.focus .assistant{grid-column:1}.guided .runs{padding:20px}.guided .composer{margin:0 18px 18px}}
+@media(max-width:600px){.guided .assistant-heading{padding:24px}.guided .assistant-heading h2{font-size:24px}.guided .run-prompt{margin-left:12px}.guided .sources{max-height:390px}.workflow-picker{margin-bottom:20px}}
