@@ -23,6 +23,7 @@ No se afirma exclusividad comercial ni detección perfecta. La hipótesis debe c
 
 Inspiración de interacción: NotebookLM, no copia de su identidad visual. Biblioteca y fuentes a la izquierda; manuscrito en el centro; asistente, contexto y decisiones a la derecha. Navegación por teclado y controles etiquetados desde el comienzo.
 
+- Apariencia: tema claro, oscuro o del sistema; del sistema por defecto, con elección recordada localmente.
 - Normal: paneles de trabajo visibles.
 - Foco: oculta paneles secundarios sin cambiar el documento ni detener tareas de manera implícita.
 - Inspiración, posterior: imagen opcional por capítulo, generada con consentimiento y reutilizada. Fondo fuera del área de lectura, contraste suficiente y sin animaciones necesarias. Imágenes especulativas no son canon. No prometer disponibilidad ni coste hasta probar la herramienta de generación en esta integración.

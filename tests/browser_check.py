@@ -18,10 +18,27 @@ def main():
                 browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
                 page=browser.new_page(viewport={'width':1440,'height':1000},device_scale_factor=1)
                 errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+                page.emulate_media(color_scheme='dark')
                 page.goto(server.origin+'/#token='+server.token)
+                theme=page.get_by_role('combobox',name='Tema de apariencia')
+                assert theme.input_value()=='system'
+                assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
+                page.emulate_media(color_scheme='light')
+                assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(245, 246, 241)'
+                theme.select_option('dark')
+                assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
+                page.reload()
+                assert theme.input_value()=='dark'
+                theme.select_option('light')
+                page.emulate_media(color_scheme='dark')
+                assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(245, 246, 241)'
+                theme.select_option('system')
+                assert page.evaluate("localStorage.getItem('sw-theme')") is None
+                assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
                 page.get_by_role('button',name='Explorar un proyecto ficticio').click()
                 page.locator('#editor').wait_for()
                 page.wait_for_function("() => document.querySelector('#editor').value.includes('llave azul')")
+                page.screenshot(path='/tmp/story-workbench-dark.png',full_page=True)
                 project=server.store.list_projects()[0]['id']
                 data=server.store.snapshot(project);doc=data['documents'][0]
                 original=page.locator('#editor').input_value()
@@ -84,9 +101,14 @@ def main():
                 assert 'Conservar incierto' not in page.locator('#decisions').inner_text()
                 page.set_viewport_size({'width':390,'height':844})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                theme.select_option('light')
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                page.evaluate("localStorage.setItem('sw-theme','invalid')")
+                page.reload()
+                assert theme.input_value()=='system'
                 assert errors==[],errors
                 browser.close()
-                print('OK navegador: edición, historial, conflicto, propuesta, decisión, importación segura, foco, exportación, recarga y aislamiento de proyectos.')
+                print('OK navegador: temas sistema/claro/oscuro, cambios del sistema, persistencia, edición, historial, conflicto, propuesta, decisión, importación segura, foco, exportación, recarga y aislamiento de proyectos.')
         finally:
             server.shutdown();server.server_close()
 

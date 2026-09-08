@@ -27,6 +27,7 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental, detención e hilo persistente por proyecto. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
+| Apariencia | Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar la preferencia en este navegador. |
 | Ambiente | Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
 | Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. |
 

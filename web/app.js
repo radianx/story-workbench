@@ -1,5 +1,24 @@
 'use strict';
 const $ = id => document.getElementById(id);
+// El navegador sigue el sistema con color-scheme; solo guardamos una elección explícita.
+function applyTheme(value) {
+  const theme = ['light', 'dark'].includes(value) ? value : 'system';
+  document.documentElement.dataset.theme = theme;
+  $('theme').value = theme;
+}
+try { applyTheme(localStorage.getItem('sw-theme')); } catch { applyTheme('system'); }
+$('theme').onchange = () => {
+  applyTheme($('theme').value);
+  try {
+    if ($('theme').value === 'system') localStorage.removeItem('sw-theme');
+    else localStorage.setItem('sw-theme', $('theme').value);
+  } catch { notice('El tema se aplicó, pero el navegador no permitió recordar la elección.', true); }
+};
+window.addEventListener('storage', event => {
+  if (event.key === 'sw-theme' || event.key === null) {
+    try { applyTheme(localStorage.getItem('sw-theme')); } catch { applyTheme('system'); }
+  }
+});
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = {manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
