@@ -17,6 +17,8 @@ from workbench_store import Store, Problem, check, text_value, ROLES, WORKFLOWS,
 from workbench_ai import Assistant
 from workbench_account import Account
 from workbench_voice import Speech
+import workbench_modes as modes
+from workbench_realtime import Realtime, context as voice_context
 
 WEB = Path(__file__).parent / 'web'
 
@@ -28,6 +30,7 @@ class AppServer(ThreadingHTTPServer):
         root = Path(root).absolute()
         check(not any(is_link(p) for p in (root, *root.parents)), 'El directorio de datos no puede ser un enlace.')
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.realtime=Realtime()
         self.instance_fd = os.open(root / '.server.lock', os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0), 0o600)
         try:
             if os.name == 'nt':
@@ -72,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' wss://generativelanguage.googleapis.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -88,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js'):
+            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -96,7 +99,9 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path == '/api/voice':
+                if path == '/api/realtime':
+                    self.send(200,self.server.realtime.status())
+                elif path == '/api/voice':
                     self.send(200, self.server.speech.status())
                 elif path == '/api/account':
                     self.send(200, self.server.account.snapshot())
@@ -108,10 +113,15 @@ class Handler(BaseHTTPRequestHandler):
                     project = parts[2]
                     if len(parts) == 3:
                         self.send(200, store.snapshot(project))
-                    elif parts[3] in ('book.md', 'book.docx'):
+                    elif parts[3] in ('book.md', 'book.docx', 'translation.md', 'translation.docx'):
                         from workbench_export import export_book
-                        body, mime = export_book(store.snapshot(project), parts[3])
+                        snapshot=store.snapshot(project)
+                        if parts[3].startswith('translation.'):
+                            snapshot=modes.translation_edition(snapshot)
+                        body, mime = export_book(snapshot, 'book.'+parts[3].split('.')[-1])
                         self.send(200, body, mime)
+                    elif parts[3] == 'voice-context':
+                        self.send(200,voice_context(store.snapshot(project)))
                     elif parts[3] == 'export':
                         data = store.snapshot(project)
                         output = io.BytesIO()
@@ -120,8 +130,8 @@ class Handler(BaseHTTPRequestHandler):
                                 # Nombres de entrada controlados; sin traversal ni colisiones.
                                 archive.writestr(f'{i+1:02d}-{doc["id"][:8]}.md', doc['content'])
                             archive.writestr('manifest.json', json.dumps({
-                                'title': data['title'], 'documents': [
-                                    {'file': f'{i+1:02d}-{d["id"][:8]}.md', **{k: d[k] for k in ('name', 'role', 'synopsis', 'pov', 'stage') if k in d}}
+                                'title': data['title'], 'purpose':data['purpose'], 'translation_config':data.get('translation_config',{}), 'documents': [
+                                    {'file': f'{i+1:02d}-{d["id"][:8]}.md', **{k: d[k] for k in ('name', 'role', 'synopsis', 'pov', 'stage', 'translation', 'translation_status') if k in d}}
                                     for i, d in enumerate(data['documents'])], 'word_goal': data.get('word_goal', 0),
                                     'decisions': data['decisions']}, ensure_ascii=False, indent=2))
                         self.send(200, output.getvalue(), 'application/zip')
@@ -142,6 +152,17 @@ class Handler(BaseHTTPRequestHandler):
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path
             store = self.server.store
+            if path == '/api/realtime/key':
+                self.send(200,self.server.realtime.configure(body.get('key'),body.get('provider','openai')))
+                return
+            if path == '/api/realtime/connect':
+                with store.lock:
+                    snapshot=store.snapshot(body.get('project'))
+                provider=body.get('provider','openai');check(provider in ('openai','gemini'),'Proveedor de voz inválido.')
+                result=(self.server.realtime.connect_gemini(snapshot,body.get('consent'),body.get('actions',False)) if provider=='gemini'
+                        else self.server.realtime.connect(snapshot,body.get('sdp'),body.get('consent'),body.get('actions',False)))
+                self.send(200,result)
+                return
             if path == '/api/voice/transcribe':
                 self.send(200, self.server.speech.transcribe(body.get('pcm')))
                 return
@@ -166,11 +187,26 @@ class Handler(BaseHTTPRequestHandler):
             with store.lock:
                 if path == '/api/projects':
                     result = store.create(body.get('title'), bool(body.get('demo')),
-                                          body.get('workflow', 'writing'), body.get('initial_idea', ''))
+                                          body.get('workflow', 'writing'), body.get('initial_idea', ''), body.get('purpose','novel'))
                 else:
                     project = body.get('project')
                     data = store.load(project)
-                    if path == '/api/project/goal':
+                    if path == '/api/project/purpose':
+                        check(not self.server.assistant.active,'Esperá a que termine la tarea.',409)
+                        check(body.get('purpose') in modes.PURPOSES,'Objetivo inválido.')
+                        data.update(purpose=body['purpose'],thread=None,context_key=None)
+                        if data['purpose']!='novel':data['workflow']='guided'
+                        store.persist(data);result=store.snapshot(project)
+                    elif path == '/api/translation/config':
+                        check(not self.server.assistant.active,'Esperá a que termine la tarea.',409)
+                        modes.configure_translation(store,data,body.get('config'));result=store.snapshot(project)
+                    elif path == '/api/translation/answer':
+                        modes.answer_translation(store,data,body.get('run'),body.get('answer'));result=store.snapshot(project)
+                    elif path == '/api/translation/accept':
+                        result=modes.accept_translation(store,data,body.get('run'),body.get('text'))
+                    elif path == '/api/translation/review':
+                        modes.review_translation(store,data,body.get('document'),body.get('hash'),body.get('source_hash'));result=store.snapshot(project)
+                    elif path == '/api/project/goal':
                         goal = body.get('goal')
                         check(type(goal) is int and 0 <= goal <= 2_000_000, 'Meta inválida: entre 0 y 2.000.000 palabras.')
                         data['word_goal'] = goal

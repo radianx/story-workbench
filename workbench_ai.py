@@ -10,8 +10,10 @@ import time
 from scripts.codex_smoke import Server, SmokeError
 from workbench_account import ai_preferences, list_models, resolve_ai
 from workbench_store import Problem, check, digest, uid
+from workbench_modes import GUIDES, TRANSLATION_INSTRUCTION, TRANSLATION_SCHEMA, translation_context, validate_translation
 
 MODES = {
+    'translate': TRANSLATION_INSTRUCTION,
     'draft': 'Redactá únicamente el borrador solicitado, con el alcance, voz y decisiones aprobadas del autor. Usá las fuentes e historial disponibles. Si falta una decisión indispensable, hacé una pregunta concreta antes de redactar. No conviertas propuestas pendientes en canon. No escribas archivos: el autor decide si guarda el resultado.',
     'interview': 'Conducí la entrevista editorial inicial en español, una pregunta relevante por turno. Partí de la idea y respuestas ya aportadas; no reinicies ni repitas preguntas resueltas. No redactes el manuscrito ni decidas canon por el autor.',
     'chat': 'Conversá con el autor. No propongas reemplazos salvo que se pidan. Respondé en español.',
@@ -54,6 +56,8 @@ class Assistant:
             check(self.active is None, 'Ya hay una tarea en curso. Detenela o esperá.', 409)
             check(mode in MODES, 'Modo inválido.')
             data = self.store.load(project)
+            check(mode!='translate' or data['purpose']=='translation', 'Elegí el modo Traducción.')
+            check(not (mode=='draft' and data['purpose']=='translation'), 'Para traducir usá Traducir y consultar matices: conserva revisión y vínculo al original.')
             preferences = ai_preferences(data.get('ai_preferences', {}))
             docs = [self.store.document(data, d['id']) for d in data['documents'] if d['selected']]
             check(docs or mode in ('interview', 'draft'), 'Seleccioná al menos una fuente.')
@@ -61,9 +65,12 @@ class Assistant:
                 check(use_skill is True, 'La entrevista guiada requiere build-novel.')
             check(sum(len(d['content']) + len(d.get('synopsis', '')) + len(d.get('pov', '')) for d in docs) <= 60_000,
                   'El contexto supera 60.000 caracteres. Seleccioná menos fuentes; no se recortará en silencio.')
+            translation = translation_context(self.store,data,docs) if mode=='translate' else None
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash'], 'synopsis': d.get('synopsis', ''), 'pov': d.get('pov', '')} for d in docs],
-                       source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill), requested_ai=preferences)
+                       source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill) and data['purpose']!='rpg', requested_ai=preferences, purpose=data['purpose'])
+            if translation:
+                run['translation_context']=translation
             data['runs'].append(run)
             self.store.persist(data)
             self.cancel.clear()
@@ -76,7 +83,7 @@ class Assistant:
         with self.store.lock:
             data = self.store.load(project)
             check(data['workflow'] == 'guided', 'Elegí el modo guiado para iniciar la entrevista.')
-            runs = [r for r in data['runs'] if r['mode'] == 'interview']
+            runs = [r for r in data['runs'] if r['mode'] == 'interview' and r.get('purpose','novel')==data['purpose']]
             # Recargar o abrir otra pestaña no debe consumir otro turno de bienvenida.
             if runs and (not retry or runs[-1]['status'] not in ('failed', 'interrupted')):
                 return {'id': runs[-1]['id']}
@@ -130,17 +137,19 @@ class Assistant:
                 'busca para el lector; después explorar protagonista, deseo, conflicto, mundo, voz y alcance '
                 'en el orden que resulte útil. Aprovechá lo ya respondido. Separá opciones de decisiones. '
                 'Cuando alcance para un plan, ofrecé un esquema provisional y pedí aprobación antes de redactar. '
-                'Si el autor pide avanzar o revisar, respetá el alcance solicitado.') if run['mode'] == 'interview' else ''
-            if run['mode'] == 'interview' and skill:
+                'Si el autor pide avanzar o revisar, respetá el alcance solicitado.') if run['mode'] == 'interview' and run.get('purpose','novel')=='novel' else ''
+            if run['mode'] == 'interview' and skill and run.get('purpose','novel')=='novel':
                 guide = Path(skill).parent / 'references' / 'interview.md'
                 check(guide.is_file() and guide.stat().st_size <= 30_000,
                       'No se encontró una guía de entrevista válida en build-novel. Revisá su instalación.')
                 interview_guide = guide.read_text(encoding='utf-8')
             with self.store.lock:
                 data = self.store.load(project)
-                project_brief = {'title': data['title'], 'initial_idea': data['initial_idea']}
+                project_brief = {'title': data['title'], 'initial_idea': data['initial_idea'], 'purpose':run.get('purpose','novel')}
+                if run.get('purpose')=='translation':
+                    project_brief['translation_brief']=data.get('translation_config',{})
                 # Cambiar selección o skill abre hilo nuevo: las fuentes retiradas no siguen en su historial.
-                key = digest(json.dumps([sorted(d['id'] for d in docs), bool(skill)]))
+                key = digest(json.dumps([sorted(d['id'] for d in docs), bool(skill),project_brief.get('purpose'),project_brief.get('translation_brief')]))
                 thread_id = data['thread'] if data['context_key'] == key else None
                 decisions = data['decisions']
                 check(len(json.dumps(decisions, ensure_ascii=False)) <= 30_000,
@@ -152,6 +161,7 @@ class Assistant:
                 'La sinopsis y POV del plan son orientaciones provisionales, no hechos aprobados. Una propuesta no es canon. No reescribas durante diagnóstico. No crees archivos ni estructura. '
                 'Usá las versiones de fuentes del último mensaje; las anteriores pueden estar desactualizadas. '
                 'La skill se usa como guía editorial, sin ejecutar scripts ni consultar otros archivos.')
+            instructions += '\n'+GUIDES.get(run.get('purpose','novel'),'')
             if interview_guide:
                 instructions += (' La aplicación guarda las respuestas en el historial del proyecto antes de cada turno. '
                                  'No afirmes haber escrito archivos ni marcado decisiones como aprobadas. '
@@ -181,12 +191,16 @@ class Assistant:
                     '\nDecisiones editoriales (el estado rejected significa NO aceptado):\n' +
                     json.dumps(decisions, ensure_ascii=False) + '\nFuentes completas seleccionadas:\n' +
                     json.dumps(context, ensure_ascii=False))
+            if run.get('translation_context'):
+                text+='\nUnidad original congelada y encargo de traducción:\n'+json.dumps(run['translation_context'],ensure_ascii=False)
             inputs = [{'type': 'text', 'text': text}]
             if skill:
                 inputs.append({'type': 'skill', 'name': 'build-novel', 'path': skill})
             params = {'threadId': thread_id, 'input': inputs, **chosen}
             if run['mode'] == 'proposal':
                 params['outputSchema'] = PROPOSAL_SCHEMA
+            elif run['mode']=='translate':
+                params['outputSchema']=TRANSLATION_SCHEMA
             response = await server.rpc('turn/start', params)
             turn_id = response['turn']['id']
             self.update(project, run['id'], status='running', stage='generation', resumed=resumed)
@@ -227,6 +241,11 @@ class Assistant:
                                 self.store.proposals_from_result(data, run, result['proposals'])
                                 self.store.persist(data)
                             output = result['summary']
+                        if status=='completed' and run['mode']=='translate':
+                            self.update(project,run['id'],stage='validation')
+                            result=validate_translation(json.loads(output),run['translation_context'])
+                            self.update(project,run['id'],translation_result=result)
+                            output=result['message']
                         self.update(project, run['id'], text=output, status=status,
                                     stage='ready' if status == 'completed' else 'stopped')
                         return

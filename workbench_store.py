@@ -107,6 +107,7 @@ class Store:
         check(path.is_file(), 'Proyecto no encontrado.', 404)
         data = json.loads(path.read_text(encoding='utf-8'))
         data.setdefault('workflow', 'writing')
+        data.setdefault('purpose', 'novel')
         data.setdefault('initial_idea', '')
         return data
 
@@ -114,7 +115,10 @@ class Store:
         data['updated'] = time.time()
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
-    def create(self, title, demo=False, workflow='writing', initial_idea=''):
+    def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel'):
+        from workbench_modes import PURPOSES
+        check(purpose in PURPOSES, 'Objetivo de proyecto inválido.')
+        check(not demo or purpose=='novel', 'El ejemplo es un proyecto de historia.')
         text_value(title, 160, False)
         check(workflow in WORKFLOWS, 'Forma de trabajo inválida.')
         text_value(initial_idea, 6000)
@@ -126,7 +130,7 @@ class Store:
             (path / name).mkdir(mode=0o700)
         data = dict(id=project, title=title, updated=time.time(), documents=[], proposals=[],
                     decisions=[], runs=[], thread=None, context_key=None,
-                    workflow=workflow, initial_idea=initial_idea)
+                    workflow=workflow, initial_idea=initial_idea, purpose=purpose)
         self.persist(data)
         if demo:
             examples = [
@@ -136,7 +140,7 @@ class Store:
                 ('02 · El cuarto de radio.md', 'manuscrito', '# El cuarto de radio\n\nInés giró la llave roja. Tomás esperó al otro lado de la puerta.\n\nLa voz volvió a llamarla. Ella no contestó.\n')]
             for name, role, content in examples:
                 self.add_document(project, name, role, content)
-        elif workflow == 'writing':
+        elif workflow == 'writing' and purpose=='novel':
             self.add_document(project, 'Manuscrito.md', 'manuscrito', '')
         return self.load(project)
 
@@ -149,6 +153,9 @@ class Store:
         result = {**found, 'content': content, 'hash': digest(content)}
         if result.get('stage') == 'reviewed' and result.get('review_hash') != result['hash']:
             result['stage'] = 'revise'
+        if result.get('translation'):
+            from workbench_modes import translation_status
+            result['translation_status']=translation_status(self,data,result)
         return result
 
     def snapshot(self, project):
@@ -159,7 +166,7 @@ class Store:
             run.pop('source_texts', None)
         return data
 
-    def add_document(self, project, name, role, content, selected=True, source_run=None):
+    def add_document(self, project, name, role, content, selected=True, source_run=None, translation=None):
         text_value(name, 200, False)
         text_value(content)
         check(role in ROLES, 'Rol inválido.')
@@ -167,6 +174,8 @@ class Store:
         data = self.load(project)
         check(len(data['documents']) < 100, 'Límite del prototipo: 100 documentos por proyecto.')
         document = dict(id=uid(), name=name, role=role, selected=selected, history=[])
+        if translation:
+            document['translation']=translation
         if source_run:
             document['source_run'] = source_run
         atomic(self.path(project, 'documents', document['id'] + '.md'), content)
@@ -204,7 +213,7 @@ class Store:
             return self.document(data, run['saved_document'])
         existing = next((d for d in data['documents'] if d.get('source_run') == run_id), None)
         document = (self.document(data, existing['id']) if existing else
-                    self.add_document(data['id'], 'Borrador provisional.md', 'manuscrito', run['text'], source_run=run_id))
+                    self.add_document(data['id'], 'Material de rol provisional.md' if run.get('purpose')=='rpg' else 'Borrador provisional.md', 'plan' if run.get('purpose')=='rpg' else 'manuscrito', run['text'], selected=run.get('purpose')!='rpg', source_run=run_id))
         # Recargar: add_document ya guardó los metadatos del nuevo documento.
         data = self.load(data['id'])
         next(r for r in data['runs'] if r['id'] == run_id)['saved_document'] = document['id']

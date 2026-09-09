@@ -62,7 +62,8 @@ async function start() {
     details.mediaType === 'audio' && requestingOrigin.replace(/\/$/,'') === uiOrigin);
   // Only the local UI may make requests; ChatGPT login opens in the system browser.
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    callback({ cancel: !details.url.startsWith(origin + '/') && !details.url.startsWith(uiOrigin + '/') && !/^(blob:|data:|devtools:)/.test(details.url) });
+    const gemini=details.resourceType==='webSocket' && details.url.startsWith('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=');
+    callback({ cancel: !gemini && !details.url.startsWith(origin + '/') && !details.url.startsWith(uiOrigin + '/') && !/^(blob:|data:|devtools:)/.test(details.url) });
   });
   window = new BrowserWindow({ width: 1440, height: 960, minWidth: 390, minHeight: 640,
     title: 'Story Workbench', autoHideMenuBar: true, show: false,
@@ -90,7 +91,7 @@ async function start() {
       const exportResponse=await fetch('/api/projects/'+project.id+'/book.docx',{headers});
       if(!exportResponse.ok || !document.querySelector('#plan-dialog') || !document.querySelector('#ai-model'))return false;
       document.querySelector('#help-open').click();
-      if(!document.querySelector('#help-dialog').open || document.querySelectorAll('.help-topic').length!==11)return false;
+      if(!document.querySelector('#help-dialog').open || document.querySelectorAll('.help-topic').length!==14)return false;
       document.querySelector('#help-close').click();
       const before=localStorage.getItem('desktop-smoke');
       localStorage.setItem('desktop-smoke','persisted');

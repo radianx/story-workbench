@@ -1,3 +1,15 @@
+# Traducción, rol y asistentes de voz 0.5.0 — 2026-09-09
+
+- Pasaron 27 pruebas de servidor y 4 del cliente stdio. Nuevas comprobaciones cubren criterio humano, copias traducidas, conflictos, revisión por versión, exportación, modos antiguos, claves en memoria, consentimiento, exclusión de fuentes retiradas, contratos HTTP y errores de ambos proveedores.
+- Pasaron seis recorridos de Chrome: base, UX, voz local, modos, OpenAI Realtime simulado y Gemini Live simulado. Usan ficción, respuestas/transportes externos simulados y micrófono virtual. Cubren acciones permitidas/denegadas, ausencia de aprobación automática, duplicados, mensajes pendientes, cancelación, permisos tardíos, PCM entrada/salida, interrupción de reproducción y liberación de recursos.
+- `tests/live_modes_check.py` pasó tres turnos reales de ChatGPT: consulta de matiz con cita/alternativas, traducción tras criterio humano y entrevista de rol con una pregunta. Se usó ficción temporal. No se tocaron libros vecinos.
+- La prueba experimental de Realtime con sesión ChatGPT devolvió `realtime conversation requires API key auth`. Se documentó la limitación y se implementaron proveedores API explícitos: OpenAI gpt-realtime y Gemini Live con clave AI Studio. No hubo claves reales ni llamadas de pago; ambos transportes externos siguen pendientes de validación con cuenta/API real.
+- `tests/desktop_check.py --voice` pasó en Electron Linux 0.5.0 desempaquetado: backend y UI, aislamiento, DOCX, ayuda de 14 temas, micrófono virtual, cámara denegada, dictado/lectura y preferencias tras reinicio. Verificados sus 74 hashes y los archivos web idénticos al código actual. La excepción de sandbox pertenece solo a esta prueba desempaquetada.
+- El runtime Windows incluido pasó bajo Wine: Python, servidor, copias, guardado/historial, bloqueo de instancia y Vosk español. Verificados 91 hashes y fuentes idénticas. No equivale a instalación, interfaz o voz online probadas en Windows nativo.
+- Generados los instaladores locales 0.5.0 Linux `.deb` y Windows `.exe`, con `dist/installers/SHA256SUMS`. Sin firma ni publicación. La versión instalada verificada con dpkg sigue siendo 0.3.0; no se actualizó automáticamente.
+- Una corrección final hace que la tarjeta del chat refleje la revisión aprobada de una traducción incluso cuando el texto no cambia; el recorrido de modos volvió a pasar.
+- Ver [alcance de modos](MODES.md) y [voz, privacidad, facturación y fuentes oficiales](REALTIME.md). Los resultados anteriores se conservan debajo como historial.
+
 # Ayuda y usabilidad 0.4.0 — 2026-09-09
 
 - Pasaron las 4 comprobaciones del protocolo y las 19 de almacenamiento/HTTP/modelos/plan/exportación/voz. Sintaxis Python/JS y `git diff --check` correctos.

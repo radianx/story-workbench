@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('#help-search').fill('<script>no-existe</script>')
             assert page.locator('#help-empty').is_visible()
             page.locator('#help-clear').click()
-            assert page.locator('.help-topic:visible').count()==11
+            assert page.locator('.help-topic:visible').count()==14
             page.screenshot(path='/tmp/story-workbench-help.png', full_page=True)
             page.keyboard.press('Escape')
             assert writes==[] and server.store.list_projects()==[]

@@ -20,7 +20,7 @@ window.addEventListener('storage', event => {
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
+const labels = {translate:'Traducción',draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
 if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
@@ -68,7 +68,7 @@ async function openProject(id) {
   if(state.documents.length) {const last=sessionStorage.getItem(`sw-doc-${id}`);openDocument(state.documents.some(d=>d.id===last)?last:state.documents[0].id,true);}
   else clearDocument();
   showPanel('conversation');
-  if(state.workflow==='guided' && !state.runs.some(r=>r.mode==='interview')) {
+  if(state.workflow==='guided' && !hasPurposeInterview()) {
     try {await beginInterview();} catch(error) {notice(error.message,true);}
   }
 }
@@ -153,12 +153,12 @@ function setWizardStep(step) {
   (step===1?$('project-name'):document.querySelector('[name="start-workflow"]:checked')).focus();
 }
 function projectWizard() {
-  $('wizard-form').reset(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
+  $('wizard-form').reset();updateWizardPurpose(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
   $('wizard-create').textContent='Crear e iniciar entrevista'; $('project-wizard').showModal(); setWizardStep(1);
   return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>resolve(
     $('project-wizard').returnValue==='create'?{
       title:$('project-name').value.trim(), workflow:document.querySelector('[name="start-workflow"]:checked').value,
-      initial_idea:$('project-idea').value.trim()}:null),{once:true}));
+      initial_idea:$('project-idea').value.trim(),purpose:$('wizard-purpose').value}:null),{once:true}));
 }
 $('wizard-next').onclick=()=>{if($('project-name').reportValidity() && $('project-name').value.trim())setWizardStep(2);};
 $('wizard-back').onclick=()=>setWizardStep(1);
@@ -184,7 +184,7 @@ function applyWorkflow() {
   $('assistant-eyebrow').textContent=guided?'UNA PREGUNTA POR VEZ':'UNA SEGUNDA MIRADA';
   $('editor').placeholder=guided?'Tu material se reúne aquí. Podés crear notas o pasar a Escribir cuando quieras.':'Toda historia empieza en alguna parte…';
   $('mode').value=guided?'interview':'chat'; setTaskMode();
-  lastRuns='';
+  applyPurpose();lastRuns='';
 }
 function setTaskMode() {
   updateTaskHelp();
@@ -205,27 +205,28 @@ async function beginInterview(retry=false) {
 $('workflow').onchange=action(async e=>{
   state=await api('/api/project/workflow',{project:state.id,workflow:e.target.value});
   applyWorkflow(); savePromptDraft(); renderAssistant(); showPanel('conversation');
-  if(state.workflow==='guided' && !state.runs.some(r=>r.mode==='interview'))await beginInterview();
+  if(state.workflow==='guided' && !hasPurposeInterview())await beginInterview();
 });
 $('mode').onchange=()=>{setTaskMode();savePromptDraft();};
 $('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
-  renderAISettings(); renderProgress(); updateVoice();
+  renderAISettings(); renderProgress(); updateRealtime(); updateVoice();
   const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||voiceBusy();
   $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
-  const interview=state.runs.findLast(r=>r.mode==='interview');
+  const interview=state.runs.findLast(r=>r.mode==='interview' && (r.purpose||'novel')===(state.purpose||'novel'));
   $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
   $('interview-start').textContent=interview?'Retomar entrevista':'Comenzar entrevista';
   $('interview-hint').textContent=interview?'La entrevista quedó incompleta. Podés retomarla con el historial guardado.':'Podés empezar sin documentos. El agente te ayudará a encontrar el punto de partida.';
-  const runsKey=JSON.stringify([state.runs,state.documents.map(d=>d.hash),state.workflow]);
+  const runsKey=JSON.stringify([state.runs,state.documents.map(d=>[d.hash,d.translation_status]),state.workflow]);
   if(runsKey!==lastRuns){
+    const restoreTranslationFocus=rememberTranslationFocus();
     const scrollPosition=$('runs').scrollTop;
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.model)} · ${escapeHTML(effortLabels[r.effort]||r.effort)}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':'Guardar como borrador provisional'}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.model)} · ${escapeHTML(effortLabels[r.effort]||r.effort)}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
     if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
     if(nearBottom)$('runs').scrollTop=$('runs').scrollHeight;else $('runs').scrollTop=scrollPosition;
-    updateLatestAnswer();
+    restoreTranslationFocus();updateLatestAnswer();
   }
   const proposalsKey=JSON.stringify(state.proposals);
   $('proposal-count').textContent=state.proposals.filter(p=>p.status==='pending').length;
@@ -395,7 +396,7 @@ setInterval(async () => {
     const previous=accountState.status; await refreshAccount();
     if (previous!=='connected' && accountState.status==='connected') {
       $('account-dialog').close();
-      if(state?.workflow==='guided' && !state.runs.some(r=>r.mode==='interview')) await beginInterview();
+      if(state?.workflow==='guided' && !hasPurposeInterview()) await beginInterview();
     }
   } catch(error) { notice(error.message,true); } finally { accountPolling=false; }
 }, 1000);

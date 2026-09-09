@@ -1,12 +1,13 @@
 'use strict';
 let voiceCapabilities={}, recording=null, transcribing=false, voiceGeneration=0, readingGeneration=0, readingAudio=null, readingURL=null, readingActive=false;
-const voiceBusy=()=>!!recording||transcribing;
+const remoteVoiceBusy=()=>typeof realtimeBusy==='function'&&realtimeBusy();
+const voiceBusy=()=>!!recording||transcribing||remoteVoiceBusy();
 function voiceStatus(message){$('voice-status').textContent=message;}
 function renderVoice(){
-  $('dictate').disabled=!state||transcribing||!voiceCapabilities.dictation;
+  $('dictate').disabled=!state||transcribing||remoteVoiceBusy()||!voiceCapabilities.dictation;
   $('dictate').textContent=recording?'■ Terminar dictado':'● Dictar respuesta';
   $('dictate').setAttribute('aria-pressed',String(!!recording));$('dictate-cancel').hidden=!recording;
-  $('read-last').disabled=!voiceCapabilities.reading||!state?.runs.some(r=>r.status==='completed'&&r.text);
+  $('read-last').disabled=!voiceCapabilities.reading||remoteVoiceBusy()||!state?.runs.some(r=>r.status==='completed'&&r.text);
   $('read-stop').hidden=!readingActive;
   if(state)$('send').disabled=!!busy()||voiceBusy();
 }
@@ -35,6 +36,7 @@ async function releaseRecording(capture){
   capture.source?.disconnect();capture.node?.disconnect();if(capture.context && capture.context.state!=='closed')await capture.context.close();
 }
 async function cancelVoice(){
+  if(remoteVoiceBusy())stopRealtime();
   voiceGeneration++;const capture=recording;recording=null;transcribing=false;
   if(capture)await releaseRecording(capture);stopReading();renderVoice();
 }
@@ -54,7 +56,7 @@ async function finishDictation(){
 }
 async function startDictation(){
   if(recording)return finishDictation();
-  if(!state||transcribing)return;
+  if(!state||transcribing||remoteVoiceBusy())return;
   stopReading();const generation=++voiceGeneration;
   const capture={project:state.id,generation,parts:[],samples:0};recording=capture;renderVoice();voiceStatus('Esperando permiso del micrófono…');
   try {

@@ -54,7 +54,7 @@ const templates = {
   voice:{role:'estilo',text:'## Perspectiva y tiempo verbal\n\nPor definir.\n\n## Registro, ritmo y diálogo\n\nPor definir.\n\n## Qué debe sentir el lector\n\nPor definir.\n\n## Ejemplo de voz aprobado por el autor\n\nAgregar solo texto propio o autorizado.\n\n## Recursos a evitar\n\nPor definir.'},
   outline:{role:'plan',text:'## Premisa y promesa al lector\n\nPor definir.\n\n## Situación inicial y detonante\n\nPor definir.\n\n## Deseo, obstáculos y decisiones\n\nPor definir.\n\n## Giro y consecuencias\n\nPor definir.\n\n## Clímax y cierre\n\nPor definir.\n\n## Vacíos que debemos conversar\n\nPor definir.'}
 };
-$('template-open').onclick=()=>{$('template-form').reset();$('template-dialog').showModal();$('template-name').focus();};
+$('template-open').onclick=()=>{$('template-form').reset();if(state.purpose==='rpg')$('template-type').value='rpg_world';$('template-dialog').showModal();$('template-name').focus();};
 $('template-cancel').onclick=()=>$('template-dialog').close();
 $('template-form').onsubmit=action(async e=>{
   e.preventDefault();if(dirty)throw new Error('Guardá el documento actual antes de crear una ficha.');
