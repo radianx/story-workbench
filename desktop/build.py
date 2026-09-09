@@ -43,7 +43,7 @@ def main():
         pattern, suffix = '*.deb', 'linux-amd64.deb'
     subprocess.run(base + ['sh', '-c', command], check=True)
     version = json.loads((ROOT/'src-tauri/tauri.conf.json').read_text())['version']
-    packages = list(bundles.glob(pattern))
+    packages = [package for package in bundles.glob(pattern) if f'_{version}_' in package.name]
     assert len(packages) == 1, 'Revisar paquetes de builds anteriores.'
     output = ROOT/'dist/installers'; output.mkdir(parents=True, exist_ok=True)
     destination = output/f'Story-Workbench-{version}-{suffix}'

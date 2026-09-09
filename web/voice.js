@@ -146,13 +146,15 @@ $('dictate').onclick=action(async()=>{if($('realtime-enabled').checked){if(!real
 $('dictate-cancel').onclick=action(async()=>{await cancelVoice();voiceStatus('Dictado descartado.');});
 $('read-last').onclick=action(()=>readText(state.runs.findLast(r=>r.status==='completed'&&r.text).text));
 $('read-stop').onclick=()=>{stopReading();voiceStatus('Lectura detenida.');};
+$('auto-read').onchange=()=>{if(!$('auto-read').checked){stopReading();voiceStatus('Lectura automática desactivada.');}};
 $('runs').addEventListener('click',action(e=>{const button=e.target.closest('[data-read]');if(button)return readText(state.runs.find(r=>r.id===button.dataset.read).text);}));
 let lastVoiceRun=null;
 function updateVoice(){
   renderVoice();const run=state?.runs.at(-1);
   if(!run||run.id===lastVoiceRun||run.status!=='completed')return;
+  if($('auto-read').checked&&(recording||transcribing))return;
   lastVoiceRun=run.id;
-  if($('auto-read').checked&&!voiceBusy())readText(run.text).catch(e=>voiceStatus(e.message));
+  if($('auto-read').checked)readText(run.text).catch(e=>voiceStatus(e.message));
 }
 function resetVoiceProject(){lastVoiceRun=state?.runs.at(-1)?.id||null;$('auto-read').checked=false;voiceStatus('Dictado español local; revisás el texto antes de enviarlo.');}
 window.addEventListener('beforeunload',()=>{cancelVoice();});

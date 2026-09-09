@@ -53,7 +53,7 @@ Archivos locales no significan inferencia offline: el contexto enviado a Codex s
 
 ## Corte 0.6.0 aplicado
 
-Configuración en la barra superior; chat y campo de mensaje amplios, micrófono junto a Enviar, clic para alternar escucha y Espacio mientras se mantiene (solo mensaje vacío). Paletas claras celeste/crema/rosado y oscuras violeta/rojo/azul, además de salvia; modo Sistema inicial. Ayuda y voz con modales adaptables, estado de cuenta accesible con punto de color, giro del libro por mouse/teclado. Acepta claves Gemini auth AQ. y permite recordar claves cifradas en el almacén nativo de escritorio; nunca en proyectos ni localStorage.
+Configuración en la barra superior; chat y campo de mensaje amplios, micrófono junto a Enviar, clic para alternar escucha y Espacio mientras se mantiene (solo mensaje vacío). Paletas claras celeste/crema/rosado y oscuras violeta/rojo/azul, además de salvia; modo Sistema inicial y una sola lista de temas en Configuración y en el primer paso del asistente inicial. Ayuda y voz con modales adaptables, estado de cuenta accesible con punto de color, giro del libro por mouse/teclado. Acepta claves Gemini auth AQ. y permite recordar claves cifradas en el almacén nativo de escritorio; nunca en proyectos ni localStorage.
 
 ## Corte 0.6.1 aplicado
 
@@ -69,7 +69,7 @@ Codex/ChatGPT principal y seis adaptadores editoriales experimentales: OpenAI AP
 
 ## Lectura online en Tauri 0.8.0
 
-Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática sigue siendo opcional. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Incluida en la distribución Tauri 0.8.0.
+Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática se activa con Leer respuestas junto al micrófono; desmarcarla detiene la lectura y cambiar de proyecto la desactiva. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Incluida en la distribución Tauri 0.8.0.
 
 ## Escritorio Tauri 0.8.0
 

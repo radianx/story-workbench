@@ -15,19 +15,20 @@ with tempfile.TemporaryDirectory(prefix='sw-settings-') as temp:
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             page.locator('#settings-open').click();assert page.locator('#settings-dialog').bounding_box()['width']>950
+            assert page.locator('#appearance-controls select').count()==1 and page.locator('.local-badge').count()==0
             for mode,values in [('light',['sky','cream','pink']),('dark',['violet','red','blue'])]:
                 page.locator('#theme').select_option(mode);colors=[]
                 for value in values:
-                    page.locator('#palette-'+mode).select_option(value);page.wait_for_timeout(200)
+                    page.locator('#theme').select_option(mode+':'+value);page.wait_for_timeout(200)
                     colors.append(page.locator('#send').evaluate('(e)=>getComputedStyle(e).backgroundColor'))
                     assert page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')==('rgb(247, 248, 250)' if mode=='light' else 'rgb(9, 9, 12)')
                 assert len(set(colors))==3,colors
             page.locator('#theme').select_option('system');page.locator('#settings-close').click();page.reload();page.locator('#workspace').wait_for()
-            assert page.locator('#palette-light').input_value()=='pink' and page.locator('#palette-dark').input_value()=='blue'
+            assert page.evaluate("document.documentElement.dataset.lightPalette==='pink' && document.documentElement.dataset.darkPalette==='blue'")
             page.emulate_media(color_scheme='dark');assert page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(9, 9, 12)'
             page.emulate_media(color_scheme='light');assert page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(247, 248, 250)'
             page.wait_for_function('()=>document.querySelector("#account-open").dataset.status==="signed_out"');assert page.locator('#account-open').inner_text()=='ChatGPT' and len(page.locator('#account-open').get_attribute('aria-label'))>8
-            page.locator('#theme-toggle').click();assert page.locator('#theme').input_value()=='dark'
+            page.locator('#theme-toggle').click();assert page.locator('#theme').input_value()=='dark:blue'
             prompt=page.locator('#prompt').bounding_box();assert prompt['width']>1000
             assert page.locator('#runs').bounding_box()['height']>page.locator('.composer').bounding_box()['height']*2
             assert not page.locator('#ai-model').is_visible() and page.locator('#dictate').is_visible()

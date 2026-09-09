@@ -34,7 +34,7 @@ async function realtimeAction(session,args){
   }
   if(operation==='set_theme'){
     if(!['system','light','dark'].includes(target))throw new Error('Tema inválido.');
-    $('theme').value=target;$('theme').onchange();return {theme:target};
+    $('theme').value=themeOption(target);$('theme').onchange();return {theme:target};
   }
   if(operation==='open_document'){
     if(dirty)throw new Error('Guardá el documento actual antes de cambiar.');
@@ -139,7 +139,7 @@ $('realtime-enabled').onchange=()=>{
   renderRealtime();
 };
 function updateVoiceProviderNote(){$('realtime-provider-note').textContent=voiceProvider()==='gemini'?'Modelo: gemini-3.1-flash-live-preview. Usa una clave de Google AI Studio. AI Plus y la API son servicios separados; acceso, cuota y posibles cargos dependen del proyecto de la clave. Gemini puede operar la app sin una clave OpenAI. Las tareas editoriales siguen usando Codex con ChatGPT.':'Modelo: gpt-realtime. La API se factura por separado. Esta versión de Codex no admite Realtime con la sesión ChatGPT. No hay cambio automático a pago.';}
-function openVoiceSettings(){updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));$('realtime-dialog').showModal();}
+function openVoiceSettings(){updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));showDialog($('realtime-dialog'));}
 $('realtime-settings').onclick=openVoiceSettings;
 $('realtime-dialog').addEventListener('close',()=>{$('realtime-key').value='';});
 $('realtime-close').onclick=()=>{$('realtime-dialog').close();};

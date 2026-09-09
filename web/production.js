@@ -44,7 +44,7 @@ $('book-open').onclick = () => {
   for (const [id, key] of [['width','width'],['height','height'],['thickness','spine'],['name','title'],['author','author'],['sizing','sizing'],['pages','pages'],['paper','paper']]) $(`book-${id}`).value = book[key];
   $('book-rotation').value = -28; $('book-tilt').value = 8;
   $('book-save-state').textContent = state.production ? 'Maqueta guardada localmente.' : 'Tamaño inicial: 6 × 9 pulgadas. Páginas estimadas del manuscrito guardado.';
-  bookDirty = false; renderBook(); $('book-dialog').showModal();
+  bookDirty = false; renderBook(); showDialog($('book-dialog'));
 };
 function closeBook(event) {
   if (bookDirty && !confirm('La maqueta tiene cambios sin guardar. ¿Querés descartarlos?')) { event?.preventDefault(); return; }

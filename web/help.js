@@ -25,7 +25,7 @@ const helpTopics = [
   ['voice','Dictado, micrófono y lectura en voz alta',[
     'El micrófono junto a Enviar alterna la captura con cada clic. También podés mantener Espacio para hablar y soltar para terminar, si el mensaje está vacío. Con texto escrito, Espacio escribe normalmente. Podés descartar el dictado; cada captura admite hasta 45 segundos. La transcripción aparece en el mensaje para corregirla antes de Enviar. Los nombres propios pueden necesitar correcciones.',
     'En Dictar respuesta, el audio se procesa localmente en español, permanece solo en memoria y no se envía a ChatGPT. El micrófono se apaga al terminar, descartar o cambiar de proyecto. Enviar comparte el texto del mensaje con el asistente.',
-    'Escuchar usa el proveedor de voz online si está habilitado y autorizado; si falta o falla, usa la voz local. En Configuración → Voz y lectura podés elegir Siempre voz local. La lectura no abre el micrófono y cierra una conversación oral activa. Detener lectura la interrumpe. Leer respuestas nuevas es opcional y se desactiva al cambiar de proyecto; no reproduce todo el historial.',
+    'Escuchar usa el proveedor de voz online si está habilitado y autorizado; si falta o falla, usa la voz local. En Configuración → Voz y lectura podés elegir Siempre voz local. La lectura no abre el micrófono y cierra una conversación oral activa. Detener lectura la interrumpe. La casilla Leer respuestas junto al micrófono es opcional y se desactiva al cambiar de proyecto; no reproduce todo el historial.',
     'Si no funciona el micrófono, revisá el permiso de la app o navegador y el dispositivo de entrada del sistema. Si indica que falta el motor, usá el instalador con voz. Si falta lectura, revisá las voces instaladas de Windows o la instalación del paquete Linux. Siempre podés responder por escrito.'
   ]],
   ['realtime','Asistente de voz: Gemini Live / OpenAI y acciones',[
@@ -65,7 +65,7 @@ const helpTopics = [
     'La app todavía no reimporta ese ZIP como proyecto ni prepara EPUB/PDF de imprenta. Conservá tus exportaciones en un lugar elegido por vos.'
   ]],
   ['production','Tema, ambiente, foco y libro 3D',[
-    'En Configuración elegís Claro, Oscuro o Sistema (inicial) y una paleta para cada modo: salvia, celeste, crema o rosado en claro; salvia, violeta, rojo o azul en oscuro. El icono sol/luna cambia rápidamente entre claro y oscuro. Ambiente es otra cosa: una imagen tenue detrás del editor, local a esta pestaña. No se envía al asistente y se retira al cambiar de proyecto.',
+    'El asistente inicial empieza por el tema. En él y en Configuración tenés una sola lista: Sistema (inicial), claros salvia/celeste/crema/rosado y oscuros salvia/violeta/rojo/azul. La elección se recuerda incluso si omitís el asistente. El icono sol/luna cambia rápidamente entre claro y oscuro. Ambiente es otra cosa: una imagen tenue detrás del editor, local a esta pestaña. No se envía al asistente y se retira al cambiar de proyecto.',
     'Modo foco oculta paneles secundarios. En creación guiada prioriza el chat; en escritura prioriza el documento. Salir de foco recupera los paneles sin detener una tarea.',
     'Libro 3D es una maqueta visual de portada, lomo, contraportada y páginas. Usá las medidas y el grosor que confirme tu imprenta. Por defecto usa 6 × 9 pulgadas y estima páginas del manuscrito guardado; podés ingresar la paginación real y elegir papel blanco o crema, o indicar un lomo manual. La estimación no sustituye la maquetación.',
     'Guardar maqueta conserva medidas y copias de las imágenes en el proyecto. Girar el libro solo cambia la vista. La maqueta no es una cubierta técnica lista para imprimir.'
@@ -101,7 +101,7 @@ function filterHelp(){
 function openHelp(topic){
   $('help-search').value='';filterHelp();
   for(const detail of $('help-topics').children)detail.open=detail.id==='help-'+topic;
-  if(!$('help-dialog').open)$('help-dialog').showModal();
+  if(!$('help-dialog').open)showDialog($('help-dialog'));
   const target=helpTopics.some(([id])=>id===topic)?$('help-'+topic):null;
   if(target){target.querySelector('summary').focus();target.scrollIntoView({block:'nearest'});}else $('help-search').focus();
 }
@@ -121,7 +121,7 @@ const tips={
   download:'Descargar este documento como Markdown, incluido el borrador sin guardar.',
   undo:'Deshacer en este documento. Para versiones guardadas, usá Historial. Ctrl+Z.',
   redo:'Rehacer en este documento. Ctrl+Shift+Z.',
-  'auto-read':'Leer solo las respuestas nuevas. Se desactiva al cambiar de proyecto.',
+  'auto-read':'Lee las nuevas respuestas con el proveedor de voz autorizado o la voz local de respaldo. Cierra la conversación oral para evitar eco; pulsá el micrófono para retomarla. Se desactiva al cambiar de proyecto.',
   'book-open':'Vista 3D orientativa; no genera una cubierta lista para imprenta.',
   send:'Enviar mensaje al asistente. También Ctrl+Enter desde el mensaje.'
 };

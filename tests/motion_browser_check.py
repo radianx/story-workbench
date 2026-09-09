@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='sw-motion-') as directory:
             page=browser.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
-            page.locator('#settings-open').click();page.locator('#theme').select_option('dark');page.locator('#palette-dark').select_option('violet');page.locator('#palette-light').select_option('pink');page.locator('#settings-close').click()
+            page.locator('#settings-open').click();page.locator('#theme').select_option('light:pink');page.locator('#theme').select_option('dark:violet');page.locator('#settings-close').click()
             held=[];page.route('**/app.js',lambda route:held.append(route))
             page.reload(wait_until='commit')
             page.wait_for_function('()=>document.documentElement.dataset.darkPalette==="violet"')
@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='sw-motion-') as directory:
             page.locator('#book-close').click()
             # Preferencias inválidas vuelven al sistema sin romper la UI.
             page.evaluate("localStorage.setItem('sw-theme','invalid');localStorage.setItem('sw-palette-dark','invalid')");page.reload();page.locator('#workspace').wait_for()
-            assert page.locator('#theme').input_value()=='system' and page.locator('#palette-dark').input_value()=='sage'
+            assert page.locator('#theme').input_value()=='system' and page.evaluate("document.documentElement.dataset.darkPalette==='sage'")
             assert not errors,errors
             browser.close()
     finally:server.shutdown();server.server_close()

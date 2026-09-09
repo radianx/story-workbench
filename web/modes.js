@@ -89,7 +89,7 @@ function openTranslation(){
   $('translation-source').innerHTML=state.documents.filter(d=>!d.translation&&d.role!=='traducción').map(d=>`<option value="${d.id}">${escapeHTML(d.name)}</option>`).join('');
   if(config.source)$('translation-source').value=config.source;
   for(const [id,key] of [['from','source_language'],['to','target_language'],['intent','intent'],['glossary','glossary']])$('translation-'+id).value=config[key]||'';
-  renderTranslationDocuments();$('translation-dialog').showModal();
+  renderTranslationDocuments();showDialog($('translation-dialog'));
 }
 $('translation-open').onclick=openTranslation;
 $('translation-form').oninput=()=>$('translation-form').dataset.dirty='true';

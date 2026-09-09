@@ -14,13 +14,40 @@ with tempfile.TemporaryDirectory(prefix='sw-setup-') as directory:
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(server.origin+'/#token='+server.token);page.locator('#setup-dialog').wait_for()
             assert not page.locator('#workspace').is_visible()
+            assert page.locator('#setup-progress').inner_text()=='Paso 1 de 4'
+            assert page.locator('#setup-appearance #theme').input_value()=='system'
+            page.locator('#theme').select_option('light:pink');page.locator('#theme').select_option('dark:violet')
+            assert page.evaluate("document.documentElement.dataset.darkPalette==='violet' && localStorage.getItem('sw-theme')==='dark'")
+            page.locator('#theme').select_option('system');page.emulate_media(color_scheme='light')
+            light=page.evaluate('getComputedStyle(document.body).backgroundColor')
+            page.emulate_media(color_scheme='dark');assert page.evaluate('getComputedStyle(document.body).backgroundColor')!=light
+            page.locator('#theme').select_option('dark:violet')
+            page.locator('#setup-next').focus();page.keyboard.press('Enter');assert '2 de 4' in page.locator('#setup-progress').inner_text()
             page.locator('#setup-account').focus();page.keyboard.press('Enter');page.locator('#account-dialog').wait_for();page.keyboard.press('Escape')
-            page.locator('#setup-next').focus();page.keyboard.press('Enter');assert '2 de 3' in page.locator('#setup-progress').inner_text()
-            page.locator('#setup-voice').focus();page.keyboard.press('Enter');page.locator('#realtime-dialog').wait_for();page.keyboard.press('Escape')
+            page.locator('#setup-next').focus();page.keyboard.press('Enter');assert '3 de 4' in page.locator('#setup-progress').inner_text()
+            page.locator('#setup-voice').focus();page.keyboard.press('Enter');page.locator('#realtime-dialog').wait_for()
+            # Regresión: voz está antes que setup en el DOM, pero encima en la capa modal.
+            page.locator('#realtime-save').click();page.locator('#notice').wait_for()
+            assert 'Confirmá el envío' in page.locator('#notice-text').inner_text()
+            assert page.locator('#notice').get_attribute('role')=='alert'
+            assert page.locator('#notice').get_attribute('aria-live')=='assertive'
+            for width in (1440,390):
+                page.set_viewport_size({'width':width,'height':844})
+                assert page.locator('#notice').evaluate("e=>e.parentElement.id==='realtime-dialog' && e.contains(document.elementFromPoint(e.getBoundingClientRect().x+20,e.getBoundingClientRect().y+20))")
+                box=page.locator('#notice').bounding_box();assert box['y']>=0 and box['y']+box['height']<=844
+                page.screenshot(path=f'/tmp/story-workbench-setup-error-{width}.png')
+            page.set_viewport_size({'width':1440,'height':1000})
+            page.evaluate("navigateWorkbench('back')")
+            assert page.locator('#setup-dialog').is_visible() and not page.locator('#realtime-dialog').is_visible()
+            page.wait_for_function("()=>$('notice').parentElement.id==='setup-dialog'")
+            page.locator('#notice-close').click()
             page.keyboard.press('Escape');page.locator('#workspace').wait_for();assert page.evaluate("localStorage.getItem('sw-setup-seen')")=='1'
             page.reload();page.locator('#workspace').wait_for();assert not page.locator('#setup-dialog').is_visible()
+            assert page.locator('#theme').input_value()=='dark:violet' and page.evaluate("document.documentElement.dataset.lightPalette==='pink'")
+            assert page.locator('#appearance-controls').evaluate("e=>e.parentElement.id==='settings-general'")
+            assert page.locator('#theme').count()==1
             page.keyboard.press('Control+,');page.locator('#setup-open').focus();page.keyboard.press('Enter');page.locator('#setup-dialog').wait_for()
-            page.locator('#setup-next').click();page.locator('#setup-next').click();page.locator('#setup-resume').focus();page.keyboard.press('Enter');page.locator('#workspace').wait_for()
+            page.locator('#setup-next').click();page.locator('#setup-next').click();page.locator('#setup-next').click();page.locator('#setup-resume').focus();page.keyboard.press('Enter');page.locator('#workspace').wait_for()
             page.keyboard.press('Control+k');page.locator('#navigation-search').fill('material');page.keyboard.press('Enter');assert page.locator('#editor').evaluate('e=>e===document.activeElement')
             page.keyboard.press('Control+k');page.locator('#navigation-search').fill('propuestas');page.keyboard.press('Enter');page.locator('[data-panel=proposals]').focus();page.keyboard.press('ArrowRight');assert page.locator('[data-panel=decisions]').get_attribute('aria-selected')=='true'
             # Misma allowlist que usa la voz: jamás ejecuta un selector arbitrario.
@@ -46,4 +73,4 @@ with tempfile.TemporaryDirectory(prefix='sw-setup-') as directory:
             assert not server.store.load(project['id'])['runs']
             browser.close()
     finally:server.shutdown();server.server_close()
-print('OK setup: primera apertura, omitir/reabrir, cuenta/voz opcionales, teclado, destinos compartidos y libro por páginas/papel/tamaño, persistencia y migración manual.')
+print('OK setup: tema primero y persistente, avisos sobre diálogo anidado en escritorio/móvil, primera apertura, omitir/reabrir, cuenta/voz opcionales, teclado, destinos compartidos y libro por páginas/papel/tamaño, persistencia y migración manual.')

@@ -1,26 +1,32 @@
 'use strict';
 const $ = id => document.getElementById(id);
-// El navegador sigue el sistema con color-scheme; solo guardamos una elección explícita.
+// Una sola lista; conserva las preferencias anteriores de cada modo.
+function themeOption(mode){const palette=document.documentElement.dataset[mode+'Palette'];return mode==='system'||!palette||palette==='sage'?mode:mode+':'+palette;}
+$('theme').replaceChildren(new Option('Sistema','system'),...Object.entries(appearancePalettes).flatMap(([mode,values])=>Object.entries(values).map(([palette,label])=>new Option(palette==='sage'?(mode==='light'?'Claro · salvia':'Oscuro · salvia'):label,palette==='sage'?mode:mode+':'+palette))));
 function applyTheme(value) {
   const theme = ['light', 'dark'].includes(value) ? value : 'system';
   document.documentElement.dataset.theme = theme;
-  $('theme').value = theme;
+  $('theme').value = themeOption(theme);
   updateThemeIcon();
 }
 function updateThemeIcon(){const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);$('theme-toggle').textContent=dark?'☀':'☾';$('theme-toggle').title=dark?'Usar tema claro':'Usar tema oscuro';$('theme-toggle').setAttribute('aria-label',$('theme-toggle').title);}
-$('theme-toggle').onclick=()=>{$('theme').value=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark';$('theme').onchange();};
+$('theme-toggle').onclick=()=>{const mode=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark';$('theme').value=themeOption(mode);$('theme').onchange();};
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',updateThemeIcon);
 applyTheme(document.documentElement.dataset.theme);
 $('theme').onchange = () => {
-  applyTheme($('theme').value);
+  const [mode,palette='sage']=$('theme').value.split(':');
+  const selected=Object.hasOwn(appearancePalettes,mode)&&Object.hasOwn(appearancePalettes[mode],palette)?mode:'system';
+  if(selected!=='system')document.documentElement.dataset[selected+'Palette']=palette;
+  applyTheme(selected);
   try {
-    if ($('theme').value === 'system') localStorage.removeItem('sw-theme');
-    else localStorage.setItem('sw-theme', $('theme').value);
+    if(selected==='system')localStorage.removeItem('sw-theme');
+    else {localStorage.setItem('sw-theme',selected);localStorage.setItem('sw-palette-'+selected,palette);}
   } catch { notice('El tema se aplicó, pero el navegador no permitió recordar la elección.', true); }
 };
 window.addEventListener('storage', event => {
-  if (event.key === 'sw-theme' || event.key === null) {
-    try { applyTheme(localStorage.getItem('sw-theme')); } catch { applyTheme('system'); }
+  if(event.key===null||event.key==='sw-theme'||event.key.startsWith('sw-palette-')){
+    for(const mode of ['light','dark']){const value=storedAppearance('sw-palette-'+mode,'sage');document.documentElement.dataset[mode+'Palette']=Object.hasOwn(appearancePalettes[mode],value)?value:'sage';}
+    applyTheme(storedAppearance('sw-theme','system'));
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,10 +40,16 @@ let noticeTimer, lastRuns = '', lastProposals = '', lastDecisions = '';
 const busy = () => state?.runs.findLast(r => ['connecting','running','cancelling'].includes(r.status));
 const draftKey = () => `sw-draft-${state.id}-${current.id}`;
 
+// El orden del HTML no coincide con el orden de apertura de diálogos anidados.
+let dialogStack=[];
+function topDialog(){dialogStack=dialogStack.filter(dialog=>dialog.open);return dialogStack.at(-1);}
+function placeNotice(){const dialog=topDialog();if(dialog)dialog.prepend($('notice'));else document.body.append($('notice'));}
+function showDialog(dialog){dialog.showModal();dialogStack=dialogStack.filter(item=>item!==dialog);dialogStack.push(dialog);placeNotice();}
 function notice(text, error=false) {
   if(!error && !$('notice').hidden && $('notice').classList.contains('error'))return;
-  ([...document.querySelectorAll('dialog[open]')].at(-1) || document.body).appendChild($('notice'));
-  $('notice-text').textContent = text; $('notice').setAttribute('role',error?'alert':'status'); $('notice').classList.toggle('error',error); $('notice').hidden = false;
+  placeNotice();
+  $('notice-text').textContent = text; $('notice').setAttribute('role',error?'alert':'status'); $('notice').setAttribute('aria-live',error?'assertive':'polite'); $('notice').classList.toggle('error',error); $('notice').hidden = false;
+  if(error && topDialog())$('notice').scrollIntoView({block:'nearest'});
   clearTimeout(noticeTimer); if(!error)noticeTimer = setTimeout(() => $('notice').hidden = true, 4500);
 }
 async function api(path, data) {
@@ -154,7 +166,7 @@ async function save() {
   } catch(error) {if(error.status===409)$('conflict').hidden=false;throw error;}
 }
 async function nameDialog(title, value='') {
-  $('name-dialog').returnValue=''; $('dialog-title').textContent=title; $('new-name').value=value; $('name-dialog').showModal(); $('new-name').focus();
+  $('name-dialog').returnValue=''; $('dialog-title').textContent=title; $('new-name').value=value; showDialog($('name-dialog')); $('new-name').focus();
   return new Promise(resolve=>$('name-dialog').addEventListener('close',()=>resolve($('name-dialog').returnValue==='ok'?$('new-name').value.trim():null),{once:true}));
 }
 let wizardStep=1;
@@ -168,7 +180,7 @@ function setWizardStep(step) {
 }
 function projectWizard() {
   $('wizard-form').reset();updateWizardPurpose(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
-  $('wizard-create').textContent='Crear e iniciar entrevista'; $('project-wizard').showModal(); setWizardStep(1);
+  $('wizard-create').textContent='Crear e iniciar entrevista'; showDialog($('project-wizard')); setWizardStep(1);
   return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>resolve(
     $('project-wizard').returnValue==='create'?{
       title:$('project-name').value.trim(), workflow:document.querySelector('[name="start-workflow"]:checked').value,
@@ -406,10 +418,10 @@ async function refreshAccount() {
 async function ensureAccount() {
   await refreshAccount();
   if (accountState.status === 'connected') return true;
-  $('account-dialog').showModal();
+  showDialog($('account-dialog'));
   return false;
 }
-$('account-open').onclick = action(async () => { $('account-dialog').showModal(); await refreshAccount(); });
+$('account-open').onclick = action(async () => { showDialog($('account-dialog')); await refreshAccount(); });
 $('account-close').onclick = () => $('account-dialog').close();
 $('account-login').onclick = action(async () => { accountState=await api('/api/account/login',{}); renderAccount(); });
 $('account-cancel').onclick = action(async () => { accountState=await api('/api/account/cancel',{}); renderAccount(); });
@@ -463,7 +475,7 @@ $('ai-effort').onchange=action(()=>saveAISettings(false));
 $('ai-refresh').onclick=action(async()=>{accountState=await api('/api/account/refresh',{});renderAccount();});
 refreshAccount().catch(()=>{});
 
-document.addEventListener('close',()=> ([...document.querySelectorAll('dialog[open]')].at(-1)||document.body).appendChild($('notice')),true);
+document.addEventListener('close',placeNotice,true);
 
 for(const command of ['undo','redo']) {
   $(command).onmousedown=event=>event.preventDefault();

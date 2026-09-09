@@ -34,7 +34,7 @@ async function openEngineSettings(){
   const engine=state?.engine||{provider:'codex'};
   $('engine-provider').value=engine.provider;$('engine-model').value=engine.model||'';
   $('engine-endpoint').value=engine.endpoint||'http://127.0.0.1:11434/v1';
-  $('engine-consent').checked=false;renderEngineFields();$('engine-dialog').showModal();
+  $('engine-consent').checked=false;renderEngineFields();showDialog($('engine-dialog'));
 }
 $('engine-open').onclick=action(openEngineSettings);
 $('setup-engine').onclick=action(openEngineSettings);

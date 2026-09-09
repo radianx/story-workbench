@@ -156,3 +156,14 @@ La comprobación final `installer_check.py` pasó con 32 archivos Linux y 97 Win
 - `Story-Workbench-0.8.0-win-x64.exe`: 208549705 bytes; SHA256 `70c77bd67302c42e0a1d5bd257badf72ee7db9cd521faf4c3a657669f869e55e`.
 
 No se instaló sobre la app del usuario ni se tocaron sus manuscritos. Los paquetes son locales y sin firma; la instalación y la interfaz en Windows real siguen sin validación.
+
+## Tauri 0.8.1: inicio, temas y lectura automática — 2026-09-09
+
+- Inicio de cuatro pasos: tema, cuenta, voz opcional y proyecto. Una sola lista de temas compartida con Configuración, Sistema inicial, preferencias anteriores conservadas y elección recordada incluso al omitir el inicio. Retirado el badge «Local y privado».
+- Avisos dentro del diálogo abierto encima de los demás, siguiendo el orden real de apertura. El error de consentimiento de voz se muestra sin blur y con anuncio accesible; también al volver al wizard.
+- Casilla «Leer respuestas» junto al micrófono, agrupada también en ventanas estrechas. Usa el proveedor de voz autorizado y TTS local de respaldo. Desmarcar detiene la lectura; no reproduce historial y cambiar de proyecto la desactiva. Si llega una respuesta durante dictado local, espera; si hay conversación oral, la cierra para narrar sin eco y se puede retomar pulsando el micrófono.
+- Pasaron `browser_check.py`, `setup_browser_check.py`, `settings_browser_check.py`, `motion_browser_check.py`, `voice_browser_check.py` y `reading_browser_check.py`: flujos principales, temas/persistencia/sistema, error real de consentimiento sobre modales anidados a 1440/390 px, teclado, micrófono virtual, lectura única, espera de dictado, cancelación y respaldo local. Gemini/OpenAI simulados, sin llamadas API ni claves reales. Capturas de modal móvil y compositor inspeccionadas.
+- El `.deb` 0.8.1 extraído pasó `tauri_check.py` en este Linux en dos arranques: wizard con tema primero, error visible dentro de voz, lista única, casilla en el compositor, persistencia, llavero temporal, audio simulado y seis acciones de exportación mediante diálogos GTK reales. Se mantiene la limitación WebRTC de la conversación OpenAI en este WebKit; no afecta la lectura por WebSocket.
+- El backend del instalador Windows pasó dos arranques, HTTP y cierre por stdin bajo Wine. No se validó la instalación ni la interfaz en Windows real. `installer_check.py` verificó 32 archivos de runtime Linux y 97 Windows, correspondencia con el código y SHA256 de ambos instaladores. Paquetes sin firmar ni publicar.
+- `Story-Workbench-0.8.1-linux-amd64.deb`: 192984904 bytes; SHA256 `ad18572c43d40d439cb7cf9399bfb0fbe5befe5301743c410064ea3344b3c7f0`.
+- `Story-Workbench-0.8.1-win-x64.exe`: 208552011 bytes; SHA256 `b4e47a00f987b5a3c88cfbc88e82c6ccb298a9cb187625485a383429ab729f43`.

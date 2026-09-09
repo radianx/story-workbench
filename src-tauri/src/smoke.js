@@ -8,10 +8,18 @@
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
     if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark')throw Error('persisted-theme');}
     else for(let n=0;n<100&&!document.querySelector('#setup-dialog').open;n++)await new Promise(r=>setTimeout(r,100));
+    if(document.querySelector('#setup-dialog').open){
+      if(document.querySelector('#setup-progress').textContent!=='Paso 1 de 4'||!document.querySelector('#setup-appearance #theme'))throw Error('setup-theme');
+      openVoiceSettings();notice('Error ficticio de configuración',true);
+      const alert=document.querySelector('#notice'),box=alert.getBoundingClientRect();
+      if(alert.parentElement.id!=='realtime-dialog'||!alert.contains(document.elementFromPoint(box.x+20,box.y+20)))throw Error('modal-alert');
+      document.querySelector('#notice-close').click();document.querySelector('#realtime-close').click();
+    }
     await skipSetup();
     const response=await fetch('/api/projects',{method:'POST',headers,body:JSON.stringify({title:'Ficción Tauri',demo:true})});
     if(!response.ok)throw Error('create');const project=await response.json();await openProject(project.id);
     if(!document.querySelector('#editor').value.includes('llave azul'))throw Error('editor');
+    if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls select').length!==1)throw Error('composer-theme');
     await navigateWorkbench('settings');document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
     await navigateWorkbench('back');await navigateWorkbench('book');
     if(document.querySelector('#book-width').value!=='152.4')throw Error('book');

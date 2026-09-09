@@ -82,6 +82,27 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             page.evaluate('()=>readingPromise')
             assert page.evaluate('readerClosed')==sockets and len(local)==before
             page.unroute('**/api/realtime/read-session')
+            # La casilla visible narra respuestas nuevas incluso con conversación oral activa.
+            page.locator('.composer-bottom #auto-read').check()
+            page.evaluate("""()=>{
+              readerMode='hold';readerSent=[];window.stoppedMic=false;
+              realtime={provider:'gemini',output:new Set(),stream:{getTracks:()=>[{stop:()=>stoppedMic=true}]}};
+              recording={};
+              state.runs.push({id:'auto-fixture',status:'completed',text:'Una nueva respuesta editorial.'});
+              updateVoice();
+            }""")
+            assert page.evaluate('!readingActive && !stoppedMic && readerSent.length===0')
+            page.evaluate('()=>{recording=null;updateVoice();updateVoice();}')
+            page.wait_for_function('()=>onlineReading?.pending')
+            assert sessions[-1]=='gemini' and page.evaluate('stoppedMic && realtime===null && micRequests===0')
+            assert page.evaluate('readerSent')==['Una nueva respuesta editorial.']
+            page.locator('#auto-read').uncheck();page.wait_for_function('()=>!readingActive && onlineReading===null')
+            count=len(sessions)
+            page.evaluate("()=>{state.runs.push({id:'silent-fixture',status:'completed',text:'Respuesta silenciosa.'});updateVoice();}")
+            page.locator('#auto-read').check();page.evaluate('updateVoice()');page.wait_for_timeout(200)
+            assert len(sessions)==count and len(local)==before
+            page.locator('#auto-read').uncheck()
+            page.screenshot(path='/tmp/story-workbench-reading-checkbox.png')
             # Preferencia local persistida: aunque el proveedor esté autorizado no crea sesión.
             count=len(sessions)
             page.evaluate("()=>{$('reading-mode').value='local';$('reading-mode').onchange();}")

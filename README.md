@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.1**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -10,7 +10,7 @@ Los paquetes locales están en `dist/installers/`. Ver [distribución y comproba
 
 1. **Linux x64 (Ubuntu 24.04+):** abrí el archivo `.deb` con el instalador de aplicaciones del sistema e instalalo. **Windows x64:** abrí el `.exe` y seguí el asistente de instalación.
 2. Abrí **Story Workbench** desde el menú de aplicaciones.
-3. El asistente inicial permite conectar ChatGPT, preparar voz opcional y crear o abrir un proyecto. Se puede omitir y reabrir desde Configuración. Para conectar: **Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro**. Completá el acceso en tu navegador y volvé a la app.
+3. El asistente inicial comienza por el tema de la app y permite conectar ChatGPT, preparar voz opcional y crear o abrir un proyecto. Se puede omitir y reabrir desde Configuración. Para conectar: **Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro**. Completá el acceso en tu navegador y volvé a la app.
 
 Usa Tauri e incluye Python y Codex: el usuario no necesita terminal ni instalarlos por separado. Cada instalación usa la cuenta del autor que la abre. Se puede escribir sin iniciar sesión; la IA necesita internet y disponibilidad de Codex en esa cuenta. Codex con ChatGPT es el motor editorial principal, sin fallback de pago. Se pueden elegir seis adaptadores experimentales con clave propia o servidor local; ver [motores](PROVIDERS.md). La voz online opcional admite claves de OpenAI o Gemini con condiciones y facturación API separadas; el dictado local sigue disponible. Windows instala WebView2 si falta (requiere internet); Linux usa WebKitGTK del sistema. Los paquetes son preliminares y no están firmados ni publicados.
 
@@ -41,7 +41,7 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental, detención e hilo persistente por proyecto. |
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
-| Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; lectura automática opcional de respuestas nuevas. No abre el micrófono. |
+| Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
 | Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
 | Traducción | Entrevista de intención/idiomas, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |

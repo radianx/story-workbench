@@ -21,6 +21,8 @@ La conversación oral y sus subtítulos son temporales, no un historial editoria
 
 Configuración → Voz y lectura → **Leer respuestas con** permite usar el proveedor de voz autorizado (predeterminado) o elegir **Siempre voz local**. La preferencia se recuerda en el equipo; recordar una clave no reactiva el consentimiento. Escuchar y la lectura automática de respuestas nuevas comparten este comportamiento.
 
+La casilla **Leer respuestas**, junto al micrófono del chat, activa la lectura de las nuevas respuestas editoriales. Desmarcarla detiene la lectura actual. No reproduce el historial al activarla y se desactiva al cambiar de proyecto. También funciona cuando termina una tarea iniciada por voz: cierra la conversación oral para narrar sin eco; pulsá el micrófono para retomarla.
+
 Con voz online habilitada, clave configurada y consentimiento de esta ejecución, intenta `gpt-realtime` o Gemini Live. Sin esos requisitos usa directamente TTS local. Si falla la preparación, el transporte o la respuesta de audio, cierra la conexión online y retoma el fragmento actual con voz local; informa el respaldo y no intenta otro proveedor API. Detener cancela sin activar el respaldo ni abrir conexiones tardías. Una interrupción a mitad del fragmento puede repetir sus primeras palabras al pasar a local.
 
 La lectura crea una conexión independiente **sin abrir el micrófono, herramientas ni contexto del proyecto**: solo envía los fragmentos de texto elegidos. Escuchar durante una conversación oral la cierra para evitar audios superpuestos. El texto se solicita sin resumir ni reescribir; la pronunciación, entonación y fidelidad de un modelo generativo requieren criterio humano. No modifica el texto en pantalla ni el canon.

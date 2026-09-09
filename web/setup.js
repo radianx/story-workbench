@@ -4,8 +4,8 @@ function setupSeen(){try{return localStorage.getItem('sw-setup-seen')==='1';}cat
 function rememberSetup(){try{localStorage.setItem('sw-setup-seen','1');}catch{notice('No se pudo recordar que completaste el inicio.',true);}}
 function renderSetup(){
   document.querySelectorAll('[data-setup-step]').forEach(el=>el.hidden=Number(el.dataset.setupStep)!==setupStep);
-  $('setup-progress').textContent=`Paso ${setupStep+1} de 3`;
-  $('setup-back').disabled=setupStep===0;$('setup-next').hidden=setupStep===2;
+  $('setup-progress').textContent=`Paso ${setupStep+1} de 4`;
+  $('setup-back').disabled=setupStep===0;$('setup-next').hidden=setupStep===3;
   document.querySelector(`[data-setup-step="${setupStep}"] h3`).focus();
 }
 async function openSetup(){
@@ -13,7 +13,8 @@ async function openSetup(){
   $('setup-project').replaceChildren(...projects.map(p=>new Option(p.title,p.id)));
   if(state)$('setup-project').value=state.id;
   $('setup-existing').hidden=projects.length===0;
-  setupStep=0;$('setup-dialog').showModal();renderSetup();
+  $('setup-appearance').append($('appearance-controls'));
+  setupStep=0;showDialog($('setup-dialog'));renderSetup();
 }
 async function skipSetup(){
   rememberSetup();$('setup-dialog').close();
@@ -22,6 +23,7 @@ async function skipSetup(){
 }
 $('setup-open').onclick=action(async()=>{$('settings-dialog').close();await openSetup();});
 $('setup-skip').onclick=action(skipSetup);
+$('setup-dialog').addEventListener('close',()=>$('settings-general').insertBefore($('appearance-controls'),$('inspire')));
 $('setup-dialog').oncancel=event=>{event.preventDefault();action(skipSetup)();};
 $('setup-back').onclick=()=>{setupStep--;renderSetup();};
 $('setup-next').onclick=()=>{setupStep++;renderSetup();};
@@ -34,7 +36,7 @@ $('setup-resume').onclick=action(async()=>{const id=$('setup-project').value;if(
 const navigationLabels={back:'Cerrar sección abierta',conversation:'Conversación',proposals:'Propuestas',decisions:'Decisiones',library:'Biblioteca',material:'Material',settings:'Configuración',model:'Modelo y esfuerzo',voice:'Configuración de voz',account:'Cuenta ChatGPT',setup:'Asistente inicial',help:'Ayuda',book:'Libro 3D',plan:'Plan y avance',translation:'Traducción'};
 async function navigateWorkbench(target){
   if(!Object.hasOwn(navigationLabels,target))throw new Error('Sección no permitida.');
-  const modal=[...document.querySelectorAll('dialog[open]')].at(-1);
+  const modal=topDialog();
   if(target==='back'){
     if(!modal)return;
     const closers={'settings-dialog':'settings-close','help-dialog':'help-close','account-dialog':'account-close','realtime-dialog':'realtime-close','engine-dialog':'engine-close','navigation-dialog':'navigation-close','setup-dialog':'setup-skip'};
@@ -69,7 +71,7 @@ function renderNavigation(){
   }
   $('navigation-empty').hidden=!!$('navigation-options').childElementCount;
 }
-$('navigation-open').onclick=()=>{if(document.querySelector('dialog[open]'))return;$('navigation-search').value='';renderNavigation();$('navigation-dialog').showModal();$('navigation-search').focus();};
+$('navigation-open').onclick=()=>{if(document.querySelector('dialog[open]'))return;$('navigation-search').value='';renderNavigation();showDialog($('navigation-dialog'));$('navigation-search').focus();};
 $('navigation-close').onclick=()=>$('navigation-dialog').close();
 $('navigation-search').oninput=renderNavigation;
 $('navigation-search').onkeydown=event=>{if(['ArrowDown','Enter'].includes(event.key)){event.preventDefault();const first=$('navigation-options').firstElementChild;if(event.key==='Enter')first?.click();else first?.focus();}};
