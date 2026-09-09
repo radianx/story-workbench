@@ -18,4 +18,4 @@ with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
         subprocess.run([str(command)],env={**env,'STORY_TAURI_CLEANUP':'1'},check=True,timeout=30)
     assert (Path(directory)/'projects').is_dir()
     assert not (Path(directory)/'codex/auth.json').exists()
-print('OK Tauri: sidecar, interfaz WebKit, proyecto ficticio, editor, navegación, tema entre reinicios, libro y exportación HTTP. Claves ficticias guardadas/recuperadas/borradas en llavero nativo, audio virtual, cámara denegada, lectura local y transporte Gemini simulado. WebRTC se informa por separado.')
+print('OK Tauri: sidecar, interfaz WebKit, proyecto ficticio, editor, navegación, tema entre reinicios, libro y exportación HTTP. Claves ficticias guardadas/recuperadas/borradas en llavero nativo, audio virtual, cámara denegada, lectura local, transporte Gemini y lectura OpenAI/Gemini simulados. WebRTC se informa por separado.')

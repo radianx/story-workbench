@@ -49,3 +49,9 @@ La prueba de ventana usa un directorio temporal, ficción, claves ficticias y el
 - La prueba informa WebRTC por separado; su ausencia no se presenta como una prueba WebRTC aprobada. Cuando está disponible intenta crear una oferta local sin servidores ICE ni proveedor remoto. No prueba una sesión OpenAI real.
 - Gemini pasó en WebKit con transporte y token simulados: preparación, emisión de PCM, reproducción de PCM recibido y cierre de pistas. La ejecución final pasó sin `GST_PLUGIN_PATH` ni plugins temporales. Esto verifica el flujo de la interfaz y audio; no verifica autenticación, red, cuota ni una conversación real con Gemini.
 - `tests/realtime_browser_check.py` pasó en Chromium con OpenAI simulado después del aviso de incompatibilidad. No se regeneraron los instaladores Electron 0.7.0 en este tramo; siguen siendo los artefactos de la entrega previa.
+
+## Lectura online posterior
+
+La lectura de respuestas incorpora WebSocket con tokens temporales y audio PCM para ambos proveedores, independiente de WebRTC. Esto no corrige todavía la conversación oral OpenAI en WebKit sin WebRTC. Los servicios reales no se han llamado durante este trabajo. Ver [opciones, respaldo local y contrato de lectura](REALTIME.md#lectura-de-respuestas).
+
+La build posterior pasó dos arranques Linux con llavero y lectura de ambos proveedores simulados: la lectura OpenAI pasó sin `RTCPeerConnection`; Gemini y la voz local también. No se solicitó micrófono para leer. Pasaron 32 pruebas Python, 3 Rust y los recorridos de navegador de dictado, Realtime, Gemini y lectura (respaldo ante error/audio vacío, cancelación incluso con token pendiente y preferencia local persistida). Esto no valida servicios reales ni actualiza los instaladores Electron existentes.

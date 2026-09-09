@@ -13,6 +13,7 @@ function renderRealtime(){
   renderVoice();
 }
 function stopRealtime(message='Conversación terminada. Micrófono cerrado.'){
+  if(onlineReading)stopReading();
   const session=realtime;realtime=null;
   if(session){if(session.provider==='gemini')closeGeminiVoice(session);clearTimeout(session.timeout);clearInterval(session.timer);session.stream?.getTracks().forEach(t=>t.stop());session.channel?.close();session.pc?.close();session.audio?.pause();if(session.audio)session.audio.srcObject=null;}
   realtimeStatus(message);$('realtime-mute').textContent='Pausar micrófono';$('realtime-mute').setAttribute('aria-pressed','false');renderRealtime();

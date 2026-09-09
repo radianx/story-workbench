@@ -66,3 +66,7 @@ Asistente de primera apertura: cuenta, voz opcional y proyecto; omisible, persis
 Maqueta de tapa blanda con tamaño inicial 6 × 9 pulgadas, estimación de páginas desde manuscritos guardados según área útil, páginas reales o lomo manual. Papel blanco/crema; valores anteriores permanecen manuales. No es paginación definitiva ni archivo de imprenta.
 
 Codex/ChatGPT principal y seis adaptadores editoriales experimentales: OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local. Selección explícita por proyecto, claves propias cifrables, sin fallback. Ver [alcance y fuentes](PROVIDERS.md).
+
+## Lectura online en el código y vista previa Tauri
+
+Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática sigue siendo opcional. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Los instaladores Electron 0.7.0 existentes no incluyen este corte.

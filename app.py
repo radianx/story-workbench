@@ -75,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' wss://generativelanguage.googleapis.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' wss://generativelanguage.googleapis.com wss://api.openai.com/v1/realtime; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -172,6 +172,9 @@ class Handler(BaseHTTPRequestHandler):
                 result=(self.server.realtime.connect_gemini(snapshot,body.get('consent'),body.get('actions',False)) if provider=='gemini'
                         else self.server.realtime.connect(snapshot,body.get('sdp'),body.get('consent'),body.get('actions',False)))
                 self.send(200,result)
+                return
+            if path == '/api/realtime/read-session':
+                self.send(200,self.server.realtime.read_session(body.get('provider'),body.get('consent')))
                 return
             if path == '/api/voice/transcribe':
                 self.send(200, self.server.speech.transcribe(body.get('pcm')))

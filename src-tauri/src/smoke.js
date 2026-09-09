@@ -57,11 +57,16 @@
     if(!denied)throw Error('camera');
     stage='gemini-transport';
     const originalFetch=window.fetch,originalSocket=window.WebSocket,sent=[];
-    window.fetch=(input,options)=>String(input)==='/api/realtime/connect'?Promise.resolve(new Response(JSON.stringify({token:'fixture',setup:{}}),{headers:{'Content-Type':'application/json'}})):originalFetch(input,options);
+    window.fetch=(input,options)=>['/api/realtime/connect','/api/realtime/read-session'].includes(String(input))?Promise.resolve(new Response(JSON.stringify({token:'fixture',setup:{},model:'gpt-realtime'}),{headers:{'Content-Type':'application/json'}})):originalFetch(input,options);
     window.WebSocket=class {
       static OPEN=1;readyState=1;
-      constructor(){setTimeout(()=>{this.onopen?.();this.onmessage?.({data:JSON.stringify({setupComplete:{}})});},20);}
-      send(value){sent.push(JSON.parse(value));}
+      constructor(url){this.openai=url.includes('api.openai.com');setTimeout(()=>{this.onopen?.();this.onmessage?.({data:JSON.stringify(this.openai?{type:'session.created'}:{setupComplete:{}})});},20);}
+      send(value){const data=JSON.parse(value);sent.push(data);
+        if(data.type==='response.create'||data.realtimeInput?.text)setTimeout(()=>{
+          const pcm=btoa(String.fromCharCode(...new Uint8Array(4800)));
+          for(const message of this.openai?[{type:'response.output_audio.delta',delta:pcm},{type:'response.done',response:{status:'completed'}}]:[{serverContent:{modelTurn:{parts:[{inlineData:{mimeType:'audio/pcm;rate=24000',data:pcm}}]}}},{serverContent:{turnComplete:true}}])this.onmessage?.({data:JSON.stringify(message)});
+        },10);
+      }
       close(){this.readyState=3;}
     };
     try{
@@ -77,6 +82,14 @@
         try{await startRealtime();}catch(error){rejected=error.message.includes('no está disponible');}
         if(!rejected||realtime)throw Error('webrtc-message');
       }
+      stage='online-reading';
+      const originalMicrophone=navigator.mediaDevices.getUserMedia;
+      navigator.mediaDevices.getUserMedia=()=>{throw Error('La lectura no debe capturar audio.');};
+      try{for(const provider of ['openai','gemini']){
+        $('realtime-provider').value=provider;realtimeConfigured=true;realtimeConsent=true;$('realtime-enabled').checked=true;
+        await readText('Narración ficticia sin micrófono.');
+        if(readingActive||onlineReading||$('voice-status').textContent.includes('respaldo'))throw Error('online-reading');
+      }}finally{navigator.mediaDevices.getUserMedia=originalMicrophone;}
     }finally{stopRealtime();window.fetch=originalFetch;window.WebSocket=originalSocket;$('realtime-enabled').checked=false;realtimeConsent=false;realtimeConfigured=false;}
     stage='reading';
     await readText('Una biblioteca ficticia.');

@@ -11,6 +11,26 @@ import test_workbench
 
 KEY='sk-ficticia-solo-test-no-es-una-credencial'
 class RealtimeTests(unittest.TestCase):
+    def test_reading_tokens_have_no_tools_or_project_context(self):
+        engine=Realtime();engine.configure(KEY);engine.configure('AQ.ficticia-solo-test','gemini')
+        with patch('workbench_realtime.urllib.request.build_opener') as opener:
+            for provider,consent in [('openai',False),('gemini',False),('other',True)]:
+                with self.assertRaises(Problem):engine.read_session(provider,consent)
+            opener.assert_not_called()
+            for provider,body in [('openai',b'{"value":"ephemeral-fixture"}'),('gemini',b'{"name":"ephemeral-fixture"}')]:
+                opener.return_value.open.return_value=io.BytesIO(body)
+                result=engine.read_session(provider,True)
+                self.assertEqual(result['token'],'ephemeral-fixture')
+                request=opener.return_value.open.call_args.args[0];payload=json.loads(request.data)
+                setup=payload.get('session') or payload['bidiGenerateContentSetup']
+                self.assertFalse(setup.get('tools'));self.assertNotIn('get_context',json.dumps(payload));self.assertNotIn(KEY,json.dumps(result))
+                if provider=='openai':
+                    self.assertEqual(payload['expires_after']['seconds'],60)
+                    self.assertIsNone(setup['audio']['input']['turn_detection'])
+                opener.return_value.open.side_effect=urllib.error.HTTPError(request.full_url,401,KEY,{},None)
+                with self.assertRaises(Problem) as error:engine.read_session(provider,True)
+                self.assertNotIn(KEY,str(error.exception));self.assertFalse(engine.connecting.locked())
+                opener.return_value.open.side_effect=None
     def test_opt_in_transport_context_and_errors(self):
         with tempfile.TemporaryDirectory() as directory:
             store=Store(directory);project=store.create('Voz ficticia',True)['id']
@@ -62,6 +82,9 @@ class RealtimeHTTP(unittest.TestCase):
         self.assertEqual(self.request('/api/projects/'+project+'/voice-context')[0],200)
         with patch('workbench_realtime.urllib.request.build_opener') as opener:
             self.assertEqual(self.request('/api/realtime/connect',dict(project=project,sdp='v=0',consent=False,actions=True))[0],400)
+            opener.assert_not_called()
+            self.assertEqual(self.request('/api/realtime/read-session',dict(provider='openai',consent=True),headers={'Authorization':'bad'})[0],401)
+            self.assertEqual(self.request('/api/realtime/read-session',dict(provider='openai',consent=False))[0],400)
             opener.assert_not_called()
         self.assertEqual(self.request('/api/realtime/key',{'key':''})[0],200)
 
