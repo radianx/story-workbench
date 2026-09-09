@@ -88,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js'):
+            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')

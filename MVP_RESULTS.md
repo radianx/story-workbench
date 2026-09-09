@@ -1,3 +1,19 @@
+# Ayuda y usabilidad 0.4.0 — 2026-09-09
+
+- Pasaron las 4 comprobaciones del protocolo y las 19 de almacenamiento/HTTP/modelos/plan/exportación/voz. Sintaxis Python/JS y `git diff --check` correctos.
+- `tests/ux_browser_check.py` pasó: ayuda disponible sin proyecto ni cuenta, sin escrituras ni llamadas IA al abrir; búsqueda sin tildes y sin resultados; F1/Escape y retorno del foco; editor y ficha pendientes preservados; mensaje y tarea conservados por proyecto al recargar; texto nuevo preservado durante una respuesta HTTP simulada; error visible después de 12,5 segundos; cancelación de creación; lectura del chat sin saltos; biblioteca plegable y ausencia de desbordamiento horizontal a 390 px. También demora la carga de ayuda para comprobar que la app espera a sus scripts antes de abrir un proyecto.
+- Pasaron los recorridos `tests/browser_check.py` y `tests/voice_browser_check.py` después de los cambios finales. La prueba editorial incluye selección de modelo/esfuerzo desplegando sus ajustes. No se consumió cuota ChatGPT ni se grabó al usuario en este corte.
+- Capturas inspeccionadas a 1440 y 390 px, en temas claro y oscuro. Esta pasada no equivale a pruebas con lectores de pantalla ni a validación WCAG completa.
+- `tests/desktop_check.py --voice` pasó en Electron Linux 0.4.0 desempaquetado: ayuda abierta y cerrada, API/exportación DOCX, renderer aislado, micrófono virtual, cámara denegada, dictado y síntesis incluidos, preferencias conservadas al reiniciar. Usa la excepción de sandbox exclusiva del test; no se declara una prueba de instalación 0.4.0.
+- Windows bajo Wine: el Python incluido pasó `windows_runtime_check.py` con copias ficticias, guardado/historial, bloqueo de segunda instancia y Vosk nativo con PCM de silencio. No se validaron instalación, interfaz, micrófono ni System.Speech en Windows real.
+- Verificados 71 hashes del runtime Linux y 86 del Windows, incluida la ayuda; sin cuentas, proyectos ni skill global.
+- Generados localmente los instaladores **0.4.0** Linux `.deb` (231,4 MiB) y Windows `.exe` (245,2 MiB), con SHA256SUMS en `dist/installers`. Sin firma ni publicación.
+- Estado instalado comprobado con dpkg: **0.3.0**. La instalación que antes esperaba autenticación se completó; no se actualizó automáticamente a 0.4.0.
+
+Ver [hallazgos y mejoras aplicadas](UX_REVIEW.md). Los resultados históricos siguientes corresponden a sus versiones y fechas; no se repitieron las llamadas reales a modelos ni la prueba nativa del motor de voz para este cambio de interfaz.
+
+---
+
 # Entrevista y voz local 0.3.0 — 2026-09-08
 
 - Comprobaciones ejecutadas: 4 del protocolo y 19 de almacenamiento/HTTP/modelos/plan/exportación/voz; pasaron. Sintaxis Python/JS y `git diff --check` correctos.

@@ -42,7 +42,7 @@ $('plan-cards').onclick=action(async e=>{
   if(button.hasAttribute('data-draft-scene')){
     const doc=state.documents.find(d=>d.id===id);$('mode').value='draft';setTaskMode();showPanel('conversation');
     $('prompt').value=`Ayudame a preparar un borrador provisional para «${doc.name}». Sinopsis provisional: ${doc.synopsis||'por definir'}. Punto de vista: ${doc.pov||'por definir'}. Usá las fuentes seleccionadas y las decisiones aprobadas; preguntá por un vacío esencial si falta. El resultado se guardará aparte cuando yo lo elija.`;
-    $('prompt').focus();notice('Petición preparada. Revisá las fuentes y enviá cuando quieras.');
+    savePromptDraft();$('prompt').focus();notice('Petición preparada. Revisá las fuentes y enviá cuando quieras.');
   }
 });
 $('scene-add').onclick=action(async()=>{checkPlanEdits();const doc=await api('/api/document/add',{project:state.id,name:`Escena ${manuscripts().length+1}.md`,role:'manuscrito',content:''});state=await api(`/api/projects/${state.id}`);renderPlan();renderDocuments();$('plan-cards').querySelector(`[data-scene="${doc.id}"] textarea`)?.focus();});

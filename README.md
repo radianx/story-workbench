@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio 0.3.0**, 2026-09-08. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio 0.4.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -33,17 +33,18 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Área | Qué hace el MVP |
 | --- | --- |
 | Inicio guiado | Wizard de dos pasos con entrevista como opción predeterminada; escritura directa o entrevista editorial con build-novel local o la guía integrada. La forma de trabajo se guarda por proyecto y se puede cambiar desde la biblioteca. Recargar no duplica la bienvenida; una entrevista fallida o interrumpida puede retomarse. |
+| Ayuda | Sección opcional con búsqueda, once temas desplegables, F1 y enlaces desde cada área. Explicaciones de tareas antes de enviar; recordatorios con puntero y descripciones para lector de pantalla. No abre tours ni llama a IA. |
 | Biblioteca | Varios proyectos, documentos nuevos e importados, búsqueda en nombre y contenido, nombre editable y roles: manuscrito, canon, estilo, referencia, planificación y traducción. |
 | Contexto | Selección explícita de fuentes, contador de tamaño, nombres y hashes del material enviado. No recorta fuentes en silencio. Retirar o agregar fuentes abre hilo nuevo para evitar conservar material retirado en el historial del agente. |
 | Escritura | Editor Markdown, formato básico, vista previa segura, palabras y tiempo de lectura, atajo Ctrl/Cmd+S, modo foco con Ctrl/Cmd+Shift+F, botones Deshacer/Rehacer y atajos Ctrl+Z/Ctrl+Shift+Z (Cmd en macOS). Texto y formato usan el historial nativo del editor; al cambiar de documento o recargar, recurrir a Historial para las versiones guardadas. |
-| Recuperación | Borrador por documento en la pestaña, guardado atómico, conflicto ante cambios externos, versiones anteriores y restauración recuperable. |
+| Recuperación | Borrador por documento y mensaje no enviado por proyecto durante la sesión de la ventana, guardado atómico, conflicto ante cambios externos, versiones anteriores y restauración recuperable. |
 | Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental, detención e hilo persistente por proyecto. |
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura local de respuestas, detención y lectura automática opcional de respuestas nuevas. |
 | Modelos | Catálogo de la cuenta ChatGPT y esfuerzos compatibles; selección por proyecto, comprobación al enviar y modelo/esfuerzo efectivo en cada respuesta. |
 | Creación | Redacción guiada y botón explícito para guardar como nuevo borrador provisional; repetirlo abre la misma copia. |
-| Seguimiento | Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
+| Seguimiento | Conserva la posición mientras leés y permite ir a la última respuesta. Errores visibles hasta cerrarlos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
 | Libro 3D | Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
@@ -80,6 +81,7 @@ Las pruebas HTTP necesitan permisos para abrir sockets de loopback. Node se usa 
 # Navegador: Playwright y Chrome, solo como herramientas de prueba.
 python3 tests/browser_check.py
 python3 tests/voice_browser_check.py
+python3 tests/ux_browser_check.py
 # Motores locales reales; requiere recursos de voz y voz del sistema.
 python3 tests/live_voice_check.py
 # Prueba real con cuota ChatGPT y corpus ficticio temporal.
@@ -91,3 +93,5 @@ python3 tests/live_model_check.py
 ```
 
 Ver [resultados del MVP](MVP_RESULTS.md), [prueba inicial del motor](SMOKE_RESULTS.md), [producto](PRODUCT.md), [criterios de implementación](IMPLEMENTATION.md) , [comparación inicial](RESEARCH.md) y [propuesta de mejora aplicada](PRODUCT_IMPROVEMENTS.md).
+
+Ver [pasada de UX y ayuda aplicada en 0.4.0](UX_REVIEW.md).

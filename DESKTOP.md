@@ -1,11 +1,11 @@
-# Distribución de escritorio 0.3.0
+# Distribución de escritorio 0.4.0
 
 Paquetes preliminares locales para probar con otros autores. No se publicaron, no contienen credenciales, proyectos, conversaciones ni habilidades globales. No hay licencia definitiva del producto; `UNLICENSED` evita declarar una licencia inexistente.
 
 ## Para el usuario
 
-- **Linux:** paquete `Story-Workbench-0.3.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
-- **Windows:** `Story-Workbench-0.3.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
+- **Linux:** paquete `Story-Workbench-0.4.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
+- **Windows:** `Story-Workbench-0.4.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
 - **ChatGPT:** Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro. Usar la cuenta propia en el navegador predeterminado. La app detecta cuando termina el acceso. El editor permanece disponible sin iniciar sesión.
 
 No se comparte la cuenta del creador. El escritorio usa su propio directorio Codex y requiere conectar la cuenta una vez; la versión `python3 app.py` conserva el uso de Codex instalado. La IA usa conexión online y cuota Codex disponible, sin API facturada por separado.
@@ -14,7 +14,7 @@ Datos de escritorio: `~/.config/story-workbench/projects` en Linux y `%APPDATA%/
 
 ## Funciones de esta entrega
 
-La 0.3.0 prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
+La 0.4.0 añade ayuda opcional buscable y mejoras de recuperación, lectura y navegación descritas en [UX_REVIEW.md](UX_REVIEW.md). Mantiene las funciones de 0.3.0: prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
 
 Barra por etapas observadas: conexión, contexto, generación y comprobación/guardado. No se inventa un porcentaje del libro ni una duración. Un error o cancelación conserva progreso parcial. Las respuestas nuevas están resaltadas y son colapsables; cada autor puede marcarlas como vistas. Aceptar una propuesta abre su documento y selecciona el texto recién aplicado.
 
@@ -44,6 +44,7 @@ El renderer no dispone de Node ni IPC genérico, mantiene aislamiento de context
 python3 -m unittest discover -s scripts
 python3 -m unittest discover -s tests
 python3 tests/browser_check.py
+python3 tests/ux_browser_check.py
 python3 tests/desktop_check.py
 # Después de instalar el .deb: sandbox habilitado, datos ficticios temporales.
 python3 tests/desktop_check.py --installed --voice

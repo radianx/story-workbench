@@ -89,6 +89,9 @@ async function start() {
       const project=await response.json();
       const exportResponse=await fetch('/api/projects/'+project.id+'/book.docx',{headers});
       if(!exportResponse.ok || !document.querySelector('#plan-dialog') || !document.querySelector('#ai-model'))return false;
+      document.querySelector('#help-open').click();
+      if(!document.querySelector('#help-dialog').open || document.querySelectorAll('.help-topic').length!==11)return false;
+      document.querySelector('#help-close').click();
       const before=localStorage.getItem('desktop-smoke');
       localStorage.setItem('desktop-smoke','persisted');
       return {persistent:before==='persisted',project:project.title==='Prueba empaquetada',origin:location.href.split('#')[0]};

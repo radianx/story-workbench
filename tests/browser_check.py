@@ -44,7 +44,7 @@ def main():
                 page.screenshot(path='/tmp/story-workbench-dark.png',full_page=True)
                 project=server.store.list_projects()[0]['id']
                 data=server.store.snapshot(project);doc=data['documents'][0]
-                page.locator('#ai-model:not([disabled])').wait_for()
+                page.locator('#ai-summary').click(); page.locator('#ai-model:not([disabled])').wait_for()
                 assert page.locator('#ai-model').input_value()=='modelo-a'
                 page.locator('#ai-effort').select_option('high')
                 page.wait_for_function("() => !document.querySelector('#ai-effort').disabled")

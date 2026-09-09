@@ -33,6 +33,10 @@ Inspiración de interacción: NotebookLM, no copia de su identidad visual. Bibli
 - Foco: oculta paneles secundarios sin cambiar el documento ni detener tareas de manera implícita.
 - Inspiración, posterior: imagen opcional por capítulo, generada con consentimiento y reutilizada. Fondo fuera del área de lectura, contraste suficiente y sin animaciones necesarias. Imágenes especulativas no son canon. No prometer disponibilidad ni coste hasta probar la herramienta de generación en esta integración.
 
+## Corte 0.4.0 aplicado
+
+Ayuda opcional con búsqueda y accesos contextuales; recordatorios de controles, explicación del tipo de tarea, conservación de mensajes sin enviar por proyecto durante la sesión, errores que se cierran explícitamente y lectura del chat sin saltos. La biblioteca se puede plegar en ventanas compactas guiadas. No hay tour automático ni progreso de tutorial. Ver [revisión de UX](UX_REVIEW.md).
+
 ## Corte 0.3.0 aplicado
 
 El recorrido incorpora fichas provisionales, plan de capítulos/escenas, orden editorial, metas de palabras, estados de revisión vinculados a la versión, modelo y esfuerzo elegibles, borrador con guardado explícito y libro compilado en Markdown/DOCX. El plan reutiliza los documentos y comparte sus fichas solo con las fuentes seleccionadas. Ver [evaluación comparativa y propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
