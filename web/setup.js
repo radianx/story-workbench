@@ -30,6 +30,8 @@ $('setup-next').onclick=()=>{setupStep++;renderSetup();};
 $('setup-account').onclick=()=>$('account-open').click();
 $('setup-voice').onclick=()=>$('realtime-settings').click();
 $('setup-new').onclick=action(async()=>{rememberSetup();$('setup-dialog').close();await createProject();});
+$('setup-folder').onclick=action(async()=>{rememberSetup();$('setup-dialog').close();await createProject(false,true);});
+$('setup-workspace').onclick=()=>{$('setup-dialog').close();openSettings();$('workspace-path').focus();};
 $('setup-resume').onclick=action(async()=>{const id=$('setup-project').value;if(!id)return;rememberSetup();$('setup-dialog').close();await openProject(id);});
 
 // Destinos explícitos compartidos por teclado y voz; nunca aprobaciones ni clicks arbitrarios.

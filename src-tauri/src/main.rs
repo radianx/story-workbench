@@ -108,6 +108,11 @@ fn desktop_request(app: &tauri::AppHandle, backend: &Backend, request: &Request<
     if request.headers().get("Authorization").and_then(|v|v.to_str().ok())!=Some(&format!("Bearer {}",backend.token)) {return error_response(401,"Acceso no autorizado.")}
     if request.body().len()>32_000_000 {return error_response(413,"Archivo demasiado grande.")}
     if url.path()=="/api/desktop/close" {app.exit(0);return json_response(serde_json::json!({"ok":true}))}
+    if url.path()=="/api/desktop/folder" {
+        let Some(path)=app.dialog().file().set_title("Elegir carpeta").blocking_pick_folder() else {return json_response(serde_json::json!({"path":null}))};
+        let Ok(path)=path.into_path() else {return error_response(400,"Carpeta no disponible.")};
+        return json_response(serde_json::json!({"path":path.to_string_lossy()}))
+    }
     if url.path()!="/api/desktop/save" {return error_response(404,"Acción no disponible.")}
     let Some(name)=export_name(&url) else {return error_response(400,"Nombre de exportación inválido.")};
     let Some(path)=app.dialog().file().set_title("Guardar exportación").set_file_name(&name).blocking_save_file() else {return json_response(serde_json::json!({"saved":false}))};

@@ -5,11 +5,14 @@ function updateWizardPurpose(){
   const purpose=$('wizard-purpose').value,extra=purpose!=='novel';
   document.querySelector('[name=start-workflow][value=writing]').disabled=extra;
   if(extra)document.querySelector('[name=start-workflow][value=guided]').checked=true;
-  $('wizard-purpose-hint').textContent=purpose==='translation'?'Entrevista sobre intención, idiomas y voz; después importás copias del original y revisás cada unidad.':purpose==='rpg'?'Una ayuda extra para preparar mundo, PNJ, facciones y reglas propias. El director conserva el criterio; no se juega una partida aquí.':'';
+  const translation=purpose==='translation';
+  $('wizard-story').hidden=translation;$('wizard-translation').hidden=$('wizard-translation').disabled=!translation;
+  $('wizard-material-optional').textContent=translation?'(requerida)':'(opcional)';
+  $('wizard-purpose-hint').textContent=translation?'Partimos de una obra existente y de los idiomas que elijas. La entrevista continúa con intención, voz y matices.':purpose==='rpg'?'Una ayuda extra para preparar mundo, PNJ, facciones y reglas propias. El director conserva el criterio; no se juega una partida aquí.':'';
   $('wizard-guided-note').hidden=document.querySelector('[name=start-workflow]:checked').value!=='guided';
   $('wizard-create').textContent=$('wizard-guided-note').hidden?'Crear proyecto':'Crear e iniciar entrevista';
 }
-$('wizard-purpose').onchange=updateWizardPurpose;
+$('wizard-purpose').onchange=action(async()=>{updateWizardPurpose();if($('wizard-purpose').value==='translation'&&wizardSelected().length&&!$('wizard-from').value)await detectWizardLanguage();});
 function applyPurpose(){
   const purpose=state.purpose||'novel',rpg=purpose==='rpg',translation=purpose==='translation';
   $('purpose').value=purpose;$('translation-open').hidden=!translation;$('book-open').hidden=rpg;$('plan-open').hidden=rpg;
@@ -120,3 +123,81 @@ Object.assign(templates,{
   rpg_rules:{role:'plan',text:'## Regla del mundo y por qué importa\n\nProvisional.\n\n## Límites, costo y excepciones\n\nPor definir.\n\n## Consecuencias en la vida cotidiana\n\nPor definir.\n\n## Mecánica casera propuesta\n\nOpcional; revisar con el grupo. No es una regla oficial.\n\n## Sistema / edición / fuente autorizada\n\nSi corresponde.'},
   rpg_hooks:{role:'plan',text:'## Situación inicial abierta\n\nPor definir.\n\n## Actores, objetivos y presión\n\nPor definir.\n\n## Tres formas posibles de implicarse\n\nOpciones, no acciones obligatorias.\n\n## Consecuencias posibles de actuar o ignorarlo\n\nProvisional.\n\n## Información pública / secretos del director\n\nSeparar.'}
 });
+
+// El material del wizard vive solo en esta ventana hasta crear el proyecto.
+let wizardDocuments=[],wizardFolder=null,wizardMaterialEpoch=0,wizardLoading=false;
+function clearWizardMaterial(keepFile=false){
+  wizardMaterialEpoch++;wizardLoading=false;wizardDocuments=[];wizardFolder=null;
+  if(!keepFile)$('wizard-file').value='';$('wizard-file-list').replaceChildren();$('wizard-files-status').textContent='';
+  $('wizard-original').replaceChildren();$('wizard-material-clear').hidden=true;
+  $('wizard-from').value='';$('wizard-detection').textContent='Podés elegir de la lista o escribir cualquier idioma y variante.';
+}
+function wizardSelected(){return wizardFolder?wizardFolder.files.filter(f=>f.selected):wizardDocuments;}
+function renderWizardMaterial(){
+  const files=wizardSelected(),previous=$('wizard-original').selectedOptions[0]?.textContent;
+  $('wizard-original').replaceChildren(...files.map((f,i)=>new Option(f.name,String(i))));
+  const index=files.findIndex(f=>f.name===previous);if(index>=0)$('wizard-original').value=String(index);
+  else $('wizard-from').value='';
+  $('wizard-files-status').textContent=`${files.length} archivos elegidos. ${wizardFolder?`${wizardFolder.skipped} archivos no compatibles u ocultos omitidos.`:''} Las copias no se seleccionan para IA, salvo la primera unidad del original de traducción.`;
+  $('wizard-material-clear').hidden=!wizardFolder&&!wizardDocuments.length;
+}
+async function detectWizardLanguage(){
+  const source=wizardSelected()[Number($('wizard-original').value)];
+  if(!source)throw new Error('Elegí el original primero.');
+  const epoch=++wizardMaterialEpoch,previous=$('wizard-from').value;
+  $('wizard-detection').textContent='Buscando indicios del idioma en el original…';
+  const result=await api('/api/translation/detect',wizardFolder?{path:wizardFolder.path,file:source.name}:{text:source.content});
+  if(epoch!==wizardMaterialEpoch||!$('project-wizard').open)return;
+  if($('wizard-from').value!==previous)return;
+  if(result.language){$('wizard-from').value=result.language;$('wizard-detection').textContent=`Idioma sugerido: ${result.language}. Confirmalo o corregilo; la variante la decide el autor.`;}
+  else $('wizard-detection').textContent='No hay indicios suficientes o el texto mezcla idiomas. Elegí el idioma original y su variante.';
+}
+$('wizard-file').onchange=action(async event=>{
+  const file=event.target.files[0];clearWizardMaterial(true);if(!file)return;
+  const epoch=wizardMaterialEpoch;wizardLoading=true;
+  try{
+    if(!/\.(md|markdown|txt)$/i.test(file.name)||file.size>250000)throw new Error('Elegí Markdown o TXT UTF-8 de hasta 250 KB.');
+    const content=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());
+    if(epoch!==wizardMaterialEpoch)return;
+    if(!content.trim()||content.includes('\0'))throw new Error('El original está vacío o no es texto válido.');
+    wizardDocuments=[{name:file.name,content,role:'manuscrito'}];renderWizardMaterial();
+  }finally{if(epoch===wizardMaterialEpoch)wizardLoading=false;}
+  if($('wizard-purpose').value==='translation')await detectWizardLanguage();
+});
+$('wizard-material-clear').onclick=()=>clearWizardMaterial();
+$('wizard-detect').onclick=action(detectWizardLanguage);
+$('wizard-original').onchange=action(async()=>{wizardMaterialEpoch++;$('wizard-from').value='';if($('wizard-purpose').value==='translation')await detectWizardLanguage();});
+$('wizard-folder-scan').onclick=action(async()=>{
+  clearWizardMaterial();const epoch=wizardMaterialEpoch;wizardLoading=true;
+  try{
+    const folder=await api('/api/import/preview',{path:$('wizard-folder-path').value.trim()});
+    if(epoch!==wizardMaterialEpoch||!$('project-wizard').open)return;
+    folder.files.sort((a,b)=>(a.role==='manuscrito'?0:1)-(b.role==='manuscrito'?0:1)||a.name.localeCompare(b.name));
+    wizardFolder=folder;
+    for(const file of folder.files){
+      file.selected=file.size>0&&file.size<=250000;
+      const label=document.createElement('label');label.className='check-row';
+      const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=file.selected;checkbox.disabled=!file.selected;
+      const text=document.createElement('span');text.textContent=`${file.name} · ${Math.ceil(file.size/1000)} KB${checkbox.disabled?' · vacío o supera 250 KB':''}`;
+      checkbox.onchange=()=>{file.selected=checkbox.checked;wizardMaterialEpoch++;renderWizardMaterial();$('wizard-detection').textContent='Cambió la selección. Podés volver a detectar el idioma del original.';};
+      label.append(checkbox,text);$('wizard-file-list').append(label);
+    }
+    renderWizardMaterial();
+  }finally{if(epoch===wizardMaterialEpoch)wizardLoading=false;}
+});
+$('wizard-folder-pick').hidden=!window.storyDesktop;
+$('wizard-folder-pick').onclick=action(async()=>{const result=await api('/api/desktop/folder',{});if(result.path){$('wizard-folder-path').value=result.path;await $('wizard-folder-scan').onclick();}});
+function wizardPayload(){
+  if(wizardLoading)throw new Error('Esperá a que termine de cargar el material.');
+  const purpose=$('wizard-purpose').value,files=wizardSelected();
+  if(files.length>100)throw new Error('Elegí hasta 100 archivos.');
+  if(wizardFolder&&!files.length)throw new Error('Elegí al menos un archivo de la carpeta.');
+  const setup={title:$('project-name').value.trim(),purpose,workflow:document.querySelector('[name=start-workflow]:checked').value,initial_idea:purpose==='translation'?'':$('project-idea').value.trim()};
+  if(wizardFolder)setup.import_folder={path:wizardFolder.path,files:files.map(f=>f.name)};
+  else setup.documents=wizardDocuments;
+  if(purpose==='translation'){
+    if(!files.length)throw new Error('Importá una obra existente para traducir.');
+    setup.translation={source:Number($('wizard-original').value),source_language:$('wizard-from').value.trim(),target_language:$('wizard-to').value.trim()};
+  }
+  return setup;
+}

@@ -169,36 +169,42 @@ async function nameDialog(title, value='') {
   $('name-dialog').returnValue=''; $('dialog-title').textContent=title; $('new-name').value=value; showDialog($('name-dialog')); $('new-name').focus();
   return new Promise(resolve=>$('name-dialog').addEventListener('close',()=>resolve($('name-dialog').returnValue==='ok'?$('new-name').value.trim():null),{once:true}));
 }
-let wizardStep=1;
+let wizardStep=1,wizardProject=null,wizardCreating=false;
 function setWizardStep(step) {
   wizardStep=step;
+  $('wizard-translation').disabled=step!==2||$('wizard-purpose').value!=='translation';
   $('wizard-details').hidden=step!==1; $('wizard-approach').hidden=step!==2;
   $('wizard-back').hidden=step!==2; $('wizard-next').hidden=step!==1; $('wizard-create').hidden=step!==2;
   $('wizard-step').textContent=step===1?'PASO 1 DE 2 · TU PROYECTO':'PASO 2 DE 2 · TU PUNTO DE PARTIDA';
   $('wizard-title').textContent=step===1?'Dale un espacio a tu historia.':'Elegí cómo querés continuar.';
-  (step===1?$('project-name'):document.querySelector('[name="start-workflow"]:checked')).focus();
+  (step===1?$('project-name'):$('wizard-purpose')).focus();
 }
-function projectWizard() {
-  $('wizard-form').reset();updateWizardPurpose(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
+function projectWizard(folder=false) {
+  $('wizard-form').reset();clearWizardMaterial();updateWizardPurpose();wizardProject=null; $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
   $('wizard-create').textContent='Crear e iniciar entrevista'; showDialog($('project-wizard')); setWizardStep(1);
-  return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>resolve(
-    $('project-wizard').returnValue==='create'?{
-      title:$('project-name').value.trim(), workflow:document.querySelector('[name="start-workflow"]:checked').value,
-      initial_idea:$('project-idea').value.trim(),purpose:$('wizard-purpose').value}:null),{once:true}));
+  $('wizard-folder-options').open=folder;
+  return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>{wizardMaterialEpoch++;resolve(wizardProject);},{once:true}));
 }
 $('wizard-next').onclick=()=>{if($('project-name').reportValidity() && $('project-name').value.trim())setWizardStep(2);};
 $('wizard-back').onclick=()=>setWizardStep(1);
-$('wizard-cancel').onclick=()=>$('project-wizard').close('cancel');
-$('wizard-form').onsubmit=e=>{e.preventDefault();if(wizardStep===1)$('wizard-next').click();else $('project-wizard').close('create');};
+$('wizard-cancel').onclick=()=>{if(!wizardCreating)$('project-wizard').close('cancel');};
+$('project-wizard').oncancel=e=>{if(wizardCreating)e.preventDefault();};
+$('wizard-form').onsubmit=action(async e=>{
+  e.preventDefault();if(wizardStep===1){$('wizard-next').click();return;}
+  if(wizardCreating)return;
+  const setup=wizardPayload();wizardCreating=true;
+  $('wizard-back').disabled=$('wizard-cancel').disabled=true;
+  try{wizardProject=await api('/api/projects',setup);$('project-wizard').close('create');}
+  finally{wizardCreating=false;$('wizard-back').disabled=$('wizard-cancel').disabled=false;}
+});
 document.querySelectorAll('[name="start-workflow"]').forEach(input=>input.onchange=()=>{
   const guided=document.querySelector('[name="start-workflow"]:checked').value==='guided';
   $('wizard-guided-note').hidden=!guided; $('wizard-create').textContent=guided?'Crear e iniciar entrevista':'Crear proyecto';
 });
-async function createProject(demo=false) {
+async function createProject(demo=false,folder=false) {
   if(!confirmLeave())return;
-  const setup=demo?{title:'El faro · proyecto ficticio',workflow:'writing'}:await projectWizard();
-  if(!setup)return;
-  const project=await api('/api/projects',{...setup,demo});dirty=false;
+  const project=demo?await api('/api/projects',{title:'El faro · proyecto ficticio',workflow:'writing',demo:true}):await projectWizard(folder);
+  if(!project)return;dirty=false;
   await refreshProjects(); await openProject(project.id);
 }
 function applyWorkflow() {

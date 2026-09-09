@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import tempfile
 import threading
 import time
@@ -115,14 +116,35 @@ class Store:
         data['updated'] = time.time()
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
-    def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel'):
-        from workbench_modes import PURPOSES
+    def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel', documents=None, translation=None):
+        from workbench_modes import PURPOSES, translation_languages, translation_units, configure_translation
         check(purpose in PURPOSES, 'Objetivo de proyecto inválido.')
         check(not demo or purpose=='novel', 'El ejemplo es un proyecto de historia.')
         text_value(title, 160, False)
         check(workflow in WORKFLOWS, 'Forma de trabajo inválida.')
         text_value(initial_idea, 6000)
         check(not demo or workflow == 'writing', 'El ejemplo se abre en modo escritura.')
+        documents = [] if documents is None else documents
+        check(isinstance(documents,list) and len(documents)<=100 and not (demo and documents), 'Documentos iniciales inválidos.')
+        prepared = []
+        for doc in documents:
+            check(isinstance(doc,dict), 'Documento inválido.')
+            name=text_value(doc.get('name'),200,False)
+            content=text_value(doc.get('content'))
+            role=doc.get('role','referencia');check(role in ROLES and role!='traducción', 'Rol de original inválido.')
+            prepared.append(dict(name=name,content=content,role=role,selected=False))
+        config = None
+        if purpose == 'translation':
+            config=translation_languages(translation)
+            index=translation.get('source')
+            check(type(index) is int and 0<=index<len(prepared), 'Importá una obra existente y elegí el original.')
+            original=prepared[index];text_value(original['content'],empty=False)
+            units=translation_units(original['content'])
+            parts=[dict(name=original['name'] if len(units)==1 else f"{original['name'].encode('utf-8')[:160].decode('utf-8',errors='ignore')} · Unidad {i+1}",
+                        content=content,role='manuscrito',selected=i==0) for i,content in enumerate(units)]
+            prepared[index:index+1]=parts
+            check(len(prepared)<=100, 'El original dividido y las referencias superan 100 documentos. Importá una parte de la obra.')
+            workflow='guided';initial_idea=''
         project = uid()
         path = self.path(project)
         path.mkdir(mode=0o700)
@@ -131,7 +153,16 @@ class Store:
         data = dict(id=project, title=title, updated=time.time(), documents=[], proposals=[],
                     decisions=[], runs=[], thread=None, context_key=None,
                     workflow=workflow, initial_idea=initial_idea, purpose=purpose)
-        self.persist(data)
+        try:
+            self.persist(data)
+            for doc in prepared:
+                self.add_document(project, **doc)
+            if config:
+                data=self.load(project)
+                configure_translation(self,data,{**config,'source':data['documents'][index]['id']})
+        except BaseException:
+            shutil.rmtree(path)
+            raise
         if demo:
             examples = [
                 ('01 · La última luz.md', 'manuscrito', '# La última luz\n\nInés dejó la llave azul sobre la mesa del faro. Afuera, el agua borraba el camino.\n\n—Mi padre vuelve el viernes —dijo.\n\nTomás miró el calendario. Era jueves. Hacía tres años que habían enterrado a Julián.\n\nLa radio crujió. Inés reconoció la voz antes de escuchar su nombre.\n'),
@@ -140,7 +171,7 @@ class Store:
                 ('02 · El cuarto de radio.md', 'manuscrito', '# El cuarto de radio\n\nInés giró la llave roja. Tomás esperó al otro lado de la puerta.\n\nLa voz volvió a llamarla. Ella no contestó.\n')]
             for name, role, content in examples:
                 self.add_document(project, name, role, content)
-        elif workflow == 'writing' and purpose=='novel':
+        elif workflow == 'writing' and purpose=='novel' and not prepared:
             self.add_document(project, 'Manuscrito.md', 'manuscrito', '')
         return self.load(project)
 

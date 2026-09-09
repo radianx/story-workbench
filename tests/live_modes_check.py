@@ -6,8 +6,8 @@ from workbench_store import Store
 from workbench_modes import configure_translation, answer_translation, accept_translation
 
 with tempfile.TemporaryDirectory(prefix='sw-live-modes-') as directory:
-    store=Store(directory);project=store.create('Matiz ficticio',workflow='guided',purpose='translation')['id']
-    source=store.add_document(project,'Original ficticio','manuscrito','—Te quiero —dijo Mara al despedirse de Ivo.')
+    store=Store(directory);project=store.create('Matiz ficticio',workflow='guided',purpose='translation',documents=[dict(name='Original ficticio',content='—Te quiero —dijo Mara al despedirse de Ivo.')],translation=dict(source=0,source_language='es-AR',target_language='en-US'))['id']
+    source=store.snapshot(project)['documents'][0]
     configure_translation(store,store.load(project),dict(source=source['id'],source_language='es-AR',target_language='en-US',intent='Conservar la intención del vínculo. No está decidido si es romántico o amistoso: preguntalo antes de traducir.',glossary='Mara e Ivo son nombres propios.'))
     assistant=Assistant(store);assistant.start(project,'translate','Consultá el matiz pendiente antes de traducir.',False)
     run=wait(assistant,store,project);assert run['status']=='completed' and run['translation_result']['question']

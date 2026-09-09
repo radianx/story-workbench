@@ -1,5 +1,6 @@
 """Traducción con criterio humano y preparación de mundos; reutiliza documentos e historial."""
 import json
+import re
 import time
 from workbench_store import check, text_value, digest, uid
 
@@ -7,8 +8,10 @@ PURPOSES = ('novel', 'translation', 'rpg')
 GUIDES = {
     'novel': '',
     'translation': (
-        'Este proyecto es una traducción literaria dirigida por su autor. Entrevistá sobre idioma y '
-        'variante de origen/destino, lector, intención, registro, voz, ambigüedad, humor, dialecto, '
+        'Este proyecto es una traducción literaria dirigida por su autor de una obra existente. '
+        'Usá los idiomas y la unidad ya elegidos en translation_brief; no vuelvas a pedirlos salvo '
+        'ambigüedad o contradicción. No pidas una idea inicial ni inventar protagonistas o trama. Entrevistá sobre variante de '
+        'origen/destino, lector, intención, registro, voz, ambigüedad, humor, dialecto, '
         'nombres y términos recurrentes. Una pregunta relevante por turno. No conviertas fidelidad '
         'literal en criterio único. Explicá qué gana y pierde cada alternativa y consultá al autor '
         'cuando cambie intención, subtexto o efecto. No corrijas defectos del original en silencio. '
@@ -51,11 +54,49 @@ def brief_hash(config):
     return digest(json.dumps({k:v for k,v in config.items() if k != 'source'}, sort_keys=True))
 
 
+def translation_languages(values):
+    check(isinstance(values, dict), 'Elegí idiomas de origen y destino.')
+    result = {key:text_value(values.get(key),100,False).strip() for key in ('source_language','target_language')}
+    check(result['source_language'].casefold() != result['target_language'].casefold(), 'Origen y destino deben ser distintos.')
+    return result
+
+
+def detect_language(text):
+    text_value(text)
+    # ponytail: indicios de seis idiomas, no dialectos; un detector entrenado si hacen falta más idiomas.
+    markers = {
+        'Español':'el los las una estaba había pero ella él dijo para como cuando sus del por con',
+        'Inglés':'the and was were she he said his her with from that this they not had',
+        'Portugués':'uma não são estava tinha ela ele disse para pelo pela mas seu sua você',
+        'Francés':'les une était avait elle lui dans pour mais avec des du est ses il',
+        'Italiano':'gli una era aveva lei lui disse nella delle della per che con sono non',
+        'Alemán':'der die das und war hatte sie er sagte nicht mit ein eine den dem',
+    }
+    words = re.findall(r'[^\W\d_]+', text[:30000].casefold())
+    if len(words) < 12:
+        return ''
+    scores = sorted(((len(set(words) & set(v.split())), k) for k,v in markers.items()), reverse=True)
+    return scores[0][1] if scores[0][0] >= 5 and scores[0][0] >= scores[1][0] + 3 else ''
+
+
+def translation_units(content):
+    """Particiones reversibles: no se quitan espacios ni se reescribe el original."""
+    units = []
+    while len(content) > 12000:
+        cut = content.rfind('\n\n', 6000, 12000)
+        cut = cut + 2 if cut != -1 else 12000
+        units.append(content[:cut]);content = content[cut:]
+    if content:
+        units.append(content)
+    return units
+
+
 def configure_translation(store, data, values):
     check(data['purpose']=='translation', 'Elegí el modo Traducción.')
     check(isinstance(values, dict), 'Encargo inválido.')
     config={k:text_value(values.get(k,''), limit, k not in ('source_language','target_language'))
             for k,limit in [('source_language',100),('target_language',100),('intent',4000),('glossary',6000)]}
+    config.update(translation_languages(config))
     source=store.document(data, values.get('source'))
     check(not source.get('translation') and source['role']!='traducción', 'Elegí un original, no una traducción.')
     check(0 < len(source['content'].strip()) and len(source['content'])<=12000,

@@ -18,6 +18,7 @@ from workbench_ai import Assistant
 from workbench_account import Account
 from workbench_voice import Speech
 import workbench_modes as modes
+from workbench_workspace import Workspace, import_preview, import_documents
 from workbench_realtime import Realtime, context as voice_context
 
 WEB = Path(__file__).parent / 'web'
@@ -27,6 +28,8 @@ class AppServer(ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, port, root):
+        self.workspace = Workspace(root)
+        root = self.workspace.active
         root = Path(root).absolute()
         check(not any(is_link(p) for p in (root, *root.parents)), 'El directorio de datos no puede ser un enlace.')
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -99,7 +102,9 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path in ('/api/voice-storage','/api/engine-storage'):
+                if path == '/api/workspace':
+                    self.send(200,self.server.workspace.status())
+                elif path in ('/api/voice-storage','/api/engine-storage'):
                     self.send(200,dict(available=False,stored={},reason='El guardado seguro está disponible en la app de escritorio con un almacén de claves del sistema.'))
                 elif path == '/api/engines':
                     self.send(200,self.server.assistant.providers.status())
@@ -199,8 +204,22 @@ class Handler(BaseHTTPRequestHandler):
                 return
             with store.lock:
                 if path == '/api/projects':
+                    documents=body.get('documents')
+                    if body.get('import_folder') is not None:
+                        folder=body['import_folder'];check(isinstance(folder,dict) and documents is None,'Importación inválida.')
+                        documents=import_documents(folder.get('path'),folder.get('files'))
                     result = store.create(body.get('title'), bool(body.get('demo')),
-                                          body.get('workflow', 'writing'), body.get('initial_idea', ''), body.get('purpose','novel'))
+                                          body.get('workflow', 'writing'), body.get('initial_idea', ''), body.get('purpose','novel'),
+                                          documents, body.get('translation'))
+                elif path == '/api/import/preview':
+                    result=import_preview(body.get('path'))
+                elif path == '/api/translation/detect':
+                    content=body.get('text')
+                    if body.get('path') is not None:
+                        content=import_documents(body.get('path'),[body.get('file')])[0]['content']
+                    result=dict(language=modes.detect_language(content))
+                elif path == '/api/workspace':
+                    result=self.server.workspace.choose(body.get('path'),body.get('name',''))
                 else:
                     project = body.get('project')
                     data = store.load(project)

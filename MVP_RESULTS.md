@@ -1,3 +1,12 @@
+# Traducción desde una obra y carpetas · Tauri 0.8.3 — 2026-09-09
+
+- Pasaron las 37 pruebas de backend y los recorridos Chrome de modos, setup y editor. La traducción nueva exige original e idiomas; el encargo llega preparado a la entrevista, con sugerencia local corregible y sin idea inicial. Se comprueba detección de seis idiomas, abstención en textos breves/ambiguos y partición de originales largos sin omisiones.
+- La importación de carpeta permite seleccionar Markdown/TXT, mantiene nombres relativos y deja las copias sin seleccionar para IA (excepto la primera unidad de traducción). Rechaza recorridos de rutas, enlaces, archivos demasiado grandes o UTF-8 inválido. Una prueba modifica la copia y verifica el original ficticio intacto.
+- La carpeta de trabajo se puede elegir o crear en Configuración y se aplica al reiniciar. Probados persistencia, recuperación de una biblioteca, bloqueo entre procesos, rechazo de una carpeta de originales y destino ausente sin recreación silenciosa. No se trasladan proyectos ni cuentas.
+- Generados .deb Linux y NSIS Windows 0.8.3. Verificados 32 archivos de runtime Linux y 98 de Windows, fuentes de Windows idénticas al checkout, binarios y SHA256. El backend del instalador Windows pasó bajo Wine: handshake, HTTP, cierre por stdin y segundo arranque sin bloqueo retenido. No se verificó la interfaz ni la instalación en Windows real.
+- El .deb extraído pasó dos arranques Tauri/WebKit en Xvfb: cuatro diálogos distintos de carpeta (seleccionar/cancelar), importación del texto ficticio sin cambiar la fuente, seis operaciones de exportación, editor, navegación, preferencias, llavero y voz simulada. La automatización cuenta diálogos, no teclas: GTK puede consumir Escape en su entrada de ubicación sin cerrar el selector.
+- Sin llamadas a IA ni cambios en repositorios de libros. De `cuentos_proyecto_humano` se consultaron nombres y tamaños: 46 archivos de texto (11 en manuscript), ninguno superior a 250 KB. No se importó material real durante las pruebas. Imágenes, PDF/DOCX y metadatos editoriales de otros sistemas no se convierten con esta importación.
+
 # Inicio, libro físico y motores 0.7.0 — 2026-09-09
 
 - Pasaron 31 pruebas de backend y 4 del protocolo Codex. Los seis transportes experimentales se comprobaron con SSE ficticio, errores, truncación, límites, claves y direcciones inválidas, historial y propuestas pendientes sin modificar documentos.

@@ -74,3 +74,7 @@ Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini
 ## Escritorio Tauri 0.8.0
 
 Tauri reemplaza Electron como único shell. Paquetes locales .deb y NSIS; Python, Codex y modelo de voz incluidos. Reutiliza la carpeta de proyectos y sesión Codex anterior. El perfil web y llavero nativo son nuevos: preferencias y claves antiguas requieren configuración una vez. Exportaciones con diálogo Guardar y escritura atómica; cierre cancelable con texto sin guardar o tarea activa. Estado ejecutado y limitaciones por plataforma en [distribución](DESKTOP.md).
+
+## Inicio de traducción y carpetas
+
+El proyecto de traducción nuevo requiere material previo e idiomas elegidos por el autor, con sugerencia local de idioma original. No pide inventar una historia. El wizard divide el original en unidades reversibles y abre la entrevista con el encargo preparado. Importación de carpetas con selección de Markdown/TXT y copias independientes; espacio de proyectos elegible o creable en Configuración, persistido y aplicado al reiniciar sin mover obras ni cuentas.

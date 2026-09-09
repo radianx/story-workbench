@@ -14,8 +14,8 @@ DRAFT=dict(message='Conservé el afecto amistoso.',question='',quote='',draft='�
 class Modes(unittest.TestCase):
     def setUp(self):
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
-        self.store=Store(temp.name);self.project=self.store.create('Traducción ficticia',workflow='guided',purpose='translation')['id']
-        self.source=self.store.add_document(self.project,'Original.md','manuscrito','—Te quiero —dijo.')
+        self.store=Store(temp.name);self.project=self.store.create('Traducción ficticia',workflow='guided',purpose='translation',documents=[dict(name='Original.md',role='manuscrito',content='—Te quiero —dijo.')],translation=dict(source=0,source_language='es',target_language='en'))['id']
+        self.source=self.store.snapshot(self.project)['documents'][0]
         self.config=dict(source=self.source['id'],source_language='Español rioplatense',target_language='Inglés estadounidense',intent='Conservar intención',glossary='')
         modes.configure_translation(self.store,self.store.load(self.project),self.config)
         self.assistant=Assistant(self.store)
@@ -92,9 +92,8 @@ class ModesHTTP(unittest.TestCase):
     setUp=test_workbench.HTTPTests.setUp
     request=test_workbench.HTTPTests.request
     def test_routes_keep_private_copy_and_export_metadata(self):
-        _,body=self.request('/api/projects',dict(title='Edición ficticia',workflow='guided',purpose='translation'));project=json.loads(body)['id']
-        _,body=self.request('/api/document/add',dict(project=project,name='Original.md',role='manuscrito',content='Te quiero'))
-        source=json.loads(body)['id']
+        _,body=self.request('/api/projects',dict(title='Edición ficticia',workflow='guided',purpose='translation',documents=[dict(name='Original.md',content='Te quiero')],translation=dict(source=0,source_language='es',target_language='en')));project=json.loads(body)['id']
+        source=json.loads(body)['documents'][0]['id']
         config=dict(source=source,source_language='es',target_language='en',intent='',glossary='')
         self.assertEqual(self.request('/api/translation/config',dict(project=project,config=config))[0],200)
         for route in ('answer','accept','review'):

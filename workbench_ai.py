@@ -127,6 +127,8 @@ class Assistant:
                 return {'id': runs[-1]['id']}
             prompt = ('Empecemos mi proyecto. Guiame con una pregunta por vez.' if not runs
                       else 'Retomemos la entrevista desde donde quedó, con una pregunta por vez.')
+            if not runs and data['documents'] and data['purpose']=='novel':
+                prompt='Ya tengo material de una obra. Guiame con una pregunta por vez para decidir qué revisar o desarrollar. No empecemos desde cero. Si no hay fuentes marcadas, orientame para elegirlas antes de analizar el texto.'
             return self.start(project, 'interview', prompt, True)
 
     def update(self, project, run_id, **values):
@@ -165,7 +167,7 @@ class Assistant:
         check(len(json.dumps(data['decisions'],ensure_ascii=False))<=30_000, 'Las decisiones superan el límite de contexto.')
         text = task_text(run, docs, brief, data['decisions']) + portable_history(data, run, docs)
         instructions = EDITOR_INSTRUCTIONS+'\n'+GUIDES.get(run.get('purpose','novel'),'')
-        if run['mode']=='interview':
+        if run['mode']=='interview' and run.get('purpose','novel')=='novel':
             instructions+=' Entrevistá al autor con una sola pregunta relevante por turno, según lo ya respondido. Explorá protagonista, deseo, conflicto, mundo, voz y alcance cuando falten; ofrecé un plan provisional antes de redactar.'
         schema = PROPOSAL_SCHEMA if run['mode']=='proposal' else TRANSLATION_SCHEMA if run['mode']=='translate' else None
         if schema:

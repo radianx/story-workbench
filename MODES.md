@@ -4,8 +4,8 @@ El wizard y Objetivo en la biblioteca distinguen historia/libro, traducción lit
 
 ## Traducción literaria
 
-1. La entrevista aclara lectores, idiomas/variantes, voz e intención. Importar una copia del original y abrir Traducción.
-2. Guardar unidad, idiomas, intención y glosario. La unidad admite hasta 12.000 caracteres; otras fuentes seleccionadas sirven como contexto. No hay división automática del original.
+1. El wizard exige una obra preexistente: archivo Markdown/TXT o selección de una carpeta. Elegir el original para comenzar e idiomas de origen y destino, sin pregunta de idea inicial o forma de escritura. La detección local es una sugerencia corregible para español, inglés, portugués, francés, italiano y alemán; textos breves, ambiguos u otros idiomas requieren elección manual. Se puede escribir cualquier idioma/variante. La entrevista usa estos datos y aclara lector, voz e intención.
+2. Guardar unidad, idiomas, intención y glosario. La unidad admite hasta 12.000 caracteres; otras fuentes seleccionadas sirven como contexto. El wizard divide el original elegido en unidades de hasta 12.000 caracteres, preservando la concatenación del texto; solo la primera se selecciona para IA. Cambiar a la siguiente unidad y marcarla es explícito. Los originales importados fuera del wizard aún requieren fragmentos o capítulos cortos.
 3. Marcar el original como fuente y traducir. Si falta criterio relevante, se presenta una pregunta, cita literal y dos o tres alternativas con efectos; no hay borrador aprobable en ese turno.
 4. Registrar el criterio elegido o escrito por el autor. Continuar consume otro turno de Codex. No se salta una consulta pendiente del mismo original y encargo.
 5. Comparar original congelado y borrador editable; aprobar crea una copia separada, no seleccionada para IA. Repetir abre la misma copia. Cambios de original, encargo o criterios entre generación y aprobación bloquean la aceptación desactualizada.

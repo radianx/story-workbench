@@ -1,11 +1,11 @@
-# Distribución Tauri 0.8.2
+# Distribución Tauri 0.8.3
 
 Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados; todavía no hay licencia definitiva del producto.
 
 ## Instalación
 
-- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.2-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
-- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.2-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
+- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.3-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
+- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.3-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
 - Abrir **Story Workbench** desde el menú. El asistente inicial empieza por el tema y permite conectar la cuenta propia, configurar voz opcional y crear/abrir un proyecto; se puede omitir y reabrir en Configuración.
 
 Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen incluidos. El usuario no necesita terminal, Node, Rust ni Python. Codex con ChatGPT sigue siendo el motor principal; no hay cambio automático a una API de pago. Los adaptadores con clave son experimentales y requieren elección explícita. No hay actualizaciones automáticas.
@@ -15,6 +15,8 @@ Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen
 Se conserva el directorio histórico: `~/.config/story-workbench` en Linux (`XDG_CONFIG_HOME` si está definido) y `%APPDATA%/story-workbench` en Windows. `projects` mantiene documentos, conversaciones y decisiones; `codex` mantiene la sesión. El bloqueo del backend impide abrir el mismo perfil simultáneamente desde ambas aplicaciones. Cerrá la app anterior antes de iniciar Tauri. En Linux el .deb actualiza el mismo paquete. En Windows se recomienda desinstalar Electron conservando sus datos antes de instalar Tauri; no se ha validado una actualización automática entre los dos instaladores.
 
 El nuevo perfil web está en `webview`: tema y demás preferencias requieren configurarse una vez. Las claves antiguas de safeStorage permanecen intactas pero Tauri no las convierte; ingresalas una vez para guardarlas en Secret Service (Linux) o Credential Manager (Windows). No hay respaldo en texto plano. La preview 0.8.0-alpha.1 tenía otro perfil, que tampoco se modifica automáticamente.
+
+Configuración → Carpeta de trabajo permite elegir o crear otro espacio de proyectos. La preferencia está en `projects/.workspace.json` del perfil habitual y se aplica al reiniciar. El destino debe estar vacío o identificado por `.story-workbench`; no se reutiliza una carpeta de manuscritos como almacén. No se mueven bibliotecas existentes ni cuentas. Si el destino deja de estar disponible, se abre la biblioteca predeterminada con un aviso; nunca se recrea automáticamente el destino ausente.
 
 Desinstalar conserva los datos. Exportar un proyecto produce un ZIP editorial con documentos y decisiones, sin conversaciones ni imágenes de maqueta. Una copia privada de toda la carpeta `projects` conserva también esos datos; no compartas la carpeta `codex` ni los almacenes de claves.
 
@@ -52,7 +54,7 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 python3 tests/tauri_check.py --binary src-tauri/target/release/story-workbench --dialog-tool /usr/bin/xdotool
 ```
 
-El test nativo usa ficción y claves ficticias en un perfil temporal, dos reinicios, audio virtual y proveedores simulados; borra sus entradas del llavero. El parámetro opcional `--dialog-tool` comprueba Guardar/Cancelar en el diálogo GTK real, abre el DOCX guardado y verifica una exportación vacía. xdotool y Playwright son herramientas de prueba, no dependencias de la app. La ventana mantiene el sandbox del sistema.
+El test nativo usa ficción y claves ficticias en un perfil temporal, dos reinicios, audio virtual y proveedores simulados; borra sus entradas del llavero. El parámetro opcional `--dialog-tool` comprueba selección/cancelación de carpeta e importación de una copia, además de Guardar/Cancelar en el diálogo GTK real, abre el DOCX guardado y verifica una exportación vacía. xdotool y Playwright son herramientas de prueba, no dependencias de la app. La ventana mantiene el sandbox del sistema.
 
 Referencias: [instaladores NSIS y WebView2](https://v2.tauri.app/distribute/windows-installer/), [paquetes Debian](https://v2.tauri.app/distribute/debian/), [diálogos nativos](https://v2.tauri.app/plugin/dialog/) y [Python embebible](https://docs.python.org/3/using/windows.html#the-embeddable-package). Los resultados efectivamente ejecutados se registran en MVP_RESULTS.md.
 

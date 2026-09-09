@@ -31,9 +31,16 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.locator('#project-name').fill('Traducción ficticia');page.locator('#wizard-next').click()
             page.locator('#wizard-purpose').select_option('translation')
             assert page.locator('[name=start-workflow][value=writing]').is_disabled()
+            assert page.locator('#wizard-story').is_hidden()
+            page.locator('#wizard-file').set_input_files(dict(name='Original.md',mimeType='text/markdown',buffer=b'Te quiero'))
+            page.wait_for_function('()=>wizardDocuments.length===1')
+            assert page.locator('#wizard-file').evaluate('el=>el.files[0].name')=='Original.md'
+            page.get_by_text('No hay indicios suficientes o el texto mezcla idiomas.',exact=False).wait_for()
+            page.locator('#wizard-from').fill('es-AR');page.locator('#wizard-to').fill('en-US')
             page.locator('#wizard-create').click();page.locator('.run-text').wait_for()
             project=server.store.list_projects()[0]['id']
-            source=server.store.add_document(project,'Original','manuscrito','Te quiero')
+            source=server.store.snapshot(project)['documents'][0]
+            assert server.store.load(project)['translation_config']['source_language']=='es-AR'
             page.reload();page.locator('#translation-open').click()
             page.locator('#translation-source').select_option(source['id'])
             page.locator('#translation-from').fill('es-AR');page.locator('#translation-to').fill('en-US')
@@ -72,7 +79,52 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             assert len(server.store.load(project)['documents'])==2
             assert page.locator('#template-type option[value=rpg_npc]').count()==1
             page.screenshot(path='/tmp/story-workbench-rpg.png',full_page=True)
+            # Carpeta ficticia: selección, copia privada y ubicación persistente.
+            folder=Path(directory)/'originales';folder.mkdir();(folder/'manuscript').mkdir()
+            (folder/'manuscript'/'cuento.md').write_text('Un cuento de prueba.')
+            (folder/'STYLE.md').write_text('Una voz ficticia.')
+            (folder/'.env').write_text('not-a-real-key')
+            page.locator('#settings-open').click();page.locator('#workspace-import').click()
+            page.locator('#project-name').fill('Carpeta importada');page.locator('#wizard-next').click()
+            page.locator('#wizard-folder-path').fill(str(folder));page.locator('#wizard-folder-scan').click()
+            page.wait_for_function('()=>wizardFolder?.files.length===2')
+            page.locator('#wizard-file-list input').nth(1).uncheck()
+            page.locator('#wizard-create').click();page.wait_for_function('()=>state?.title==="Carpeta importada"')
+            imported=server.store.snapshot(page.evaluate('state.id'))
+            assert len(imported['documents'])==1 and imported['documents'][0]['name']=='manuscript/cuento.md'
+            assert not imported['documents'][0]['selected']
+            assert (folder/'manuscript'/'cuento.md').read_text()=='Un cuento de prueba.'
+            page.locator('#settings-open').click()
+            page.locator('#workspace-path').fill(str(folder));page.locator('#workspace-save').click()
+            page.locator('#notice.error').wait_for();assert page.locator('#settings-dialog #notice').is_visible()
+            page.locator('#notice-close').click()
+            page.locator('#workspace-path').fill(directory);page.locator('#workspace-name').fill('Biblioteca nueva')
+            page.locator('#workspace-save').click()
+            page.wait_for_function('()=>workspaceInfo?.restart===true')
+            assert (Path(directory)/'Biblioteca nueva'/'.story-workbench').is_file()
+            page.reload();page.locator('#settings-open').click()
+            page.wait_for_function('()=>workspaceInfo?.restart===true')
+            assert page.locator('#workspace-path').input_value()==str(Path(directory)/'Biblioteca nueva')
+            page.locator('#workspace-default').click();page.wait_for_function('()=>workspaceInfo?.restart===false')
+            page.locator('#settings-close').click()
+            # Volver atrás, cambiar de modo y errores no deben crear proyectos vacíos.
+            count=len(server.store.list_projects());page.locator('#new-project').click()
+            page.locator('#project-name').fill('No crear');page.locator('#wizard-next').click()
+            page.locator('#wizard-purpose').select_option('translation')
+            page.locator('#wizard-back').click();page.locator('#wizard-next').click()
+            page.locator('#wizard-file').set_input_files(dict(name='Idioma.txt',mimeType='text/plain',buffer='Ella estaba en la casa cuando él dijo que sus amigos habían pasado por el jardín, pero no había una carta para los niños.'.encode()))
+            page.wait_for_function('()=>document.querySelector("#wizard-from").value==="Español"')
+            page.set_viewport_size({'width':390,'height':844})
+            assert page.locator('#project-wizard').evaluate('el=>el.scrollWidth<=el.clientWidth')
+            page.emulate_media(reduced_motion='reduce')
+            page.screenshot(path='/tmp/story-workbench-translation-wizard.png')
+            page.set_viewport_size({'width':1440,'height':1000})
+            page.locator('#wizard-to').fill('Español');page.locator('#wizard-create').click()
+            page.locator('#project-wizard #notice.error').wait_for()
+            assert len(server.store.list_projects())==count
+            page.locator('#wizard-purpose').select_option('novel');assert page.locator('#wizard-story').is_visible()
+            page.locator('#wizard-cancel').click();assert len(server.store.list_projects())==count
             assert not errors,errors
             browser.close()
     finally:server.shutdown();server.server_close()
-print('OK modos UI: wizard, encargo, matiz, criterio recuperable, aprobación separada, revisión por versión, exportación, rol y vista compacta.')
+print('OK modos UI: wizard, encargo, matiz, criterio recuperable, aprobación separada, revisión por versión, exportación, rol, carpeta importada sin cambiar originales, espacio persistente y wizard compacto.')

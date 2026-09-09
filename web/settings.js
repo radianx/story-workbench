@@ -25,10 +25,28 @@ moveSetting('.voice-controls','settings-voice');
 moveSetting('.composer [data-help=voice]','settings-voice');
 const label=document.createElement('label');label.htmlFor='prompt';label.className='message-label';label.textContent='Tu mensaje';$('prompt').before(label);
 $('prompt').rows=2;
-function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();renderEngine();showDialog($('settings-dialog'));}
+function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();renderEngine();showDialog($('settings-dialog'));refreshWorkspace().catch(error=>notice(error.message,true));}
 $('settings-open').onclick=openSettings;
 $('settings-close').onclick=()=>$('settings-dialog').close();
 $('settings-dialog').addEventListener('close',()=>{if(!document.querySelector('dialog[open]'))$('prompt').focus();});
 
 const appearanceNote=document.createElement('p');appearanceNote.className='appearance-note';appearanceNote.textContent='El tema se guarda automáticamente para tu usuario en este equipo. Sistema sigue los cambios de apariencia del equipo.';appearanceControls.append(appearanceNote);
 new ResizeObserver(()=>document.documentElement.style.setProperty('--topbar-height',document.querySelector('.topbar').offsetHeight+'px')).observe(document.querySelector('.topbar'));
+
+let workspaceInfo=null;
+async function refreshWorkspace(){
+  const previous=$('workspace-path').value;
+  workspaceInfo=await api('/api/workspace');
+  $('workspace-status').textContent=`En uso: ${workspaceInfo.active}${workspaceInfo.restart?` · Al reiniciar: ${workspaceInfo.pending}`:''}${workspaceInfo.warning?' · '+workspaceInfo.warning:''}`;
+  if($('workspace-path').value===previous)$('workspace-path').value=workspaceInfo.pending;
+}
+$('workspace-pick').hidden=!window.storyDesktop;
+$('workspace-pick').onclick=action(async()=>{const result=await api('/api/desktop/folder',{});if(result.path)$('workspace-path').value=result.path;});
+$('workspace-save').onclick=action(async()=>{
+  await api('/api/workspace',{path:$('workspace-path').value.trim(),name:$('workspace-name').value.trim()});
+  $('workspace-name').value='';await refreshWorkspace();notice('Ubicación guardada. Cerrá y volvé a abrir la app para usarla. Los proyectos anteriores permanecen en su carpeta.');
+});
+$('workspace-default').onclick=action(async()=>{await api('/api/workspace',{path:workspaceInfo.default});await refreshWorkspace();notice('Volverás a la ubicación predeterminada al reiniciar.');});
+$('workspace-import').onclick=action(async()=>{$('settings-dialog').close();await createProject(false,true);});
+$('welcome-import').onclick=action(()=>createProject(false,true));
+refreshWorkspace().then(()=>{if(workspaceInfo.warning)notice(workspaceInfo.warning,true);}).catch(error=>notice(error.message,true));

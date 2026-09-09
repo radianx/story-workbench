@@ -1,6 +1,6 @@
 {
   "name": "story-workbench",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Escritura guiada y revisión editorial local con ChatGPT",
   "private": true,
   "license": "UNLICENSED",

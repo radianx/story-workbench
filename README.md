@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.2**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.3**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -26,7 +26,11 @@ Para preparar el dictado al ejecutar desde código: `python3 desktop/prepare_voi
 
 Abrí **el enlace completo que imprime la terminal**: incluye una clave temporal de acceso local en el fragmento. Solo escucha en `127.0.0.1:8765`. Detener con Ctrl+C. Después de reiniciar, abrí el nuevo enlace; los proyectos y las conversaciones siguen guardados. Para otro puerto: `python3 app.py --port 8766`.
 
-Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto: el asistente inicial pide un nombre, cómo querés continuar y una idea opcional. «Escribir por mi cuenta» abre un manuscrito en blanco. «Crear conversando», opción predeterminada, pone el chat en el centro, permite abrir el material con «Ver material» e inicia una entrevista editorial (usa build-novel si está instalada), una pregunta por vez, incluso sin documentos. También podés importar copias de archivos Markdown/TXT UTF-8. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
+Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto: el asistente pide un nombre y el objetivo. Para historias y rol conserva el punto de partida; para traducción requiere una obra existente y los idiomas de origen/destino, con detección local corregible. «Escribir por mi cuenta» abre un manuscrito en blanco. «Crear conversando», opción predeterminada, pone el chat en el centro, permite abrir el material con «Ver material» e inicia una entrevista editorial (usa build-novel si está instalada), una pregunta por vez, incluso sin documentos. También podés importar copias de archivos Markdown/TXT UTF-8. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
+
+Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar hasta 100 Markdown/TXT de una carpeta, incluidos sus subdirectorios. Conserva las rutas relativas en los nombres; `manuscript`/`manuscrito` se reconocen como manuscrito y el resto como referencia. No importa imágenes, PDF, DOCX, archivos ocultos o enlaces, ni interpreta automáticamente canon, decisiones o conversaciones de otro sistema. Las copias quedan sin seleccionar para IA salvo la primera unidad de una traducción.
+
+**Configuración → Carpeta de trabajo** permite elegir una carpeta vacía o un espacio de la app y crear una subcarpeta. La elección se recuerda para el próximo arranque; no mueve los proyectos existentes. Para volver a ellos, elegí su ubicación anterior. Cuentas y claves permanecen en su perfil habitual.
 
 ## Funciones disponibles
 
@@ -43,7 +47,7 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
 | Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
-| Traducción | Entrevista de intención/idiomas, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
+| Traducción | Inicio con original obligatorio e idiomas elegibles/detectables; unidades de hasta 12.000 caracteres sin omitir texto. Entrevista de intención, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |
 | Modelos | Catálogo de la cuenta ChatGPT y esfuerzos compatibles; selección por proyecto, comprobación al enviar y modelo/esfuerzo efectivo en cada respuesta. |
 | Creación | Redacción guiada y botón explícito para guardar como nuevo borrador provisional; repetirlo abre la misma copia. |

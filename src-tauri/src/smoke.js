@@ -36,6 +36,17 @@
       if(!await download(await book.blob(),'libro.docx'))throw Error('save-dialog');
       if(await download(new Blob(['No guardar']),'cancelado.md'))throw Error('cancel-dialog');
       if(!await download(new Blob([]),'vacio.md'))throw Error('empty-dialog');
+      stage='folder-dialog';
+      const deniedFolder=await fetch('/api/desktop/folder',{method:'POST',body:'{}'});
+      if(deniedFolder.status!==401)throw Error('folder-auth');
+      const folder=await api('/api/desktop/folder',{});
+      if(!folder.path)throw Error('folder-select');
+      const preview=await api('/api/import/preview',{path:folder.path});
+      if(preview.files.length!==1||preview.files[0].name!=='cuento.md')throw Error('folder-preview');
+      const imported=await api('/api/projects',{title:'Carpeta ficticia',workflow:'guided',import_folder:{path:folder.path,files:['cuento.md']}});
+      const snapshot=await api('/api/projects/'+imported.id);
+      if(snapshot.documents.length!==1||snapshot.documents[0].selected)throw Error('folder-copy');
+      if((await api('/api/desktop/folder',{})).path!==null)throw Error('folder-cancel');
     }
     stage='vault';
     const call=async(path,body)=>{const r=await fetch(path,{headers,method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});if(!r.ok)throw Error('http');return r.json();};
