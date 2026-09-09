@@ -1,0 +1,24 @@
+Story Workbench voice runtime
+
+Vosk API 0.3.45, Copyright Alpha Cephei Inc. Apache License 2.0.
+Source: https://github.com/alphacep/vosk-api/tree/v0.3.45
+Unmodified binaries extracted from official PyPI wheels; SHA256 in desktop/prepare_voice.py.
+Vosk uses Kaldi (Apache License 2.0), OpenFst (Apache License 2.0), and OpenBLAS (BSD).
+Sources: https://github.com/kaldi-asr/kaldi
+https://www.openfst.org/
+https://github.com/OpenMathLib/OpenBLAS
+
+vosk-model-small-es-0.42, Alpha Cephei. Apache License 2.0 per the official model catalogue:
+https://alphacephei.com/vosk/models
+Model README included alongside the model files. Unmodified model.
+
+The Windows wheel includes libgcc_s_seh-1.dll, libstdc++-6.dll and libwinpthread-1.dll.
+GCC runtime: GNU GPL v3 with GCC Runtime Library Exception 3.1 (included).
+https://gcc.gnu.org/ | https://github.com/gcc-mirror/gcc
+Winpthreads: notices and permissive licenses in WINPTHREADS-COPYING.txt.
+https://github.com/mingw-w64/mingw-w64/tree/master/mingw-w64-libraries/winpthreads
+
+Linux text-to-speech uses the separately installed espeak-ng system package through its command line.
+It is a .deb dependency; this runtime does not bundle or modify eSpeak NG binaries/data.
+Windows text-to-speech uses System.Speech installed with Windows.
+No voices or recordings belonging to users are included.

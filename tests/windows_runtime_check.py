@@ -1,4 +1,6 @@
 """Comprobación del backend incluido usando el Python Windows del paquete (también bajo Wine)."""
+import base64
+import os
 import sys
 import tempfile
 sys.path.insert(0, sys.argv[1])
@@ -17,6 +19,10 @@ with tempfile.TemporaryDirectory(prefix='sw-win-') as directory:
             pass
         else:
             raise AssertionError('Falta bloqueo de instancia')
+        if os.environ.get('STORY_VOICE_DIR'):
+            assert server.speech.status()['dictation']
+            assert server.speech.transcribe(base64.b64encode(b'\0\0'*8000).decode())['text']==''
+            print('OK Vosk Windows: biblioteca nativa y modelo español cargados; PCM de silencio reconocido.')
     finally:
         server.server_close()
 print('OK runtime Python Windows: servidor, copias ficticias, guardado atómico, historial y lock de instancia.')

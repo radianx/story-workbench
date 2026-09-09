@@ -12,6 +12,7 @@ import uuid
 MAX_TEXT = 250_000
 WORKFLOWS = ('writing', 'guided')
 ROLES = ('manuscrito', 'canon', 'estilo', 'referencia', 'plan', 'traducción')
+STAGES = ('planned', 'drafting', 'revise', 'reviewed')
 
 
 class Problem(Exception):
@@ -145,7 +146,10 @@ class Store:
         path = self.path(data['id'], 'documents', found['id'] + '.md')
         check(path.stat().st_size <= MAX_TEXT, 'Documento demasiado grande.')
         content = path.read_bytes().decode('utf-8')
-        return {**found, 'content': content, 'hash': digest(content)}
+        result = {**found, 'content': content, 'hash': digest(content)}
+        if result.get('stage') == 'reviewed' and result.get('review_hash') != result['hash']:
+            result['stage'] = 'revise'
+        return result
 
     def snapshot(self, project):
         data = self.load(project)
@@ -155,17 +159,57 @@ class Store:
             run.pop('source_texts', None)
         return data
 
-    def add_document(self, project, name, role, content):
+    def add_document(self, project, name, role, content, selected=True, source_run=None):
         text_value(name, 200, False)
         text_value(content)
         check(role in ROLES, 'Rol inválido.')
+        check(type(selected) is bool, 'Selección inválida.')
         data = self.load(project)
         check(len(data['documents']) < 100, 'Límite del prototipo: 100 documentos por proyecto.')
-        document = dict(id=uid(), name=name, role=role, selected=True, history=[])
+        document = dict(id=uid(), name=name, role=role, selected=selected, history=[])
+        if source_run:
+            document['source_run'] = source_run
         atomic(self.path(project, 'documents', document['id'] + '.md'), content)
         data['documents'].append(document)
         self.persist(data)
         return self.document(data, document['id'])
+
+    def planning(self, data, document, values):
+        current = self.document(data, document)
+        check(current['role'] == 'manuscrito', 'El plan organiza documentos de manuscrito.')
+        check(isinstance(values, dict), 'Ficha inválida.')
+        stage = values.get('stage', 'planned')
+        check(stage in STAGES, 'Estado editorial inválido.')
+        check(stage != 'reviewed' or bool(current['content'].strip()), 'Un documento vacío no puede estar revisado.')
+        check(values.get('hash') == current['hash'], 'El texto cambió. Volvé a abrir el plan antes de marcar su estado.', 409)
+        prepared = dict(synopsis=text_value(values.get('synopsis', ''), 4000),
+                        pov=text_value(values.get('pov', ''), 200), stage=stage,
+                        review_hash=current['hash'] if stage == 'reviewed' else None)
+        next(d for d in data['documents'] if d['id'] == document).update(prepared)
+        self.persist(data)
+
+    def reorder(self, data, order):
+        manuscripts = {d['id']: d for d in data['documents'] if d['role'] == 'manuscrito'}
+        check(isinstance(order, list) and all(isinstance(i, str) for i in order)
+              and len(order) == len(manuscripts) and set(order) == set(manuscripts),
+              'El listado cambió o contiene documentos inválidos. Volvé a abrir el plan.', 409)
+        ordered = iter(manuscripts[i] for i in order)
+        data['documents'] = [next(ordered) if d['role'] == 'manuscrito' else d for d in data['documents']]
+        self.persist(data)
+
+    def save_draft(self, data, run_id):
+        run = next((r for r in data['runs'] if r['id'] == run_id), None)
+        check(run is not None and run['mode'] == 'draft' and run['status'] == 'completed', 'Borrador no disponible.', 409)
+        if run.get('saved_document'):
+            return self.document(data, run['saved_document'])
+        existing = next((d for d in data['documents'] if d.get('source_run') == run_id), None)
+        document = (self.document(data, existing['id']) if existing else
+                    self.add_document(data['id'], 'Borrador provisional.md', 'manuscrito', run['text'], source_run=run_id))
+        # Recargar: add_document ya guardó los metadatos del nuevo documento.
+        data = self.load(data['id'])
+        next(r for r in data['runs'] if r['id'] == run_id)['saved_document'] = document['id']
+        self.persist(data)
+        return document
 
     def save_document(self, data, document, content, expected, reason='Guardado manual'):
         text_value(content)

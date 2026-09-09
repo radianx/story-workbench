@@ -58,7 +58,7 @@ def main():
         (runtime / 'python' / 'python314._pth').write_text('python314.zip\n.\n../server\n', encoding='utf-8')
         server = runtime / 'server'
         server.mkdir()
-        for name in ('app.py','workbench_ai.py','workbench_account.py','workbench_store.py','workbench_production.py'):
+        for name in ('app.py','workbench_ai.py','workbench_account.py','workbench_store.py','workbench_production.py','workbench_export.py','workbench_voice.py'):
             shutil.copy(ROOT / name, server / name)
         (server / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/codex_smoke.py', server / 'scripts/codex_smoke.py')
@@ -84,6 +84,8 @@ def main():
             raise SystemExit('No se encontró el ejecutable Windows de Codex.')
     for name in ('CODEX-LICENSE.txt','CODEX-NOTICE.txt'):
         shutil.copy(ROOT / 'desktop' / name, runtime / name)
+    from prepare_voice import prepare as prepare_voice
+    prepare_voice(target, runtime / 'voice')
     files = {str(p.relative_to(runtime)):hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(runtime.rglob('*')) if p.is_file()}
     (runtime / 'MANIFEST.json').write_text(json.dumps({'target':target, 'codex':CODEX_VERSION, 'files':files}, indent=2))

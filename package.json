@@ -1,7 +1,7 @@
 {
   "name": "story-workbench",
-  "version": "0.2.0",
-  "description": "Escritura guiada y revisión editorial local con ChatGPT",
+  "version": "0.3.0",
+  "description": "Escritura guiada y revisi\u00f3n editorial local con ChatGPT",
   "private": true,
   "license": "UNLICENSED",
   "author": "A. J. Sbardella",
@@ -56,7 +56,21 @@
       "deleteAppDataOnUninstall": false
     },
     "artifactName": "Story-Workbench-${version}-${os}-${arch}.${ext}",
-    "compression": "normal"
+    "compression": "normal",
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "espeak-ng"
+      ]
+    }
   },
   "homepage": "workbench://app"
 }

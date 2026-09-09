@@ -1,5 +1,7 @@
 # Comparación inicial — 2026-09-08
 
+Actualización: la [comparación ampliada y propuesta aplicada en 0.3.0](PRODUCT_IMPROVEMENTS.md) evalúa planificación, fichas, modelos, progreso y exportación frente al MVP anterior, con fuentes oficiales verificadas.
+
 Revisión documental de fuentes de los propios productos, no prueba práctica ni auditoría exhaustiva del mercado. No se han contratado planes, ejecutado aplicaciones competidoras ni verificado sus resultados editoriales.
 
 | Alternativa | Solapamiento documentado | Qué comparar en una prueba |

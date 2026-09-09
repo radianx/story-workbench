@@ -20,7 +20,7 @@ window.addEventListener('storage', event => {
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
+const labels = {draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
 if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
@@ -31,6 +31,7 @@ const busy = () => state?.runs.findLast(r => ['connecting','running','cancelling
 const draftKey = () => `sw-draft-${state.id}-${current.id}`;
 
 function notice(text, error=false) {
+  (document.querySelector('dialog[open]') || document.body).appendChild($('notice'));
   $('notice').textContent = text; $('notice').classList.toggle('error',error); $('notice').hidden = false;
   clearTimeout(noticeTimer); noticeTimer = setTimeout(() => $('notice').hidden = true, error ? 12000 : 4500);
 }
@@ -51,12 +52,14 @@ async function refreshProjects() {
 }
 async function openProject(id) {
   if (!confirmLeave()) {$('project').value=state.id; return;}
-  state = await api(`/api/projects/${id}`); current = null; dirty=false;
+  await cancelVoice();
+  state = await api(`/api/projects/${id}`); resetVoiceProject(); current = null; dirty=false;
   if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}
   sessionStorage.setItem('sw-project',id);
-  $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false; $('book-open').disabled = false;
+  $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false; $('book-open').disabled = false; $('plan-open').disabled = false;
   $('project').value=id; $('project-title').textContent=state.title;
   lastRuns=lastProposals=lastDecisions='';
+  document.body.classList.remove('material-open');
   applyWorkflow(); renderDocuments(); renderAssistant();
   if(state.documents.length) {const last=sessionStorage.getItem(`sw-doc-${id}`);openDocument(state.documents.some(d=>d.id===last)?last:state.documents[0].id,true);}
   else clearDocument();
@@ -67,24 +70,26 @@ async function openProject(id) {
 }
 function clearDocument() {
   current=null; $('editor').value=''; $('doc-title').value=''; $('editor').disabled=true;
-  for(const id of ['save','rename','role','download']) $(id).disabled=true;
+  for(const id of ['save','rename','role','download','undo','redo']) $(id).disabled=true;
   $('history').textContent='Todavía no hay documentos.'; $('preview').textContent=''; $('conflict').hidden=true; updateStats(); renderView();
 }
 function renderDocuments() {
+  renderBookProgress();
   const term=$('search').value.toLocaleLowerCase();
   const docs=state.documents.filter(d=>`${d.name} ${d.content}`.toLocaleLowerCase().includes(term));
   $('documents').innerHTML=docs.map(d=>`<div class="document-item ${d.id===current?.id?'active':''}"><button data-doc="${d.id}"><span class="document-icon" aria-hidden="true">${d.role==='canon'?'◇':d.role==='estilo'?'✧':'≡'}</span><span><strong>${escapeHTML(d.name.replace(/\.md$/i,''))}</strong><small>${labels[d.role]} · ${wordCount(d.content)} palabras</small></span></button><input type="checkbox" data-context="${d.id}" ${d.selected?'checked':''} aria-label="Compartir ${escapeHTML(d.name)} con Codex"></div>`).join('') || '<p class="assistant-empty">No hay documentos que coincidan.</p>';
   $('doc-count').textContent=state.documents.length;
-  const selected=state.documents.filter(d=>d.selected), chars=selected.reduce((n,d)=>n+d.content.length,0);
+  const selected=state.documents.filter(d=>d.selected), chars=selected.reduce((n,d)=>n+d.content.length+(d.synopsis||'').length+(d.pov||'').length,0);
   $('context-count').textContent=`${selected.length} fuente${selected.length===1?'':'s'} seleccionada${selected.length===1?'':'s'}`;
   $('context-size').textContent=`${chars.toLocaleString('es')} / 60.000 caracteres`;
 }
 function openDocument(id, force=false) {
   if(!force && !confirmLeave()) return;
+  if(!force)showMaterial();
   current={...state.documents.find(d=>d.id===id)};
   if(!current.id) return clearDocument();
   sessionStorage.setItem(`sw-doc-${state.id}`,current.id);
-  $('editor').disabled=false; for(const id of ['save','rename','role','download']) $(id).disabled=false;
+  $('editor').disabled=false; for(const id of ['save','rename','role','download','undo','redo']) $(id).disabled=false;
   $('doc-title').value=current.name.replace(/\.md$/i,''); $('role').value=current.role;
   $('doc-role-label').textContent=labels[current.role]; $('editor').value=current.content;
   dirty=false; $('conflict').hidden=true;
@@ -144,8 +149,8 @@ function setWizardStep(step) {
   (step===1?$('project-name'):document.querySelector('[name="start-workflow"]:checked')).focus();
 }
 function projectWizard() {
-  $('wizard-form').reset(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=true;
-  $('wizard-create').textContent='Crear proyecto'; $('project-wizard').showModal(); setWizardStep(1);
+  $('wizard-form').reset(); $('project-wizard').returnValue=''; $('wizard-guided-note').hidden=false;
+  $('wizard-create').textContent='Crear e iniciar entrevista'; $('project-wizard').showModal(); setWizardStep(1);
   return new Promise(resolve=>$('project-wizard').addEventListener('close',()=>resolve(
     $('project-wizard').returnValue==='create'?{
       title:$('project-name').value.trim(), workflow:document.querySelector('[name="start-workflow"]:checked').value,
@@ -168,7 +173,7 @@ async function createProject(demo=false) {
 }
 function applyWorkflow() {
   const guided=state.workflow==='guided';
-  document.body.classList.toggle('guided',guided); $('workflow').value=guided?'guided':'writing';
+  document.body.classList.toggle('guided',guided); $('workflow').value=guided?'guided':'writing'; $('material-toggle').hidden=!guided;
   const assistant=document.querySelector('.assistant'), manuscript=document.querySelector('.manuscript');
   $('workspace').insertBefore(guided?assistant:manuscript,guided?manuscript:assistant);
   $('assistant-title').textContent=guided?'Construyamos tu historia':'Asistente editorial';
@@ -200,8 +205,8 @@ $('workflow').onchange=action(async e=>{
 $('mode').onchange=setTaskMode;
 $('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
-  renderProgress();
-  const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active;
+  renderAISettings(); renderProgress(); updateVoice();
+  const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||voiceBusy();
   $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
   const interview=state.runs.findLast(r=>r.mode==='interview');
   $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
@@ -211,7 +216,7 @@ function renderAssistant() {
   if(runsKey!==lastRuns){
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.model)} · ${escapeHTML(effortLabels[r.effort]||r.effort)}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':'Guardar como borrador provisional'}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
     if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
     if(nearBottom || state.runs.length===1)$('runs').scrollTop=$('runs').scrollHeight;
   }
@@ -239,7 +244,7 @@ async function poll() {
     state=incoming;
     if(workflowChanged)applyWorkflow();
     if(current){const latest=state.documents.find(d=>d.id===current.id);if(latest && latest.hash!==current.hash)$('conflict').hidden=false;}
-    renderAssistant();
+    renderAssistant(); renderBookProgress();
     if(wasBusy && !busy()) {renderDocuments();notice(state.runs.at(-1).status==='completed'?'La respuesta está lista.':'La tarea terminó. Revisá su estado.');}
   }catch(error){if(busy())notice(error.message,true);}finally{polling=false;}
 }
@@ -263,9 +268,27 @@ $('role').onchange=action(async e=>{if(!current)return;state=await api('/api/doc
 $('reload').onclick=action(async()=>{if(dirty && !confirm('¿Descartar el borrador y cargar la versión guardada?'))return;sessionStorage.removeItem(draftKey());state=await api(`/api/projects/${state.id}`);openDocument(current.id,true);});
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;renderView();});
 document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
-document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>{if(!current)return;view='edit';renderView();const e=$('editor'),start=e.selectionStart,end=e.selectionEnd,selected=e.value.slice(start,end),mark=b.dataset.format==='bold'?'**':b.dataset.format==='italic'?'*':'## ';e.setRangeText(mark+selected+(b.dataset.format==='heading'?'':mark),start,end,'select');e.focus();e.dispatchEvent(new Event('input'));});
+document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>{if(!current)return;view='edit';renderView();const e=$('editor'),start=e.selectionStart,end=e.selectionEnd,selected=e.value.slice(start,end),mark=b.dataset.format==='bold'?'**':b.dataset.format==='italic'?'*':'## ';e.focus();e.setSelectionRange(start,end);
+  // insertText conserva la pila nativa de deshacer en Chromium; setRangeText la saltea.
+  const replacement=mark+selected+(b.dataset.format==='heading'?'':mark);
+  if(document.execCommand('insertText',false,replacement))e.setSelectionRange(start,start+replacement.length);
+  else notice('No se pudo aplicar el formato.',true);});
 $('history').onclick=action(async e=>{const b=e.target.closest('[data-restore]');if(!b)return;if(dirty)throw new Error('Guardá o descargá tu borrador antes de restaurar.');if(!confirm('¿Restaurar esta versión? También conservaremos la versión actual.'))return;const doc=await api('/api/document/restore',{project:state.id,document:current.id,version:b.dataset.restore,hash:current.hash});state.documents=state.documents.map(d=>d.id===doc.id?doc:d);sessionStorage.removeItem(draftKey());openDocument(doc.id,true);notice('Versión restaurada.');});
-$('runs').onclick=action(async e=>{const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;setTaskMode();$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
+$('runs').onclick=action(async e=>{
+  const draft=e.target.closest('[data-draft]');
+  if(draft){
+    if(dirty)throw new Error('Guardá tu documento actual antes de abrir otro borrador.');
+    const run=state.runs.find(r=>r.id===draft.dataset.draft), project=state.id;
+    draft.disabled=true;
+    try {
+      const doc=await api('/api/run/save-draft',{project,run:run.id});
+      if(state.id!==project)return;
+      state=await api(`/api/projects/${project}`);showMaterial();openDocument(doc.id,true);view='edit';renderView();renderAssistant();
+      $('editor').focus();$('editor').select();notice('Borrador guardado como documento nuevo. Podés revisarlo en el editor.');
+    } finally {draft.disabled=false;}
+    return;
+  }
+const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;setTaskMode();$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
 $('send').onclick=action(async()=>{if(dirty)throw new Error('Guardá el documento antes de enviarlo: Codex recibe la versión guardada.');if(!$('prompt').value.trim())return;if(!await ensureAccount())return;await api('/api/run',{project:state.id,mode:$('mode').value,prompt:$('prompt').value.trim(),skill:$('skill').checked});$('prompt').value='';showPanel('conversation');await poll();});
 $('cancel').onclick=action(async()=>{const run=busy();if(run){await api('/api/run/cancel',{project:state.id,run:run.id});await poll();}});
 $('prompt').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('send').click();}};
@@ -278,7 +301,7 @@ $('proposals').onclick=action(async e=>{
   state=await api('/api/proposal/decide',{project:state.id,proposal:proposal.id,accept});
   if(accept){
     if(current)sessionStorage.removeItem(draftKey());
-    openDocument(proposal.document,true); view='edit'; renderView();
+    showMaterial();openDocument(proposal.document,true); view='edit'; renderView();
     $('editor').focus(); $('editor').setSelectionRange(offset,offset+proposal.after.length);
   }
   renderAssistant();notice(accept?'Bloque aceptado y resaltado en el editor. La versión anterior se conserva.':'Propuesta rechazada.');
@@ -318,6 +341,7 @@ function renderProgress() {
 let accountState = {status:'unknown'}, accountPolling = false;
 function renderAccount() {
   const status = accountState.status;
+  renderAISettings();
   $('account-open').textContent = status === 'connected' ? 'ChatGPT conectado' : 'Cuenta ChatGPT';
   $('account-status').textContent = ({unknown:'Conectá tu cuenta para comenzar.', checking:'Comprobando la conexión…', connected:'Tu cuenta ChatGPT está conectada. Ya podés crear y revisar.', signed_out:'Iniciá sesión en el navegador con tu propia cuenta ChatGPT.', waiting:'Continuá en tu navegador. Volvé a esta ventana cuando termines.', error:accountState.error})[status] || '';
   $('account-login').hidden = ['connected','waiting','checking'].includes(status);
@@ -357,3 +381,46 @@ setInterval(async () => {
     }
   } catch(error) { notice(error.message,true); } finally { accountPolling=false; }
 }, 1000);
+
+
+const effortLabels = {none:'Sin razonamiento', minimal:'Mínimo', low:'Bajo', medium:'Medio', high:'Alto', xhigh:'Muy alto', max:'Máximo', ultra:'Ultra'};
+function renderAISettings() {
+  const models = accountState.models || [], preferences = state?.ai_preferences || {};
+  const selected = preferences.model ? models.find(m=>m.model===preferences.model) : models.find(m=>m.isDefault)||models[0];
+  const model = $('ai-model'), effort = $('ai-effort');
+  model.innerHTML = models.map(m=>`<option value="${escapeHTML(m.model)}">${escapeHTML(m.displayName)}</option>`).join('') || '<option value="">Conectá ChatGPT</option>';
+  if(preferences.model && !selected) model.insertAdjacentHTML('beforeend',`<option value="${escapeHTML(preferences.model)}">${escapeHTML(preferences.model)} · no disponible</option>`);
+  model.value = preferences.model || selected?.model || '';
+  const choices = selected?.supportedReasoningEfforts || [];
+  effort.innerHTML = choices.map(e=>`<option value="${escapeHTML(e.reasoningEffort)}">${escapeHTML(effortLabels[e.reasoningEffort]||e.reasoningEffort)}</option>`).join('') || '<option value="">—</option>';
+  if(preferences.effort && !choices.some(e=>e.reasoningEffort===preferences.effort)) effort.insertAdjacentHTML('beforeend',`<option value="${escapeHTML(preferences.effort)}">${escapeHTML(preferences.effort)} · no disponible</option>`);
+  effort.value = preferences.effort || (choices.some(e=>e.reasoningEffort==='medium')?'medium':selected?.defaultReasoningEffort)||'';
+  model.disabled = !state || !models.length || !!busy(); effort.disabled = model.disabled || !selected;
+  $('ai-refresh').disabled = !!busy() || ['checking','waiting'].includes(accountState.status);
+  $('ai-hint').textContent = accountState.models_error || (!models.length?'Conectá ChatGPT para ver sus modelos.':preferences.model&&!selected?'El modelo guardado ya no está disponible. Elegí otro.':'Se guarda por proyecto y se aplica al próximo mensaje. Un esfuerzo mayor puede tardar más.');
+}
+async function saveAISettings(changeModel) {
+  const models=accountState.models||[], selected=models.find(m=>m.model===$('ai-model').value);
+  if(!selected)throw new Error('Elegí un modelo disponible.');
+  let effort=$('ai-effort').value;
+  if(changeModel && !selected.supportedReasoningEfforts.some(e=>e.reasoningEffort===effort)) effort=selected.defaultReasoningEffort;
+  const project=state.id; $('ai-model').disabled=$('ai-effort').disabled=true;
+  try {
+    const updated=await api('/api/project/ai',{project,preferences:{model:selected.model,effort}});
+    if(state.id===project)state.ai_preferences=updated.ai_preferences;
+  } finally {renderAISettings();}
+}
+$('ai-model').onchange=action(()=>saveAISettings(true));
+$('ai-effort').onchange=action(()=>saveAISettings(false));
+$('ai-refresh').onclick=action(async()=>{accountState=await api('/api/account/refresh',{});renderAccount();});
+refreshAccount().catch(()=>{});
+
+document.addEventListener('close',()=>document.body.appendChild($('notice')),true);
+
+for(const command of ['undo','redo']) {
+  $(command).onmousedown=event=>event.preventDefault();
+  $(command).onclick=()=>{if(!current)return;view='edit';renderView();$('editor').focus();if(!document.execCommand(command))notice('No hay más cambios para '+(command==='undo'?'deshacer':'rehacer')+' en este documento. Las versiones guardadas están en Historial.');};
+}
+
+function showMaterial(){document.body.classList.add('material-open');$('material-toggle').textContent='Ocultar material';}
+$('material-toggle').onclick=()=>{const visible=document.body.classList.toggle('material-open');$('material-toggle').textContent=visible?'Ocultar material':'Ver material';};

@@ -24,7 +24,7 @@ async function start() {
   const windows = process.platform === 'win32';
   const command = windows ? join(root, 'python', 'python.exe') : join(root, 'server', 'story-server');
   const args = windows ? [join(root, 'server', 'app.py')] : [];
-  const env = { ...process.env, STORY_DESKTOP: '1', CODEX_HOME: join(data, 'codex'),
+  const env = { ...process.env, STORY_DESKTOP: '1', STORY_VOICE_DIR: join(root, 'voice'), CODEX_HOME: join(data, 'codex'),
     STORY_CODEX_BINARY: join(root, 'codex', 'bin', windows ? 'codex.exe' : 'codex') };
   for (const key of Object.keys(env)) if (/^(OPENAI_|AZURE_OPENAI_|CODEX_API_|CODEX_THREAD_)/.test(key)) delete env[key];
   child = spawn(command, [...args, '--port', '0', '--data-dir', join(data, 'projects')], {
@@ -52,8 +52,14 @@ async function start() {
     return fetch(origin + url.pathname + url.search, {method:request.method, headers,
       body:request.method==='POST'?await request.arrayBuffer():undefined, redirect:'error'});
   });
-  session.defaultSession.setPermissionRequestHandler((_, __, callback) => callback(false));
-  session.defaultSession.setPermissionCheckHandler(() => false);
+  const localFrame = contents => contents === window?.webContents && contents.getURL().startsWith(uiOrigin + '/');
+  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(localFrame(contents) && permission === 'media' && details.isMainFrame &&
+      details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'audio');
+  });
+  session.defaultSession.setPermissionCheckHandler((contents, permission, requestingOrigin, details) =>
+    localFrame(contents) && permission === 'media' && details.isMainFrame &&
+    details.mediaType === 'audio' && requestingOrigin.replace(/\/$/,'') === uiOrigin);
   // Only the local UI may make requests; ChatGPT login opens in the system browser.
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
     callback({ cancel: !details.url.startsWith(origin + '/') && !details.url.startsWith(uiOrigin + '/') && !/^(blob:|data:|devtools:)/.test(details.url) });
@@ -80,11 +86,28 @@ async function start() {
       const headers={Authorization:'Bearer '+sessionStorage.getItem('sw-token'),'Content-Type':'application/json'};
       const response=await fetch('/api/projects',{method:'POST',headers,body:JSON.stringify({title:'Prueba empaquetada',demo:true})});
       if(!response.ok) return false;
+      const project=await response.json();
+      const exportResponse=await fetch('/api/projects/'+project.id+'/book.docx',{headers});
+      if(!exportResponse.ok || !document.querySelector('#plan-dialog') || !document.querySelector('#ai-model'))return false;
       const before=localStorage.getItem('desktop-smoke');
       localStorage.setItem('desktop-smoke','persisted');
-      return {persistent:before==='persisted',project:(await response.json()).title==='Prueba empaquetada',origin:location.href.split('#')[0]};
+      return {persistent:before==='persisted',project:project.title==='Prueba empaquetada',origin:location.href.split('#')[0]};
     })()`);
     if (!safe || !safe.project) throw new Error('Renderer isolation/API');
+    if(process.env.STORY_VOICE_SMOKE === '1') {
+      const media=await window.webContents.executeJavaScript(`(async()=>{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+        const audio=stream.getAudioTracks().length===1;stream.getTracks().forEach(track=>track.stop());
+        let videoDenied=false;try{const camera=await navigator.mediaDevices.getUserMedia({video:true});camera.getTracks().forEach(track=>track.stop());}catch{videoDenied=true;}
+        const headers={Authorization:'Bearer '+sessionStorage.getItem('sw-token'),'Content-Type':'application/json'};
+        const response=await fetch('/api/voice/read',{method:'POST',headers,body:JSON.stringify({text:'Una biblioteca ficticia.'})});
+        const audioBytes=response.ok?(await response.arrayBuffer()).byteLength:0;
+        const dictation=await fetch('/api/voice/transcribe',{method:'POST',headers,body:JSON.stringify({pcm:btoa(String.fromCharCode(...new Uint8Array(16000)))})});
+        return {audio,videoDenied,audioBytes,dictation:dictation.ok};
+      })()`);
+      if(!media.audio||!media.videoDenied||media.audioBytes<44||!media.dictation)throw new Error('Voice smoke failed');
+      console.log('OK voz empaquetada: '+JSON.stringify(media));
+    }
     console.log(JSON.stringify(safe));
     console.log('OK Electron: backend empaquetado, renderer aislado, interfaz cargada.');
     app.quit();

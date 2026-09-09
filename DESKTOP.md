@@ -1,11 +1,11 @@
-# Distribución de escritorio 0.2.0
+# Distribución de escritorio 0.3.0
 
 Paquetes preliminares locales para probar con otros autores. No se publicaron, no contienen credenciales, proyectos, conversaciones ni habilidades globales. No hay licencia definitiva del producto; `UNLICENSED` evita declarar una licencia inexistente.
 
 ## Para el usuario
 
-- **Linux:** paquete `Story-Workbench-0.2.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
-- **Windows:** `Story-Workbench-0.2.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
+- **Linux:** paquete `Story-Workbench-0.3.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
+- **Windows:** `Story-Workbench-0.3.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
 - **ChatGPT:** Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro. Usar la cuenta propia en el navegador predeterminado. La app detecta cuando termina el acceso. El editor permanece disponible sin iniciar sesión.
 
 No se comparte la cuenta del creador. El escritorio usa su propio directorio Codex y requiere conectar la cuenta una vez; la versión `python3 app.py` conserva el uso de Codex instalado. La IA usa conexión online y cuota Codex disponible, sin API facturada por separado.
@@ -13,6 +13,8 @@ No se comparte la cuenta del creador. El escritorio usa su propio directorio Cod
 Datos de escritorio: `~/.config/story-workbench/projects` en Linux y `%APPDATA%/story-workbench/projects` en Windows. La carpeta `codex` hermana contiene la sesión administrada por Codex. Desinstalar conserva los datos; exportar el proyecto desde la app permite guardar sus documentos y decisiones. El ZIP editorial no incluye conversaciones ni imágenes de maqueta. No compartir la carpeta de sesión.
 
 ## Funciones de esta entrega
+
+La 0.3.0 prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
 
 Barra por etapas observadas: conexión, contexto, generación y comprobación/guardado. No se inventa un porcentaje del libro ni una duración. Un error o cancelación conserva progreso parcial. Las respuestas nuevas están resaltadas y son colapsables; cada autor puede marcarlas como vistas. Aceptar una propuesta abre su documento y selecciona el texto recién aplicado.
 
@@ -32,9 +34,9 @@ npm run dist:linux
 npm run dist:win
 ```
 
-Ejecutar los builds secuencialmente: cada preparación reemplaza `dist/runtime`. Linux empaqueta el servidor mediante PyInstaller. Windows incluye Python embebible oficial 3.14.7 con SHA256 fijado y los módulos de la app. Codex oficial 0.153.4 está incluido en ambos; npm lock/integridad verifican sus paquetes. `MANIFEST.json` registra hashes de los archivos del runtime. Electron y el empaquetador están fijados en package-lock.json. No hay descarga de ejecutables al iniciar la app ni actualización automática.
+Ejecutar los builds secuencialmente: cada preparación reemplaza `dist/runtime`. Linux empaqueta el servidor mediante PyInstaller. Windows incluye Python embebible oficial 3.14.7 con SHA256 fijado y los módulos de la app. Codex oficial 0.153.4 está incluido en ambos; npm lock/integridad verifican sus paquetes. `MANIFEST.json` registra hashes de los archivos del runtime. Electron y el empaquetador están fijados en package-lock.json. El dictado incluye Vosk 0.3.45 y el modelo español pequeño 0.42, con hashes fijados y avisos de licencia. La preparación descarga estos recursos públicos; el usuario final no tiene que hacerlo. El .deb depende de espeak-ng para leer en español. En Windows la lectura usa las voces del sistema. No hay descarga de ejecutables al iniciar la app ni actualización automática.
 
-El renderer no dispone de Node ni IPC genérico, mantiene aislamiento de contexto y sandbox, restringe navegación y permisos, y solo abre el login oficial en el navegador externo. Un protocolo interno estable conserva preferencias entre arranques; el backend usa un puerto loopback efímero y token. El proceso padre cierra su canal para solicitar la detención del backend y sus trabajos al salir.
+El renderer no dispone de Node ni IPC genérico, mantiene aislamiento de contexto y sandbox, restringe navegación y permisos; admite únicamente micrófono de audio desde su ventana principal local, nunca cámara, y solo abre el login oficial en el navegador externo. Un protocolo interno estable conserva preferencias entre arranques; el backend usa un puerto loopback efímero y token. El proceso padre cierra su canal para solicitar la detención del backend y sus trabajos al salir.
 
 ## Comprobaciones
 
@@ -43,11 +45,15 @@ python3 -m unittest discover -s scripts
 python3 -m unittest discover -s tests
 python3 tests/browser_check.py
 python3 tests/desktop_check.py
+# Después de instalar el .deb: sandbox habilitado, datos ficticios temporales.
+python3 tests/desktop_check.py --installed --voice
+python3 tests/voice_browser_check.py
+python3 tests/live_voice_check.py
 python3 tests/login_check.py
 python3 tests/live_mvp.py --interview-only
 ```
 
-Las comprobaciones de navegador/escritorio necesitan Chrome/Playwright y permisos de loopback como herramientas de desarrollo, no para usuarios finales. `desktop_check.py` usa `--no-sandbox` **solo en el test desempaquetado**, por las restricciones de namespaces de Ubuntu. La app distribuida no incluye ese flag. La instalación real del `.deb` con sandbox habilitado debe comprobarse antes de distribuirlo ampliamente.
+Las comprobaciones de navegador/escritorio necesitan Chrome/Playwright y permisos de loopback como herramientas de desarrollo, no para usuarios finales. `desktop_check.py` usa `--no-sandbox` **solo en el test desempaquetado**, por las restricciones de namespaces de Ubuntu. La app distribuida no incluye ese flag. El modo `--installed` comprueba el ejecutable instalado con sandbox habilitado. Ver la versión efectivamente instalada y su resultado en MVP_RESULTS.md.
 
 El test de cuenta unitario simula completar el OAuth y verifica que nunca se devuelven tokens ni datos de cuenta. `login_check.py` inicia y cancela un login real en un CODEX_HOME temporal: comprueba protocolo y URL oficial, no la autorización de una cuenta nueva. La entrevista real usa la sesión ChatGPT existente y ficción temporal. Los resultados finales ejecutados se registran en MVP_RESULTS.md.
 

@@ -1,3 +1,22 @@
+# Entrevista y voz local 0.3.0 — 2026-09-08
+
+- Comprobaciones ejecutadas: 4 del protocolo y 19 de almacenamiento/HTTP/modelos/plan/exportación/voz; pasaron. Sintaxis Python/JS y `git diff --check` correctos.
+- Chrome: recorrido editorial completo, modelo y esfuerzo por proyecto, borrador con guardado explícito sin duplicación, plan/orden/meta/estados/fichas, exportación y persistencia; pasó. Deshacer/Rehacer nativos para texto, después de guardar y para formato; cambiar de documento no trasladó su pila de edición. El test respeta la agrupación de operaciones de Chromium.
+- La entrevista es la opción predeterminada del wizard. En modo guiado el chat ocupa el centro y el material se abre con un control explícito; los proyectos existentes conservan su forma de trabajo.
+- Modelos reales: `tests/live_model_check.py` completó un turno con gpt-5.6-luna/medium y otro con gpt-5.6-sol/high, usando la sesión ChatGPT existente y ficción temporal. Conservó el mismo hilo y el nombre de la protagonista sin guardar manuscritos automáticamente. El catálogo de la interfaz se obtiene de Codex, no de esta lista de prueba.
+- `tests/voice_browser_check.py` pasó: dispositivo de micrófono virtual de Chromium, captura PCM, dictado añadido al mensaje sin envío, descarte, rechazo de permiso, lectura y lectura automática una vez por nueva respuesta. Reconocimiento y síntesis se simulan en esta prueba de UI; nunca se grabó al usuario.
+- `tests/live_voice_check.py` pasó con Vosk/modelo español y eSpeak NG reales: sintetiza una frase ficticia y reconoce palabras de ella, sin red ni micrófono. Hubo errores de transcripción (por ejemplo, «barco» perdió su terminación), por lo que no se afirma exactitud general ni calidad de voz natural. La primera versión del fixture con remuestreo por vecino cercano falló; se corrigió a interpolación lineal y se volvió a ejecutar.
+- DOCX: paquete/XML verificados por tests; LibreOffice abrió y convirtió un libro ficticio exportado, conservando texto Unicode y excluyendo canon/referencias. Esto no comprueba maquetación de imprenta ni compatibilidad visual completa con Word.
+- Linux empaquetado: `tests/desktop_check.py --voice` pasó con renderer aislado, exportación DOCX, permiso de audio concedido al micrófono virtual, cámara denegada, WAV de síntesis, dictado nativo incluido y persistencia al reiniciar. El test desempaquetado usa --no-sandbox; la comprobación de instalación se registra aparte.
+- Paquetes 0.3.0 generados: Linux .deb de 231,4 MiB y Windows .exe de 245,2 MiB, con SHA256SUMS. Sin firma ni publicación.
+- Windows bajo Wine: el backend, guardado/historial/lock y Vosk nativo con modelo español pasaron; el fixture fue PCM de silencio. Un primer lanzamiento con pipes produjo WinError 6 de Wine antes de iniciar Python; con terminal válida pasó. No se validaron interfaz, micrófono, lectura System.Speech ni instalación en Windows real.
+- Instalación local: la 0.2.0 se instaló y pasó una prueba real con sandbox habilitado. La actualización a 0.3.0 está preparada y solicitada mediante pkexec/apt; al cerrar estas comprobaciones sigue esperando autenticación gráfica del sistema. No se declara instalada la 0.3.0 todavía.
+- Runtimes: 70 hashes Linux y 85 Windows verificados; sin cuentas, proyectos, conversaciones ni skill global. Dictado español incluido con SHA256 fijados y avisos de terceros; lectura Linux como dependencia del sistema.
+
+La comparación documental y todas las mejoras propuestas para este corte están en [PRODUCT_IMPROVEMENTS.md](PRODUCT_IMPROVEMENTS.md). No se ejecutaron aplicaciones competidoras ni se modificaron libros originales.
+
+---
+
 # Corte de escritorio 0.2.0 — 2026-09-08
 
 - Generados localmente `Story-Workbench-0.2.0-linux-amd64.deb` y `Story-Workbench-0.2.0-win-x64.exe`. Electron 44.3.0, Codex 0.153.4, Python Linux 3.12.3 / Windows embebible 3.14.7. Paquetes sin firma ni publicación. SHA256SUMS acompaña a los archivos en dist/installers.

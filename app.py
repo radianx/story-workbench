@@ -16,6 +16,7 @@ import zipfile
 from workbench_store import Store, Problem, check, text_value, ROLES, WORKFLOWS, is_link
 from workbench_ai import Assistant
 from workbench_account import Account
+from workbench_voice import Speech
 
 WEB = Path(__file__).parent / 'web'
 
@@ -41,6 +42,7 @@ class AppServer(ThreadingHTTPServer):
             self.store = Store(root)
             self.assistant = Assistant(self.store)
             self.account = Account(root)
+            self.speech = Speech()
             self.token = secrets.token_urlsafe(32)
             super().__init__(('127.0.0.1', port), Handler)
             self.origin = f'http://127.0.0.1:{self.server_port}'
@@ -70,7 +72,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -86,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css', '/production.js'):
+            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -94,7 +96,9 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path == '/api/account':
+                if path == '/api/voice':
+                    self.send(200, self.server.speech.status())
+                elif path == '/api/account':
                     self.send(200, self.server.account.snapshot())
                 elif path == '/api/projects':
                     self.send(200, {'projects': store.list_projects(), 'active': self.server.assistant.active})
@@ -104,6 +108,10 @@ class Handler(BaseHTTPRequestHandler):
                     project = parts[2]
                     if len(parts) == 3:
                         self.send(200, store.snapshot(project))
+                    elif parts[3] in ('book.md', 'book.docx'):
+                        from workbench_export import export_book
+                        body, mime = export_book(store.snapshot(project), parts[3])
+                        self.send(200, body, mime)
                     elif parts[3] == 'export':
                         data = store.snapshot(project)
                         output = io.BytesIO()
@@ -113,8 +121,9 @@ class Handler(BaseHTTPRequestHandler):
                                 archive.writestr(f'{i+1:02d}-{doc["id"][:8]}.md', doc['content'])
                             archive.writestr('manifest.json', json.dumps({
                                 'title': data['title'], 'documents': [
-                                    {'file': f'{i+1:02d}-{d["id"][:8]}.md', 'name': d['name'], 'role': d['role']}
-                                    for i, d in enumerate(data['documents'])], 'decisions': data['decisions']}, ensure_ascii=False, indent=2))
+                                    {'file': f'{i+1:02d}-{d["id"][:8]}.md', **{k: d[k] for k in ('name', 'role', 'synopsis', 'pov', 'stage') if k in d}}
+                                    for i, d in enumerate(data['documents'])], 'word_goal': data.get('word_goal', 0),
+                                    'decisions': data['decisions']}, ensure_ascii=False, indent=2))
                         self.send(200, output.getvalue(), 'application/zip')
                     else:
                         raise Problem('Ruta no encontrada.', 404)
@@ -133,6 +142,12 @@ class Handler(BaseHTTPRequestHandler):
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path
             store = self.server.store
+            if path == '/api/voice/transcribe':
+                self.send(200, self.server.speech.transcribe(body.get('pcm')))
+                return
+            if path == '/api/voice/read':
+                self.send(200, self.server.speech.synthesize(body.get('text')), 'audio/wav')
+                return
             if path.startswith('/api/account/'):
                 operation = path.rsplit('/', 1)[-1]
                 check(operation in ('login', 'refresh', 'logout', 'cancel'), 'Operación inválida.')
@@ -155,7 +170,28 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     project = body.get('project')
                     data = store.load(project)
-                    if path == '/api/project/production':
+                    if path == '/api/project/goal':
+                        goal = body.get('goal')
+                        check(type(goal) is int and 0 <= goal <= 2_000_000, 'Meta inválida: entre 0 y 2.000.000 palabras.')
+                        data['word_goal'] = goal
+                        store.persist(data)
+                        result = store.snapshot(project)
+                    elif path == '/api/project/order':
+                        store.reorder(data, body.get('order'))
+                        result = store.snapshot(project)
+                    elif path == '/api/document/planning':
+                        store.planning(data, body.get('document'), body.get('planning'))
+                        result = store.snapshot(project)
+                    elif path == '/api/run/save-draft':
+                        result = store.save_draft(data, body.get('run'))
+                    elif path == '/api/project/ai':
+                        from workbench_account import ai_preferences, resolve_ai
+                        preferences = ai_preferences(body.get('preferences'))
+                        resolve_ai(preferences, self.server.account.snapshot().get('models', []))
+                        data['ai_preferences'] = preferences
+                        store.persist(data)
+                        result = store.snapshot(project)
+                    elif path == '/api/project/production':
                         from workbench_production import validate_production
                         data['production'] = validate_production(body.get('production'))
                         store.persist(data)
@@ -169,7 +205,7 @@ class Handler(BaseHTTPRequestHandler):
                         check(type(body.get('retry', False)) is bool, 'Reintento inválido.')
                         result = self.server.assistant.start_interview(project, body.get('retry', False))
                     elif path == '/api/document/add':
-                        result = store.add_document(project, body.get('name'), body.get('role'), body.get('content'))
+                        result = store.add_document(project, body.get('name'), body.get('role'), body.get('content'), body.get('selected', True))
                     elif path == '/api/document/save':
                         result = store.save_document(data, body.get('document'), body.get('content'), body.get('hash'))
                     elif path == '/api/document/meta':
