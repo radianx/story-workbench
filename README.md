@@ -115,4 +115,4 @@ La 0.7.0 restaura la apariencia antes del primer pintado, comprueba su persisten
 
 La 0.7.0 añade asistente inicial omisible y reabrible, navegación con Ctrl/Cmd+K y por voz a más secciones, cálculo físico de lomo y [seis motores experimentales](PROVIDERS.md). La voz requiere conexión previa; credenciales, consentimiento y aprobaciones editoriales conservan controles manuales.
 
-La migración a Tauri comenzó como vista previa separada: compilación y dos arranques Linux comprobados, con backend sidecar, editor, tema persistido, navegación y libro 3D. Electron 0.7.0 sigue siendo la entrega distribuible. Ver [estado, fuentes oficiales y pendientes de Tauri](TAURI_MIGRATION.md).
+La migración a Tauri comenzó como vista previa separada: compilación y dos arranques Linux comprobados, con backend sidecar, editor, tema persistido, navegación, libro 3D, llavero nativo y voz local con micrófono virtual. OpenAI Realtime todavía no tiene paridad en el WebKit de este Linux. Electron 0.7.0 sigue siendo la entrega distribuible. Ver [estado, fuentes oficiales y pendientes de Tauri](TAURI_MIGRATION.md).

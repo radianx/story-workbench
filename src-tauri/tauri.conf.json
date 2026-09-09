@@ -11,6 +11,6 @@
     "icon": ["icons/icon.png"],
     "externalBin": ["binaries/story-server"],
     "resources": {"runtime/": "runtime/"},
-    "linux": {"deb": {"depends": ["espeak-ng"]}}
+    "linux": {"deb": {"depends": ["espeak-ng", "gstreamer1.0-plugins-good"]}}
   }
 }

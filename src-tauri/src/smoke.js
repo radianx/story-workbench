@@ -1,6 +1,8 @@
 (async()=>{
+  if(location.protocol==='about:')return;
   const headers={Authorization:'Bearer __TOKEN__','Content-Type':'application/json'};
-  const finish=ok=>fetch('/__smoke',{method:'POST',headers,body:ok?'ok':'failed'});
+  let stage='startup';
+  const finish=ok=>fetch('/__smoke',{method:'POST',headers,body:ok?'ok':stage});
   try{
     for(let n=0;n<100&&typeof openSetup!=='function';n++)await new Promise(r=>setTimeout(r,100));
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
@@ -15,7 +17,71 @@
     if(document.querySelector('#book-width').value!=='152.4')throw Error('book');
     document.querySelector('#book-close').click();
     const book=await fetch('/api/projects/'+project.id+'/book.docx',{headers});if(!book.ok)throw Error('export');
-    const voice=await fetch('/api/voice-storage',{headers});if((await voice.json()).available)throw Error('vault-stage');
-    localStorage.setItem('tauri-smoke','1');await finish(true);
+    stage='vault';
+    const call=async(path,body)=>{const r=await fetch(path,{headers,method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});if(!r.ok)throw Error('http');return r.json();};
+    const second=!!localStorage.getItem('tauri-smoke');
+    for(const [storage,keyPath,statusPath] of [['/api/voice-storage','/api/realtime/key','/api/realtime'],['/api/engine-storage','/api/engine/key','/api/engines']]){
+      const vault=await call(storage);if(!vault.available||!!vault.stored.gemini!==second)throw Error('vault-state');
+      if(second){
+        const status=await call(statusPath);
+        const configured=statusPath==='/api/realtime'?status.providers.gemini:status.gemini;
+        if(!configured)throw Error('restore');
+        await call(keyPath,{provider:'gemini',key:''});
+        if((await call(storage)).stored.gemini)throw Error('forget');
+      }else{
+        await call(keyPath,{provider:'gemini',key:'AQ.fixture-not-a-real-key-tauri',remember:true});
+        if(!(await call(storage)).stored.gemini)throw Error('save');
+        const denied=await fetch(storage,{headers:{Authorization:'Bearer invalid'}});if(denied.status!==401)throw Error('authorization');
+        const bad=await fetch(keyPath,{method:'POST',headers,body:JSON.stringify({provider:'gemini',key:'bad',remember:true})});if(bad.ok||!(await call(storage)).stored.gemini)throw Error('invalid-key');
+      }
+    }
+    stage='audio-capabilities';
+    stage='secure-context';if(!isSecureContext)throw Error('secure');
+    stage='media-devices';if(!navigator.mediaDevices?.getUserMedia)throw Error('media');
+    const hasRTC=typeof RTCPeerConnection==='function';
+    stage='audio-worklet';
+    const context=new AudioContext({sampleRate:16000});
+    await context.audioWorklet.addModule('/voice-capture.js');
+    const node=new AudioWorkletNode(context,'voice-capture');node.disconnect();await context.close();
+    stage='microphone';
+    await startDictation();
+    if(!recording?.node)throw Error('capture');
+    const tracks=recording.stream.getTracks();
+    if(hasRTC){const peer=new RTCPeerConnection({iceServers:[]});peer.addTrack(tracks[0],recording.stream);
+    try{if(!(await peer.createOffer()).sdp.includes('m=audio'))throw Error('offer');}finally{peer.close();}}
+    await new Promise(r=>setTimeout(r,600));
+    if(recording.samples===0)throw Error('samples');
+    await finishDictation();
+    if(recording||transcribing||tracks.some(t=>t.readyState!=='ended'))throw Error('release');
+    let denied=false;try{const camera=await navigator.mediaDevices.getUserMedia({video:true});camera.getTracks().forEach(t=>t.stop());}catch{denied=true;}
+    if(!denied)throw Error('camera');
+    stage='gemini-transport';
+    const originalFetch=window.fetch,originalSocket=window.WebSocket,sent=[];
+    window.fetch=(input,options)=>String(input)==='/api/realtime/connect'?Promise.resolve(new Response(JSON.stringify({token:'fixture',setup:{}}),{headers:{'Content-Type':'application/json'}})):originalFetch(input,options);
+    window.WebSocket=class {
+      static OPEN=1;readyState=1;
+      constructor(){setTimeout(()=>{this.onopen?.();this.onmessage?.({data:JSON.stringify({setupComplete:{}})});},20);}
+      send(value){sent.push(JSON.parse(value));}
+      close(){this.readyState=3;}
+    };
+    try{
+      $('realtime-provider').value='gemini';realtimeConfigured=true;realtimeConsent=true;$('realtime-enabled').checked=true;
+      await startRealtime();await new Promise(r=>setTimeout(r,800));
+      if(!realtime?.ready||!sent.some(message=>message.realtimeInput?.audio))throw Error('gemini-pcm');
+      playGeminiAudio(realtime,{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(2400)))});
+      await new Promise(r=>setTimeout(r,150));
+      const geminiTracks=realtime.stream.getTracks();stopRealtime();
+      if(geminiTracks.some(t=>t.readyState!=='ended'))throw Error('gemini-release');
+      if(!hasRTC){
+        $('realtime-provider').value='openai';let rejected=false;
+        try{await startRealtime();}catch(error){rejected=error.message.includes('no está disponible');}
+        if(!rejected||realtime)throw Error('webrtc-message');
+      }
+    }finally{stopRealtime();window.fetch=originalFetch;window.WebSocket=originalSocket;$('realtime-enabled').checked=false;realtimeConsent=false;realtimeConfigured=false;}
+    stage='reading';
+    await readText('Una biblioteca ficticia.');
+    if(readingActive)throw Error('reading');
+    localStorage.setItem('tauri-smoke','1');
+    await fetch('/__capabilities',{method:'POST',headers,body:JSON.stringify({webrtc:hasRTC})});await finish(true);
   }catch(error){await finish(false);}
 })();

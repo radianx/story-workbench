@@ -105,6 +105,7 @@ async function realtimeEvent(session,event){
 async function startRealtime(options={}){
   if(realtime||!state)return;
   if(!realtimeConfigured||!realtimeConsent||!$('realtime-enabled').checked)throw new Error('Configurá la clave y aceptá el uso de la API antes de conectar.');
+  if(voiceProvider()==='openai'&&typeof RTCPeerConnection!=='function')throw new Error('La voz de OpenAI no está disponible en este entorno. Podés usar dictado local o probar Gemini Live.');
   $('settings-dialog')?.close();$('realtime-dialog').close();
   await cancelVoice();
   const session={listening:!options.pushToTalk||spaceListening,continuous:!options.pushToTalk,provider:voiceProvider(),project:state.id,signature:realtimeSignature(),actions:$('realtime-allow-actions').checked,seen:new Set(),queue:Promise.resolve()};
