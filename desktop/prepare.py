@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target', choices=('linux','win'), default='linux')
     target = parser.parse_args().target
-    runtime = DIST / 'runtime'
+    runtime = ROOT / 'src-tauri/runtime'
     if runtime.exists():
         shutil.rmtree(runtime)
     runtime.mkdir(parents=True)
@@ -37,10 +37,9 @@ def main():
         if not sys.platform.startswith('linux'):
             raise SystemExit('Construir el runtime Linux en Linux.')
         python = ROOT / '.venv' / 'bin' / 'python'
-        subprocess.run([str(python), '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
-            '--name', 'story-server', '--distpath', str(DIST / 'python'), '--workpath', str(DIST / 'pybuild'),
+        subprocess.run([str(python), '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile',
+            '--name', 'story-server-x86_64-unknown-linux-gnu', '--distpath', str(ROOT / 'src-tauri/binaries'), '--workpath', str(DIST / 'pybuild'),
             '--specpath', str(DIST), '--add-data', f'{ROOT / "web"}:web', str(ROOT / 'app.py')], check=True, cwd=ROOT)
-        shutil.copytree(DIST / 'python' / 'story-server', runtime / 'server')
         vendor = ROOT / 'node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl'
         shutil.copytree(vendor, runtime / 'codex')
         shutil.copy(Path(sysconfig.get_path('stdlib')) / 'LICENSE.txt', runtime / 'PYTHON-LICENSE.txt')
@@ -65,7 +64,10 @@ def main():
         shutil.copytree(ROOT / 'web', server / 'web')
         # npm integrity pins the official, platform-specific Codex archive.
         meta = json.loads(get(f'https://registry.npmjs.org/@openai%2fcodex/{CODEX_VERSION}-win32-x64'))
-        data = get(meta['dist']['tarball'])
+        codex_archive = downloads / f'codex-{CODEX_VERSION}-win-x64.tgz'
+        if not codex_archive.exists():
+            codex_archive.write_bytes(get(meta['dist']['tarball']))
+        data = codex_archive.read_bytes()
         integrity = 'sha512-' + base64.b64encode(hashlib.sha512(data).digest()).decode()
         if integrity != meta['dist']['integrity']:
             raise SystemExit('Integridad del paquete Codex inválida.')

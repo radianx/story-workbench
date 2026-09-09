@@ -1,0 +1,8 @@
+[package]
+name = "story-server-launcher"
+version = "0.8.0"
+edition = "2021"
+
+[[bin]]
+name = "story-server"
+path = "main.rs"

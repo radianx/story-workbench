@@ -1,6 +1,10 @@
 # Migración a Tauri
 
-La entrega utilizable sigue siendo Electron 0.7.0 (`2e9236f`). Los instaladores Linux y Windows permanecen en `dist/installers/`, con SHA256. Tauri está en `src-tauri/` como vista previa 0.8.0-alpha.1; no sustituye ni importa automáticamente la instalación existente.
+Desde 0.8.0, Tauri es la única implementación de escritorio y distribución. Se retiraron Electron, electron-builder y sus pruebas específicas; el historial siguiente documenta los cortes previos, no tareas todavía pendientes. Ver [paquetes, migración de datos y validación actual](DESKTOP.md).
+
+El producto vuelve a llamarse Story Workbench (`local.storyworkbench.desktop`). Usa la carpeta histórica `story-workbench` en la configuración del usuario para conservar proyectos y sesión Codex. El perfil WebKit/WebView2 se guarda en `webview`; no importa localStorage ni claves safeStorage de Electron. Las preferencias se eligen una vez y las claves se ingresan de nuevo para guardarlas en Secret Service/Credential Manager. Los datos de la preview separada permanecen intactos.
+
+La preparación ya no necesita builds Electron: `desktop/prepare.py` empaqueta recursos públicos directamente; `desktop/build.py` produce .deb y NSIS con el entorno Docker fijado. El sidecar Linux es PyInstaller onefile; Windows usa Python oficial embebible y un pequeño lanzador Rust que hereda los canales y espera su salida. El frontend conserva capacidades vacías; los diálogos de exportación se resuelven en Rust por la ruta autenticada existente. El cierre pide confirmación por cambios sin guardar o tareas activas.
 
 ## Pistas verificadas
 
@@ -9,7 +13,7 @@ La entrega utilizable sigue siendo Electron 0.7.0 (`2e9236f`). Los instaladores 
 - **Archivos:** el plugin FS admite scopes explícitos. Aquí los archivos ya pasan por Python con validación de rutas, hashes y bloqueo; conservar esa frontera permite no instalar FS ni otorgar acceso al disco al frontend. Los scopes del plugin no limitan por sí solos el código Rust/Python. [FS](https://v2.tauri.app/plugin/file-system/).
 - **Motor web:** Linux usa WebKitGTK y Windows WebView2. La voz necesita comprobación propia, especialmente contexto seguro, permiso de micrófono, AudioWorklet y WebRTC. [Motores web](https://v2.tauri.app/reference/webview-versions/).
 
-## Implementación inicial
+## Historial: implementación inicial
 
 - Backend Python empaquetado como ejecutable sidecar nativo de un archivo; Codex y voz reutilizan recursos públicos de la build verificada. No se redistribuyen cuentas, claves ni skills globales.
 - Ventana Tauri con la misma interfaz y origen estable. Proxy exclusivamente al servidor de loopback surgido del handshake validado; mantiene token, Host/Origin, límites de tamaño y CSP del backend. No permite un destino de red arbitrario.
@@ -17,7 +21,7 @@ La entrega utilizable sigue siendo Electron 0.7.0 (`2e9236f`). Los instaladores 
 - Datos y perfil de la vista previa separados. Claves opcionales en el llavero nativo mediante keyring 3.6.3: Secret Service con transporte cifrado en Linux y Credential Manager en Windows (implementado, todavía sin prueba Windows). Voz y motores editoriales usan entradas separadas por proveedor y perfil. No intenta leer ni convertir los archivos cifrados de Electron; no hay fallback a archivos de texto.
 - Se conservan ambos shells durante la transición. Antes de cambiar el producto distribuido faltan: migración recuperable de preferencias/proyectos/claves de Electron, paridad de voz online y comprobación Windows, cierre de tareas y descarga con diálogo nativo, instaladores Tauri y regresiones completas.
 
-## Preparar y comprobar
+## Historial: preparación de la preview (reemplazada por DESKTOP.md)
 
 Primero generar y verificar la build Electron del sistema nativo; luego:
 

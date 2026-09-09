@@ -1,65 +1,59 @@
-# Distribución de escritorio 0.7.0
+# Distribución Tauri 0.8.0
 
-Paquetes preliminares locales para probar con otros autores. No se publicaron, no contienen credenciales, proyectos, conversaciones ni habilidades globales. No hay licencia definitiva del producto; `UNLICENSED` evita declarar una licencia inexistente.
+Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados; todavía no hay licencia definitiva del producto.
 
-## Para el usuario
+## Instalación
 
-- **Linux:** paquete `Story-Workbench-0.7.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
-- **Windows:** `Story-Workbench-0.7.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
-- **ChatGPT:** Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro. Usar la cuenta propia en el navegador predeterminado. La app detecta cuando termina el acceso. El editor permanece disponible sin iniciar sesión.
+- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.0-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
+- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.0-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
+- Abrir **Story Workbench** desde el menú. El asistente inicial permite conectar la cuenta propia, configurar voz opcional y crear/abrir un proyecto; se puede omitir y reabrir en Configuración.
 
-No se comparte la cuenta del creador. El escritorio usa su propio directorio Codex y requiere conectar la cuenta una vez; la versión `python3 app.py` conserva el uso de Codex instalado. La IA editorial usa conexión online y cuota Codex disponible. La voz online opcional usa clave API separada de OpenAI o Gemini, con sus límites y posibles cargos; no usa los beneficios ChatGPT/AI Plus como crédito transferible.
+Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen incluidos. El usuario no necesita terminal, Node, Rust ni Python. Codex con ChatGPT sigue siendo el motor principal; no hay cambio automático a una API de pago. Los adaptadores con clave son experimentales y requieren elección explícita. No hay actualizaciones automáticas.
 
-Datos de escritorio: `~/.config/story-workbench/projects` en Linux y `%APPDATA%/story-workbench/projects` en Windows. La carpeta `codex` hermana contiene la sesión administrada por Codex; `voice-keys` contiene solo claves API cifradas cuando se eligió recordarlas. Desinstalar conserva los datos; exportar el proyecto desde la app permite guardar sus documentos y decisiones. El ZIP editorial no incluye conversaciones ni imágenes de maqueta. No compartir la carpeta de sesión.
+## Datos al pasar de Electron
 
-## Funciones de esta entrega
+Se conserva el directorio histórico: `~/.config/story-workbench` en Linux (`XDG_CONFIG_HOME` si está definido) y `%APPDATA%/story-workbench` en Windows. `projects` mantiene documentos, conversaciones y decisiones; `codex` mantiene la sesión. El bloqueo del backend impide abrir el mismo perfil simultáneamente desde ambas aplicaciones. Cerrá la app anterior antes de iniciar Tauri. En Linux el .deb actualiza el mismo paquete. En Windows se recomienda desinstalar Electron conservando sus datos antes de instalar Tauri; no se ha validado una actualización automática entre los dos instaladores.
 
-La 0.7.0 verifica modo y paletas entre arranques y restaura la apariencia antes del primer pintado; añade microinteracciones accesibles en acciones, guardado, tareas, diálogos y maqueta. Conserva el chat amplio, tuerca, seis paletas, micrófono toggle/Espacio y guardado seguro de claves de 0.6.0. Conserva los [modos traducción/rol](MODES.md) y [voz online OpenAI/Gemini](REALTIME.md) de 0.5.0. Incluye la ayuda opcional buscable y mejoras de recuperación, lectura y navegación descritas en [UX_REVIEW.md](UX_REVIEW.md). Mantiene las funciones de 0.3.0: prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
+El nuevo perfil web está en `webview`: tema y demás preferencias requieren configurarse una vez. Las claves antiguas de safeStorage permanecen intactas pero Tauri no las convierte; ingresalas una vez para guardarlas en Secret Service (Linux) o Credential Manager (Windows). No hay respaldo en texto plano. La preview 0.8.0-alpha.1 tenía otro perfil, que tampoco se modifica automáticamente.
 
-Barra por etapas observadas: conexión, contexto, generación y comprobación/guardado. No se inventa un porcentaje del libro ni una duración. Un error o cancelación conserva progreso parcial. Las respuestas nuevas están resaltadas y son colapsables; cada autor puede marcarlas como vistas. Aceptar una propuesta abre su documento y selecciona el texto recién aplicado.
+Desinstalar conserva los datos. Exportar un proyecto produce un ZIP editorial con documentos y decisiones, sin conversaciones ni imágenes de maqueta. Una copia privada de toda la carpeta `projects` conserva también esos datos; no compartas la carpeta `codex` ni los almacenes de claves.
 
-«Libro 3D» abre una maqueta nativa CSS con seis caras: portada, contraportada, lomo y tres cantos de páginas. Se puede girar, inclinar y ajustar ancho, alto y grosor de lomo; importar imágenes para las tres caras impresas y guardar la maqueta por proyecto. Se guardan copias JPEG de vista previa, ajustadas a cada cara, no los originales. No salen hacia Codex. La app no calcula un lomo a partir de palabras ni produce una cubierta técnica para imprenta.
+## Funciones y límites
 
-La guía integrada permite empezar sin instalar habilidades. Si Codex descubre build-novel local y está seleccionada, se utiliza esa instalación. No se copia ni distribuye su contenido: no tiene licencia de redistribución declarada en la instalación revisada.
+Conserva los flujos guiados, traducción con criterio humano, construcción de mundos, revisión, historial, temas, selección de motores, voz y libro 3D de 0.7.0. Añade lectura online OpenAI/Gemini con TTS local de respaldo, exportación mediante diálogo nativo y cierre cancelable ante texto sin guardar o una tarea en curso. Las exportaciones se escriben atómicamente en el destino elegido.
 
-## Reproducir los paquetes
+**En el WebKitGTK de este Linux no está disponible WebRTC:** la conversación oral OpenAI que usa ese transporte muestra un aviso. La lectura OpenAI usa WebSocket y no tiene esa dependencia; Gemini y el dictado local tienen otro transporte. Las comprobaciones automatizadas usan servicios simulados y micrófono virtual, no validan calidad ni autenticación de proveedores reales. Ver [voz y lectura](REALTIME.md) y [historial técnico](TAURI_MIGRATION.md).
 
-Node 22+, npm, Python 3.11+. Para Linux, construir en Linux con el glibc mínimo que se quiera soportar. El build actual usa Python 3.12 de Ubuntu 24.04; no asumir compatibilidad con glibc anterior. Para generar el `.exe` desde Linux hace falta Wine para las herramientas de recursos/NSIS; eso no equivale a probarlo en Windows.
+## Reproducir
+
+El flujo mantenido compila ambos paquetes desde Linux x64 con Docker, Node/npm y Python 3.11+. El sidecar Linux de esta entrega usa Python 3.12 de Ubuntu 24.04; no asumir compatibilidad con glibc anterior. Las herramientas son solo para desarrollo:
 
 ```sh
 npm ci
 python3 -m venv .venv
 .venv/bin/pip install pyinstaller==6.22.2
+docker build -f desktop/tauri-build.Dockerfile -t story-workbench-tauri-build .
 npm run dist:linux
 npm run dist:win
 ```
 
-Ejecutar los builds secuencialmente: cada preparación reemplaza `dist/runtime`. Linux empaqueta el servidor mediante PyInstaller. Windows incluye Python embebible oficial 3.14.7 con SHA256 fijado y los módulos de la app. Codex oficial 0.153.4 está incluido en ambos; npm lock/integridad verifican sus paquetes. `MANIFEST.json` registra hashes de los archivos del runtime. Electron y el empaquetador están fijados en package-lock.json. El dictado incluye Vosk 0.3.45 y el modelo español pequeño 0.42, con hashes fijados y avisos de licencia. La preparación descarga estos recursos públicos; el usuario final no tiene que hacerlo. El .deb depende de espeak-ng para leer en español. En Windows la lectura usa las voces del sistema. No hay descarga de ejecutables al iniciar la app ni actualización automática.
+Ejecutar builds secuencialmente: cada preparación reemplaza `src-tauri/runtime`. `desktop/prepare.py` selecciona únicamente fuentes públicas y verifica integridad de las descargas; registra hashes en `MANIFEST.json`. Windows incluye Python embebible oficial 3.14.7 con SHA256 fijado y un lanzador Rust con CRT estático que hereda stdin y espera el cierre de Python; no requiere instalar Visual C++ aparte. NSIS usa zlib para reducir el tiempo de empaquetado. El build de Windows usa cargo-xwin/MSVC y NSIS. Las fuentes de la app y el caché de herramientas son los únicos directorios montados en Docker; no se montan proyectos ni credenciales.
 
-El renderer no dispone de Node ni IPC genérico, mantiene aislamiento de contexto y sandbox, restringe navegación y permisos; admite únicamente micrófono de audio desde su ventana principal local, nunca cámara, y solo abre el login oficial en el navegador externo. Un protocolo interno estable conserva preferencias entre arranques; el backend usa un puerto loopback efímero y token. El proceso padre cierra su canal para solicitar la detención del backend y sus trabajos al salir.
+Los instaladores finales y `SHA256SUMS` quedan en `dist/installers`. Los paquetes Electron anteriores son artefactos históricos, no se regeneran. `UNLICENSED` no concede una licencia de redistribución del producto; se mantienen avisos de terceros. build-novel se descubre localmente cuando está instalado, no se copia.
 
-## Comprobaciones
+## Comprobaciones ejecutables
 
 ```sh
-python3 -m unittest discover -s scripts
 python3 -m unittest discover -s tests
-python3 tests/browser_check.py
-python3 tests/ux_browser_check.py
-python3 tests/desktop_check.py
-# Después de instalar el .deb: sandbox habilitado, datos ficticios temporales.
-python3 tests/desktop_check.py --installed --voice
-python3 tests/voice_browser_check.py
-python3 tests/live_voice_check.py
-python3 tests/login_check.py
-python3 tests/live_mvp.py --interview-only
+python3 tests/desktop_bridge_check.py
+python3 tests/reading_browser_check.py
+cargo test --locked --manifest-path src-tauri/Cargo.toml
+# Binario Linux compilado; requiere sesión gráfica y llavero desbloqueado.
+python3 tests/tauri_check.py --binary src-tauri/target/release/story-workbench --dialog-tool /usr/bin/xdotool
 ```
 
-Las comprobaciones de navegador/escritorio necesitan Chrome/Playwright y permisos de loopback como herramientas de desarrollo, no para usuarios finales. `desktop_check.py` usa `--no-sandbox` **solo en el test desempaquetado**, por las restricciones de namespaces de Ubuntu. La app distribuida no incluye ese flag. El modo `--installed` comprueba el ejecutable instalado con sandbox habilitado. Ver la versión efectivamente instalada y su resultado en MVP_RESULTS.md.
+El test nativo usa ficción y claves ficticias en un perfil temporal, dos reinicios, audio virtual y proveedores simulados; borra sus entradas del llavero. El parámetro opcional `--dialog-tool` comprueba Guardar/Cancelar en el diálogo GTK real, abre el DOCX guardado y verifica una exportación vacía. xdotool y Playwright son herramientas de prueba, no dependencias de la app. La ventana mantiene el sandbox del sistema.
 
-El test de cuenta unitario simula completar el OAuth y verifica que nunca se devuelven tokens ni datos de cuenta. `login_check.py` inicia y cancela un login real en un CODEX_HOME temporal: comprueba protocolo y URL oficial, no la autorización de una cuenta nueva. La entrevista real usa la sesión ChatGPT existente y ficción temporal. Los resultados finales ejecutados se registran en MVP_RESULTS.md.
+Referencias: [instaladores NSIS y WebView2](https://v2.tauri.app/distribute/windows-installer/), [paquetes Debian](https://v2.tauri.app/distribute/debian/), [diálogos nativos](https://v2.tauri.app/plugin/dialog/) y [Python embebible](https://docs.python.org/3/using/windows.html#the-embeddable-package). Los resultados efectivamente ejecutados se registran en MVP_RESULTS.md.
 
-Referencias de implementación: [seguridad Electron](https://www.electronjs.org/docs/latest/tutorial/security), [distribución Electron](https://www.electronjs.org/docs/latest/tutorial/application-distribution), [App Server de Codex](https://learn.chatgpt.com/docs/app-server), [Python para Windows](https://www.python.org/downloads/windows/) y [empaquetado PyInstaller](https://pyinstaller.org/en/stable/operating-mode.html).
-
-Validaciones y límites de cada build: ver el registro de resultados. La instalación actual no se actualiza sin la contraseña administrativa. Ver [resultados](MVP_RESULTS.md).
-
-En 0.7.0 se agrega el asistente inicial, la navegación de secciones, el lomo por páginas y seis motores editoriales experimentales. Sus claves se guardan en `editor-keys`, separadas de `voice-keys`, mediante el mismo almacén nativo. Ver [proveedores](PROVIDERS.md).
+Para verificar la integridad del contenido extraído: `python3 tests/installer_check.py --linux-root /tmp/sw-tauri-deb --windows-root /tmp/sw-tauri-nsis`. Los directorios deben contener una extracción fresca del .deb (`dpkg-deb -x`) y del .exe (`7z x`); el test comprueba manifiestos, fuentes públicas, binarios incluidos y SHA256. `tests/windows_sidecar_check.py` comprueba handshake, HTTP y cierre por stdin desde Windows o con `--wine` y un `WINEPREFIX` temporal.

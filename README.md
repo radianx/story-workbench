@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio 0.7.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -12,7 +12,7 @@ Los paquetes locales están en `dist/installers/`. Ver [distribución y comproba
 2. Abrí **Story Workbench** desde el menú de aplicaciones.
 3. El asistente inicial permite conectar ChatGPT, preparar voz opcional y crear o abrir un proyecto. Se puede omitir y reabrir desde Configuración. Para conectar: **Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro**. Completá el acceso en tu navegador y volvé a la app.
 
-Incluye Electron, Python y Codex: el usuario no necesita terminal ni instalarlos por separado. Cada instalación usa la cuenta del autor que la abre. Se puede escribir sin iniciar sesión; la IA necesita internet y disponibilidad de Codex en esa cuenta. Codex con ChatGPT es el motor editorial principal, sin fallback de pago. Se pueden elegir seis adaptadores experimentales con clave propia o servidor local; ver [motores](PROVIDERS.md). La voz online opcional admite claves de OpenAI o Gemini con condiciones y facturación API separadas; el dictado local sigue disponible. Los paquetes son preliminares y no están firmados ni publicados.
+Usa Tauri e incluye Python y Codex: el usuario no necesita terminal ni instalarlos por separado. Cada instalación usa la cuenta del autor que la abre. Se puede escribir sin iniciar sesión; la IA necesita internet y disponibilidad de Codex en esa cuenta. Codex con ChatGPT es el motor editorial principal, sin fallback de pago. Se pueden elegir seis adaptadores experimentales con clave propia o servidor local; ver [motores](PROVIDERS.md). La voz online opcional admite claves de OpenAI o Gemini con condiciones y facturación API separadas; el dictado local sigue disponible. Windows instala WebView2 si falta (requiere internet); Linux usa WebKitGTK del sistema. Los paquetes son preliminares y no están firmados ni publicados.
 
 ## Iniciar desde el código
 
@@ -52,7 +52,7 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
-| Apariencia | Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar el modo y ambas paletas para el usuario local, también al reiniciar Electron; se restauran antes de mostrar la interfaz. |
+| Apariencia | Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar el modo y ambas paletas para el usuario local, también al reiniciar la app; se restauran antes de mostrar la interfaz. |
 | Ambiente | Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
 | Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. Desde Plan y avance: libro completo en orden a Markdown y DOCX básico de lectura. |
 
@@ -115,4 +115,4 @@ La 0.7.0 restaura la apariencia antes del primer pintado, comprueba su persisten
 
 La 0.7.0 añade asistente inicial omisible y reabrible, navegación con Ctrl/Cmd+K y por voz a más secciones, cálculo físico de lomo y [seis motores experimentales](PROVIDERS.md). La voz requiere conexión previa; credenciales, consentimiento y aprobaciones editoriales conservan controles manuales.
 
-La migración a Tauri comenzó como vista previa separada: compilación y dos arranques Linux comprobados, con backend sidecar, editor, tema persistido, navegación, libro 3D, llavero nativo y voz local con micrófono virtual. OpenAI Realtime todavía no tiene paridad en el WebKit de este Linux. Electron 0.7.0 sigue siendo la entrega distribuible. Ver [estado, fuentes oficiales y pendientes de Tauri](TAURI_MIGRATION.md).
+Tauri es la única vía de desarrollo y distribución desde 0.8.0. Electron queda retirado; sus resultados anteriores se conservan como historial. Ver [distribución](DESKTOP.md) y [migración y límites de audio](TAURI_MIGRATION.md).

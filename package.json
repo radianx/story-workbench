@@ -1,77 +1,19 @@
 {
   "name": "story-workbench",
-  "version": "0.7.0",
-  "description": "Escritura guiada y revisi\u00f3n editorial local con ChatGPT",
+  "version": "0.8.0",
+  "description": "Escritura guiada y revisión editorial local con ChatGPT",
   "private": true,
   "license": "UNLICENSED",
   "author": "A. J. Sbardella",
-  "main": "desktop/main.cjs",
   "scripts": {
-    "desktop": "electron .",
+    "desktop": "tauri dev",
     "prepare:desktop": "python3 desktop/prepare.py",
-    "dist:linux": "npm run prepare:desktop -- --target linux && electron-builder --linux deb --publish never",
-    "dist:win": "npm run prepare:desktop -- --target win && electron-builder --win nsis --x64 --publish never"
+    "dist:linux": "python3 desktop/build.py --target linux",
+    "dist:win": "python3 desktop/build.py --target win"
   },
   "devDependencies": {
-    "electron": "44.3.0",
-    "electron-builder": "26.15.3",
-    "@openai/codex": "0.153.4"
-  },
-  "build": {
-    "appId": "local.storyworkbench.desktop",
-    "productName": "Story Workbench",
-    "directories": {
-      "output": "dist/installers"
-    },
-    "files": [
-      "desktop/main.cjs",
-      "desktop/voice-vault.cjs",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "dist/runtime",
-        "to": "runtime"
-      }
-    ],
-    "linux": {
-      "target": [
-        "deb"
-      ],
-      "category": "Office",
-      "maintainer": "A. J. Sbardella",
-      "executableName": "story-workbench",
-      "icon": "desktop/icon.png"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "desktop/icon.ico",
-      "signExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false
-    },
-    "artifactName": "Story-Workbench-${version}-${os}-${arch}.${ext}",
-    "compression": "normal",
-    "deb": {
-      "depends": [
-        "libgtk-3-0",
-        "libnotify4",
-        "libnss3",
-        "libxss1",
-        "libxtst6",
-        "xdg-utils",
-        "libatspi2.0-0",
-        "libuuid1",
-        "libsecret-1-0",
-        "espeak-ng"
-      ]
-    }
+    "@openai/codex": "0.153.4",
+    "@tauri-apps/cli": "2.11.4"
   },
   "homepage": "workbench://app"
 }

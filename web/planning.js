@@ -46,7 +46,7 @@ $('plan-cards').onclick=action(async e=>{
   }
 });
 $('scene-add').onclick=action(async()=>{checkPlanEdits();const doc=await api('/api/document/add',{project:state.id,name:`Escena ${manuscripts().length+1}.md`,role:'manuscrito',content:''});state=await api(`/api/projects/${state.id}`);renderPlan();renderDocuments();$('plan-cards').querySelector(`[data-scene="${doc.id}"] textarea`)?.focus();});
-for(const [id,format] of [['book-markdown','md'],['book-docx','docx']]) $(id).onclick=action(async()=>{checkPlanEdits();if(dirty)throw new Error('Guardá el texto antes de exportar el libro.');download(await api(`/api/projects/${state.id}/book.${format}`),`libro.${format}`);});
+for(const [id,format] of [['book-markdown','md'],['book-docx','docx']]) $(id).onclick=action(async()=>{checkPlanEdits();if(dirty)throw new Error('Guardá el texto antes de exportar el libro.');await download(await api(`/api/projects/${state.id}/book.${format}`),`libro.${format}`);});
 // Plantillas propias de la app; no son una copia de build-novel ni hechos aprobados.
 const templates = {
   character:{role:'plan',text:'## Deseo y necesidad\n\nPor definir.\n\n## Conflicto y costo de decidir\n\nPor definir.\n\n## Voz, gestos y relaciones\n\nPor definir.\n\n## Arco: elección y consecuencia\n\nPor definir.\n\n## Hechos aprobados y preguntas abiertas\n\nSeparar con claridad.'},

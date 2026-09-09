@@ -17,6 +17,17 @@
     if(document.querySelector('#book-width').value!=='152.4')throw Error('book');
     document.querySelector('#book-close').click();
     const book=await fetch('/api/projects/'+project.id+'/book.docx',{headers});if(!book.ok)throw Error('export');
+    stage='export-dialog';
+    if(__EXPORT_TEST__){
+      if(!window.storyDesktop)throw Error('desktop-marker');
+      const denied=await fetch('/api/desktop/save?name=libro.docx',{method:'POST',body:'unauthorized'});
+      if(denied.status!==401)throw Error('export-auth');
+      const invalid=await fetch('/api/desktop/save?name=..%2Fsecret.md',{method:'POST',headers,body:'invalid'});
+      if(invalid.status!==400)throw Error('export-path');
+      if(!await download(await book.blob(),'libro.docx'))throw Error('save-dialog');
+      if(await download(new Blob(['No guardar']),'cancelado.md'))throw Error('cancel-dialog');
+      if(!await download(new Blob([]),'vacio.md'))throw Error('empty-dialog');
+    }
     stage='vault';
     const call=async(path,body)=>{const r=await fetch(path,{headers,method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});if(!r.ok)throw Error('http');return r.json();};
     const second=!!localStorage.getItem('tauri-smoke');

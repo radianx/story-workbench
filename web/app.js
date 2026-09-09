@@ -270,8 +270,14 @@ async function poll() {
     if(wasBusy && !busy()) {renderDocuments();notice(state.runs.at(-1).status==='completed'?'La respuesta está lista.':'La tarea terminó. Revisá su estado.');}
   }catch(error){if(busy())notice(error.message,true);}finally{polling=false;}
 }
-function download(blob,name) {const url=URL.createObjectURL(blob), link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-function downloadDocument(){if(current)download(new Blob([$('editor').value],{type:'text/markdown;charset=utf-8'}),current.name.replace(/\.md$/i,'')+'.md');}
+async function download(blob,name) {
+  if(window.storyDesktop){
+    const response=await fetch('/api/desktop/save?name='+encodeURIComponent(name),{method:'POST',headers:{Authorization:`Bearer ${token}`},body:new Uint8Array(await blob.arrayBuffer())});
+    const result=await response.json();if(!response.ok)throw Error(result.error);
+    if(result.saved)notice('Exportación guardada.');return result.saved;
+  }
+const url=URL.createObjectURL(blob), link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function downloadDocument(){if(current)return download(new Blob([$('editor').value],{type:'text/markdown;charset=utf-8'}),current.name.replace(/\.md$/i,'')+'.md');}
 
 $('demo').onclick=action(()=>createProject(true)); $('blank').onclick=action(()=>createProject()); $('new-project').onclick=action(()=>createProject());
 $('project').onchange=action(e=>openProject(e.target.value)); $('search').oninput=renderDocuments;
@@ -284,7 +290,7 @@ $('files').onchange=action(async e=>{
   state=await api(`/api/projects/${state.id}`);renderDocuments();if(!current && state.documents.length)openDocument(state.documents[0].id,true);e.target.value='';notice('Copias importadas. Asignales un tipo y seleccioná las fuentes para Codex.');
 });
 $('editor').oninput=()=>{if(!current)return;dirty=$('editor').value!==current.content;try{sessionStorage.setItem(draftKey(),$('editor').value);}catch{notice('No se pudo conservar el borrador de la pestaña. Guardá o descargá tu texto.',true);}updateStats();};
-$('save').onclick=action(save);$('download').onclick=downloadDocument;
+$('save').onclick=action(save);$('download').onclick=action(downloadDocument);
 $('rename').onclick=action(async()=>{if(!current)return;state=await api('/api/document/meta',{project:state.id,document:current.id,name:$('doc-title').value.trim()+'.md'});current.name=state.documents.find(d=>d.id===current.id).name;renderDocuments();notice('Nombre actualizado.');});
 $('role').onchange=action(async e=>{if(!current)return;state=await api('/api/document/meta',{project:state.id,document:current.id,role:e.target.value});current.role=e.target.value;$('doc-role-label').textContent=labels[current.role];renderDocuments();});
 $('reload').onclick=action(async()=>{if(dirty && !confirm('¿Descartar el borrador y cargar la versión guardada?'))return;sessionStorage.removeItem(draftKey());state=await api(`/api/projects/${state.id}`);openDocument(current.id,true);});
@@ -341,7 +347,7 @@ $('proposals').onclick=action(async e=>{
 });
 $('decision-form').onsubmit=action(async e=>{e.preventDefault();state=await api('/api/decision',{project:state.id,text:$('decision-text').value,status:$('decision-status').value});$('decision-text').value='';renderAssistant();notice('Decisión registrada.');});
 $('new-thread').onclick=action(async()=>{if(!confirm('¿Abrir una conversación nueva? Conservaremos las anteriores como historial y las decisiones registradas.'))return;state=await api('/api/thread/reset',{project:state.id});notice('El próximo mensaje abrirá una conversación nueva.');});
-$('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('Guardá antes de exportar el proyecto o descargá el borrador como Markdown.');const blob=await api(`/api/projects/${state.id}/export`);download(blob,'story-workbench.zip');});
+$('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('Guardá antes de exportar el proyecto o descargá el borrador como Markdown.');const blob=await api(`/api/projects/${state.id}/export`);await download(blob,'story-workbench.zip');});
 $('focus').onclick=()=>{const focused=document.body.classList.toggle('focus');$('focus').textContent=focused?'⛶ Salir de foco':'⛶ Modo foco';$('focus').setAttribute('aria-pressed',focused);if(state?.workflow==='guided')$('prompt').focus();else if(current)$('editor').focus();};
 $('inspire').onclick=()=>{if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}else $('background-file').click();};
 $('background-file').onchange=action(e=>{const file=e.target.files[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10000000)throw new Error('Usá una imagen PNG, JPEG o WebP de hasta 10 MB.');backgroundURL=URL.createObjectURL(file);$('ambient-image').src=backgroundURL;$('ambient-image').hidden=false;$('inspire').textContent='◑ Quitar ambiente';notice('Imagen local de esta pestaña. No se envía a Codex.');e.target.value='';});
@@ -466,3 +472,9 @@ for(const command of ['undo','redo']) {
 
 function showMaterial(){document.body.classList.add('material-open');$('material-toggle').textContent='Ocultar material';$('material-toggle').setAttribute('aria-expanded','true');}
 $('material-toggle').onclick=()=>{const visible=document.body.classList.toggle('material-open');$('material-toggle').textContent=visible?'Ocultar material':'Ver material';$('material-toggle').setAttribute('aria-expanded',String(visible));};
+
+window.storyRequestClose=async()=>{
+  if(dirty && !confirm('Hay texto sin guardar. ¿Cerrar y descartar esos cambios?'))return;
+  if(busy() && !confirm('Hay una tarea en curso. ¿Detenerla y cerrar?'))return;
+  try{await api('/api/desktop/close',{});}catch(error){notice(error.message,true);}
+};

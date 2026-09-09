@@ -67,6 +67,10 @@ Maqueta de tapa blanda con tamaño inicial 6 × 9 pulgadas, estimación de pági
 
 Codex/ChatGPT principal y seis adaptadores editoriales experimentales: OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local. Selección explícita por proyecto, claves propias cifrables, sin fallback. Ver [alcance y fuentes](PROVIDERS.md).
 
-## Lectura online en el código y vista previa Tauri
+## Lectura online en Tauri 0.8.0
 
-Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática sigue siendo opcional. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Los instaladores Electron 0.7.0 existentes no incluyen este corte.
+Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática sigue siendo opcional. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Incluida en la distribución Tauri 0.8.0.
+
+## Escritorio Tauri 0.8.0
+
+Tauri reemplaza Electron como único shell. Paquetes locales .deb y NSIS; Python, Codex y modelo de voz incluidos. Reutiliza la carpeta de proyectos y sesión Codex anterior. El perfil web y llavero nativo son nuevos: preferencias y claves antiguas requieren configuración una vez. Exportaciones con diálogo Guardar y escritura atómica; cierre cancelable con texto sin guardar o tarea activa. Estado ejecutado y limitaciones por plataforma en [distribución](DESKTOP.md).

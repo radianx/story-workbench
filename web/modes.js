@@ -102,7 +102,7 @@ $('translation-form').onsubmit=action(async event=>{
   state=await api('/api/translation/config',{project,config});$('translation-form').dataset.dirty='false';renderTranslationDocuments();renderAssistant();notice('Encargo guardado. Marcá el original en las fuentes antes de traducir.');
 });
 $('translation-start').onclick=action(()=>{checkTranslationEdits();if(!state.translation_config)throw new Error('Guardá el encargo primero.');$('translation-dialog').close();prepareTranslation();$('send').click();});
-for(const format of ['md','docx'])$('translation-'+format).onclick=action(async()=>{checkTranslationEdits();if(dirty)throw new Error('Guardá y revisá el texto antes de exportar.');download(await api(`/api/projects/${state.id}/translation.${format}`),'traduccion.'+format);});
+for(const format of ['md','docx'])$('translation-'+format).onclick=action(async()=>{checkTranslationEdits();if(dirty)throw new Error('Guardá y revisá el texto antes de exportar.');await download(await api(`/api/projects/${state.id}/translation.${format}`),'traduccion.'+format);});
 $('translation-documents').onclick=action(async event=>{
   const button=event.target.closest('button');if(!button)return;checkTranslationEdits();
   if(button.dataset.translationEdit){$('translation-dialog').close();showMaterial();openDocument(button.dataset.translationEdit);}

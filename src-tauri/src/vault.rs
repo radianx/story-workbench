@@ -12,7 +12,7 @@ pub struct Vault {
 }
 impl Vault {
     pub fn new(profile: &std::path::Path) -> Self {
-        Self { service: format!("local.storyworkbench.tauri.preview:{}", profile.display()), keys: HashMap::new() }
+        Self { service: format!("local.storyworkbench.desktop:{}", profile.display()), keys: HashMap::new() }
     }
     pub fn account(engine: bool, provider: &str) -> Result<String, &'static str> {
         if !(if engine {ENGINE} else {VOICE}).contains(&provider) {return Err("Proveedor inválido.")}

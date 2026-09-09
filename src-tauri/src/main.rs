@@ -6,6 +6,8 @@ use serde::Deserialize;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::NewWindowResponse, http::{Request, Response}};
 use tauri_plugin_shell::{ShellExt, process::{CommandChild, CommandEvent}};
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_dialog::DialogExt;
+use std::io::Write;
 
 #[derive(Clone, Deserialize)]
 struct Backend { origin: String, token: String }
@@ -89,6 +91,32 @@ fn forward(backend: &Backend, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     })();
     result.unwrap_or_else(|_|error_response(502,"No se pudo completar la petición al servicio local."))
 }
+fn export_name(url: &tauri::Url) -> Option<String> {
+    let name=url.query_pairs().find(|(key,_)|key=="name")?.1.into_owned();
+    if name.is_empty() || name.len()>240 || name.chars().any(|c|c.is_control() || "/\\:<>\"|?*".contains(c)) ||
+        !["md","docx","zip"].iter().any(|ext|name.ends_with(&format!(".{ext}"))) {return None}
+    Some(name)
+}
+fn save_export(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    let mut file=tempfile::NamedTempFile::new_in(path.parent().ok_or(std::io::ErrorKind::InvalidInput)?)?;
+    file.write_all(bytes)?;file.as_file().sync_all()?;
+    file.persist(path).map_err(|error|error.error)?;Ok(())
+}
+fn desktop_request(app: &tauri::AppHandle, backend: &Backend, request: &Request<Vec<u8>>) -> Response<Vec<u8>> {
+    let Ok(url)=tauri::Url::parse(&request.uri().to_string()) else {return error_response(403,"Origen inválido.")};
+    if !local_url(&url) || request.method()!="POST" {return error_response(403,"Solicitud no permitida.")}
+    if request.headers().get("Authorization").and_then(|v|v.to_str().ok())!=Some(&format!("Bearer {}",backend.token)) {return error_response(401,"Acceso no autorizado.")}
+    if request.body().len()>32_000_000 {return error_response(413,"Archivo demasiado grande.")}
+    if url.path()=="/api/desktop/close" {app.exit(0);return json_response(serde_json::json!({"ok":true}))}
+    if url.path()!="/api/desktop/save" {return error_response(404,"Acción no disponible.")}
+    let Some(name)=export_name(&url) else {return error_response(400,"Nombre de exportación inválido.")};
+    let Some(path)=app.dialog().file().set_title("Guardar exportación").set_file_name(&name).blocking_save_file() else {return json_response(serde_json::json!({"saved":false}))};
+    let Ok(path)=path.into_path() else {return error_response(400,"Destino no disponible.")};
+    match save_export(&path,request.body()) {
+        Ok(())=>json_response(serde_json::json!({"saved":true})),
+        Err(_)=>error_response(500,"No se pudo guardar la exportación. Elegí otro destino.")
+    }
+}
 fn main() {
     if std::env::var("STORY_TAURI_CLEANUP").as_deref()==Ok("1") {
         let data=std::path::PathBuf::from(std::env::var_os("STORY_TEST_DATA").expect("Perfil de prueba requerido"));
@@ -104,7 +132,7 @@ fn main() {
     let bridge=runtime.clone();let startup=runtime.clone();let shutdown=runtime.clone();
     let smoke=std::env::var("STORY_TAURI_SMOKE").as_deref()==Ok("1");
     let app=tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init()).plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_shell::init()).plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol("workbench", move |ctx,request,responder| {
             let runtime=bridge.clone();let backend=bridge.backend.lock().unwrap().clone();let handle=ctx.app_handle().clone();
             std::thread::spawn(move || {
@@ -118,18 +146,19 @@ fn main() {
                     println!("Tauri smoke: {}",if success {"OK"} else {"FAILED"});
                     if !success {println!("Stage: {}",String::from_utf8_lossy(request.body()).chars().filter(|c|c.is_ascii_alphanumeric()||*c=='-').take(40).collect::<String>());}handle.exit(if success {0}else{2});return;
                 }
-                responder.respond(proxy(&backend,&runtime.vault,request));
+                if request.uri().path().starts_with("/api/desktop/") {responder.respond(desktop_request(&handle,&backend,&request));}
+                else {responder.respond(proxy(&backend,&runtime.vault,request));}
             });
         })
         .setup(move |app| {
-            let data=std::env::var_os("STORY_TEST_DATA").map(std::path::PathBuf::from).unwrap_or(app.path().app_data_dir()?);
+            let data=std::env::var_os("STORY_TEST_DATA").map(std::path::PathBuf::from).unwrap_or(app.path().config_dir()?.join("story-workbench"));
             std::fs::create_dir_all(data.join("codex"))?;
             let resources=app.path().resource_dir()?.join("runtime");
             let env:HashMap<String,String>=std::env::vars().filter(|(key,_)|!["OPENAI_","AZURE_OPENAI_","CODEX_API_","CODEX_THREAD_"].iter().any(|prefix|key.starts_with(prefix))).collect();
             let (mut rx,child)=app.shell().sidecar("story-server")?.env_clear().envs(env)
                 .env("STORY_DESKTOP","1").env("CODEX_HOME",data.join("codex"))
                 .env("STORY_CODEX_BINARY",resources.join(if cfg!(windows){"codex/bin/codex.exe"}else{"codex/bin/codex"}))
-                .env("STORY_VOICE_DIR",resources.join("voice"))
+                .env("STORY_VOICE_DIR",resources.join("voice")).env("STORY_SERVER_RUNTIME",&resources)
                 .args(["--port","0","--data-dir",data.join("projects").to_str().ok_or("Ruta inválida")?]).spawn()?;
             *startup.child.lock().unwrap()=Some(child);
             let backend=tauri::async_runtime::block_on(async {
@@ -164,15 +193,19 @@ fn main() {
                 }}
             });
             let opener=app.handle().clone();
-            let smoke_script=if smoke {include_str!("smoke.js").replace("__TOKEN__",&backend.token)}else{String::new()};
+            let smoke_script=if smoke {include_str!("smoke.js").replace("__TOKEN__",&backend.token).replace("__EXPORT_TEST__",if std::env::var("STORY_TAURI_EXPORT_TEST").as_deref()==Ok("1"){"true"}else{"false"})}else{String::new()};
             let ui_url=format!("workbench://app/#token={}",backend.token);
             // WebKit fija algunas capacidades al crear el documento: configurar antes de navegar.
             let initial=if cfg!(target_os="linux") {WebviewUrl::External("about:blank".parse()?)}else{WebviewUrl::CustomProtocol(ui_url.parse()?)};
             let window=WebviewWindowBuilder::new(app,"main",initial)
-                .data_directory(data.join("webview")).title("Story Workbench · Tauri Preview").inner_size(1440.0,1000.0).min_inner_size(380.0,600.0)
-                .initialization_script(&smoke_script).use_https_scheme(true).on_navigation(local_url)
+                .data_directory(data.join("webview")).title("Story Workbench").inner_size(1440.0,1000.0).min_inner_size(380.0,600.0)
+                .initialization_script("window.storyDesktop = true;").initialization_script(&smoke_script).use_https_scheme(true).on_navigation(local_url)
                 .on_new_window(move |url,_|{if auth_url(&url){let _=opener.opener().open_url(url.as_str(),None::<&str>);}NewWindowResponse::Deny})
                 .build()?;
+            let close_window=window.clone();
+            window.on_window_event(move |event| {if let tauri::WindowEvent::CloseRequested {api,..}=event {
+                api.prevent_close();let _=close_window.eval("window.storyRequestClose?.()");
+            }});
             #[cfg(target_os="linux")]
             window.with_webview(move |webview| {
                 use webkit2gtk::{glib::prelude::*, WebViewExt, SettingsExt, PermissionRequestExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt};
@@ -195,7 +228,7 @@ fn main() {
                 let timeout=app.handle().clone();std::thread::spawn(move || {std::thread::sleep(Duration::from_secs(60));timeout.exit(3);});
             }
             Ok(())
-        }).build(tauri::generate_context!()).expect("No se pudo iniciar la vista previa Tauri");
+        }).build(tauri::generate_context!()).expect("No se pudo iniciar Story Workbench");
     app.run(move |_,event| {if matches!(event,tauri::RunEvent::Exit){
         shutdown.closing.store(true,Ordering::SeqCst);
         // Cerrar stdin deja terminar a Python y al lanzador onefile; kill dejaría un proceso huérfano.
@@ -207,6 +240,13 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn export_boundary_and_atomic_replace() {
+        for name in ["../secret.md","a%2Fsecret.zip","a%5Cb.md","bad.exe","a%00.md"] {assert!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).is_none());}
+        assert_eq!(export_name(&"workbench://app/api/desktop/save?name=libro.docx".parse().unwrap()).as_deref(),Some("libro.docx"));
+        let dir=tempfile::tempdir().unwrap();let path=dir.path().join("libro.md");
+        save_export(&path,b"primero").unwrap();save_export(&path,b"segundo").unwrap();
+        assert_eq!(std::fs::read(path).unwrap(),b"segundo");
+    }
     #[test] fn vault_request_boundary() {
         let backend=Backend{origin:"http://127.0.0.1:1".into(),token:"a".repeat(43)};
         let vault=Mutex::new(Some(Vault::new(std::path::Path::new("/unused-test"))));
