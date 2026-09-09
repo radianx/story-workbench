@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='sw-desktop-') as temp:
         assert not (Path(temp)/'voice-keys/gemini.bin').exists()
         print('OK clave ficticia recuperada del almacén nativo tras reinicio y eliminada.')
     assert result.returncode==0, result.stderr[-1000:]
-    assert '"persistent":true' in result.stdout, result.stdout
+    assert '"persistent":true' in result.stdout and '"appearance":true' in result.stdout, result.stdout
     print('OK preferencias conservadas al reiniciar con otro puerto local.')
     assert (Path(temp)/'projects').is_dir()
     assert not (Path(temp)/'codex/auth.json').exists()

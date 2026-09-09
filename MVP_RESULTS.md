@@ -1,3 +1,23 @@
+# Inicio, libro físico y motores 0.7.0 — 2026-09-09
+
+- Pasaron 31 pruebas de backend y 4 del protocolo Codex. Los seis transportes experimentales se comprobaron con SSE ficticio, errores, truncación, límites, claves y direcciones inválidas, historial y propuestas pendientes sin modificar documentos.
+- Pasaron diez recorridos de Chrome: base, UX, configuración, microinteracciones, modos, voz local, OpenAI de voz simulado, Gemini de voz simulado, setup/teclado/libro y motores editoriales simulados. Sin llamadas reales de IA ni cambios en originales.
+- Setup: primera apertura, omitir y reabrir, persistencia, cuenta y voz opcionales; navegación por teclado, destinos compartidos, tamaño 6 × 9, estimación por área, 300 páginas crema → 19,05 mm, persistencia y conservación de maquetas manuales antiguas.
+- Motor por proyecto y seis proveedores probados desde la UI sin sesión ChatGPT; vuelve a Codex conservando su selector de modelo/esfuerzo. Claves de voz/editorial separadas y ausentes en archivos de proyecto. Cifrado simulado por proveedor comprobado.
+
+- Linux 0.7.0 empaquetado pasó arranque, aislamiento, voz local, cámara denegada, apariencia entre dos arranques y clave ficticia cifrada/recuperada/eliminada en el almacén nativo. Verificados 78 hashes y web idéntica.
+- La primera preparación Windows omitía `workbench_providers.py`; la prueba de arranque falló y se corrigió la lista de archivos. El runtime regenerado pasó bajo Wine (backend, guardado, historial, bloqueo y Vosk). Verificados 96 hashes y todos los módulos incluidos. Windows nativo e inferencia real de adaptadores siguen sin validar.
+
+# Persistencia de apariencia y microinteracciones 0.6.1 — 2026-09-09
+
+- La preferencia de modo y ambas paletas continúa en el perfil local del usuario; el arranque la restaura antes de cargar la aplicación principal, sin esperar a abrir un proyecto. No sincroniza preferencias entre cuentas ChatGPT ni equipos.
+- Pasaron 27 pruebas de servidor y los recorridos de navegador base, UX, configuración, microinteracciones, modos, voz local, OpenAI simulado y Gemini simulado. La prueba nueva comprueba tema antes del JS principal, espera y bloqueo de repetición, recuperación tras error, progreso sin reemplazo de elemento, señal de finalización sin repetición, movimiento reducido y arrastre 3D sin demora.
+- El indicador de espera solo bloquea controles directos: los paneles con varios handlers de clic no interfieren entre sí. Pasaron lectura desde una respuesta del chat y traducción/revisión tras esta corrección.
+- Comprobación de voz extendida: el micrófono continúa alternando escucha mientras el permiso/conexión están pendientes; no queda bloqueado por el indicador genérico de espera.
+- `tests/desktop_check.py --voice` pasó con Electron Linux 0.6.1: guardó modo oscuro, violeta y rosa en la primera apertura y comprobó las mismas preferencias en la segunda, con otro puerto local. También pasaron aislamiento, voz local y cifrado/recuperación/borrado de clave ficticia. Se verificaron 76 hashes del runtime Linux y archivos web idénticos a las fuentes.
+- El runtime Windows 0.6.1 pasó bajo Wine (Python, Vosk, copias, guardado/historial y bloqueo); se verificaron 93 hashes, web y módulos de escritorio idénticos a las fuentes. No equivale a validar instalación o interfaz en Windows nativo.
+- Sin llamadas nuevas a ChatGPT ni proveedores de voz, sin cambios en manuscritos originales. La instalación local consultada sigue en 0.5.0; actualizar el paquete necesita contraseña administrativa. Ver [pasada de UX](UX_REVIEW.md).
+
 # Chat, configuración y micrófono 0.6.0 — 2026-09-09
 
 - Recorridos locales de navegador: base, UX, voz local, modos, OpenAI simulado, Gemini simulado y configuración. Se verifican las seis paletas y persistencia/sistema, modales amplios y compactos, chat principal, giro 3D con mouse/teclado, toggle, Espacio, repetición de tecla y liberación al perder foco. Datos ficticios y micrófono virtual.

@@ -18,7 +18,7 @@ TOOLS=[
     dict(type='function',name='workbench_action',description='Operar controles de la app a petición del autor. No aprueba, sobrescribe ni elimina documentos. Las decisiones preparadas requieren Registro manual.',
          parameters=dict(type='object',properties={
              'action':dict(type='string',enum=list(ACTIONS)),
-             'target':dict(type='string',description='ID de documento, tema system/light/dark o sección conversation/proposals/decisions/help/translation/plan/book.'),
+             'target':dict(type='string',description='ID de documento, tema system/light/dark o sección conversation/proposals/decisions/help/translation/plan/book/settings/model/voice/account/setup/library/material/back.'),
              'mode':dict(type='string',enum=['',*TASKS]),
              'text':dict(type='string',description='Petición completa o decisión provisional; vacío si no hace falta.')},
              required=['action','target','mode','text'],additionalProperties=False))]
@@ -28,7 +28,7 @@ def context(data):
     selected={d['id']:d['hash'] for d in data['documents'] if d['selected']}
     compatible=[r for r in data['runs'] if r.get('purpose','novel')==data['purpose']
                 and all(selected.get(s['id'])==s['hash'] for s in r.get('sources',[]))]
-    value=dict(title=data['title'],purpose=data['purpose'],initial_idea=data['initial_idea'],
+    value=dict(engine=data.get('engine',{'provider':'codex'}),title=data['title'],purpose=data['purpose'],initial_idea=data['initial_idea'],
                library=[dict(id=d['id'],name=d['name'],selected=d['selected']) for d in data['documents']],
                selected_sources=[{k:d[k] for k in ('id','name','role','content','hash')} for d in data['documents'] if d['selected']],
                decisions=data['decisions'],translation_config=data.get('translation_config',{}),
@@ -45,7 +45,7 @@ def voice_instructions(data):
         'la traducción requiere consultas y aprobación en la app. Podés navegar y preparar criterios, pero nunca afirmar '
         'que aprobaste, guardaste o cambiaste un documento. Esperá el resultado real de la función. '
         'No inventes IDs de documentos. Si una acción no está permitida, explicá el control manual necesario. '
-        'Esta conversación de voz es temporal; las tareas enviadas a Codex y las decisiones registradas permanecen.\n'
+        'Esta conversación de voz es temporal; las tareas enviadas al motor editorial elegido y las decisiones registradas permanecen.\n'
         +GUIDES.get(data['purpose'],'')+'\nContexto inicial:\n'+json.dumps(context(data),ensure_ascii=False))
 
 

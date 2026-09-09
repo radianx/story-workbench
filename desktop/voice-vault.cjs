@@ -3,10 +3,10 @@ const fs=require('node:fs');
 const {join}=require('node:path');
 const {randomUUID}=require('node:crypto');
 class VoiceVault {
-  constructor(root,storage,platform=process.platform){this.root=root;this.storage=storage;this.platform=platform;this.keys={};this.error='';}
+  constructor(root,storage,platform=process.platform,providers=['openai','gemini']){this.providers=providers;this.root=root;this.storage=storage;this.platform=platform;this.keys={};this.error='';}
   available(){return this.storage.isEncryptionAvailable()&&(this.platform!=='linux'||['gnome_libsecret','kwallet','kwallet5','kwallet6'].includes(this.storage.getSelectedStorageBackend()));}
   path(provider){
-    if(!['openai','gemini'].includes(provider))throw new Error('Proveedor inválido.');
+    if(!this.providers.includes(provider))throw new Error('Proveedor inválido.');
     fs.mkdirSync(this.root,{recursive:true,mode:0o700});
     if(fs.lstatSync(this.root).isSymbolicLink())throw new Error('Almacén de claves inválido.');
     const path=join(this.root,provider+'.bin');
@@ -14,7 +14,7 @@ class VoiceVault {
     return path;
   }
   status(){
-    const stored={};for(const provider of ['openai','gemini'])try{stored[provider]=fs.existsSync(this.path(provider));}catch{stored[provider]=false;this.error='No se pudo acceder al almacén cifrado.';}
+    const stored={};for(const provider of this.providers)try{stored[provider]=fs.existsSync(this.path(provider));}catch{stored[provider]=false;this.error='No se pudo acceder al almacén cifrado.';}
     return {available:this.available(),stored,reason:this.error||(!this.available()?'El sistema no ofrece un almacén seguro disponible; la clave puede usarse solo en memoria.':'Cifrado con el almacén de claves del sistema, separado de tus proyectos.')};
   }
   load(provider){

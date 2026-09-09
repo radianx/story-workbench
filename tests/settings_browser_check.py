@@ -11,6 +11,8 @@ with tempfile.TemporaryDirectory(prefix='sw-settings-') as temp:
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1920,'height':1080});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            page.emulate_media(reduced_motion='reduce') # Medir colores finales; movimiento se comprueba por separado.
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             page.locator('#settings-open').click();assert page.locator('#settings-dialog').bounding_box()['width']>950
             for mode,values in [('light',['sky','cream','pink']),('dark',['violet','red','blue'])]:

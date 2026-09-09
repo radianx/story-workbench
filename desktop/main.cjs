@@ -51,28 +51,31 @@ async function start() {
   });
   ({ origin, token } = ready);
   const vault=new VoiceVault(join(data,'voice-keys'),safeStorage);
-  const voiceRequest=body=>fetch(origin+'/api/realtime/key',{method:'POST',headers:{Origin:origin,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  for(const provider of ['openai','gemini']){
-    const key=vault.load(provider);
-    if(key){const response=await voiceRequest({provider,key});if(!response.ok)vault.error='Una clave guardada necesita revisión. Reemplazala en configuración.';}
+  const engineVault=new VoiceVault(join(data,'editor-keys'),safeStorage,process.platform,['openai','gemini','anthropic','deepseek','kimi','local']);
+  const keyRequest=(path,body)=>fetch(origin+path,{method:'POST',headers:{Origin:origin,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const voiceRequest=body=>keyRequest('/api/realtime/key',body);
+  for(const [store,path] of [[vault,'/api/realtime/key'],[engineVault,'/api/engine/key']])for(const provider of store.providers){
+    const key=store.load(provider);
+    if(key){const response=await keyRequest(path,{provider,key});if(!response.ok)store.error='Una clave guardada necesita revisión. Reemplazala en configuración.';}
   }
   // A stable origin preserves theme, drafts and read/collapse state across launches.
   protocol.handle('workbench', async request => {
     const url = new URL(request.url);
     if (url.hostname !== 'app' || !['GET','POST'].includes(request.method)) return new Response('', {status:403});
-    if(url.pathname==='/api/voice-storage'||(url.pathname==='/api/realtime/key'&&request.method==='POST')){
+    if(['/api/voice-storage','/api/engine-storage'].includes(url.pathname)||(['/api/realtime/key','/api/engine/key'].includes(url.pathname)&&request.method==='POST')){
+      const store=url.pathname.startsWith('/api/engine')?engineVault:vault;
       const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
       if(request.headers.get('Authorization')!=='Bearer '+token)return reply({error:'Acceso no autorizado.'},401);
       try{
-        if(request.method==='GET')return reply(vault.status());
+        if(request.method==='GET')return reply(store.status());
         const raw=await request.text();if(raw.length>10000)return reply({error:'Solicitud demasiado grande.'},413);
-        const body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body)||(body.remember!==undefined&&typeof body.remember!=='boolean'))return reply({error:'Solicitud inválida.'},400);const provider=body.provider||'openai';vault.path(provider);
-        if(url.pathname==='/api/voice-storage'){vault.save(provider,body.remember);return reply(vault.status());}
-        if(body.remember && !vault.available())return reply({error:'No hay almacén seguro. Elegí uso solo en memoria.'},409);
-        const response=await voiceRequest(body);
+        const body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body)||(body.remember!==undefined&&typeof body.remember!=='boolean'))return reply({error:'Solicitud inválida.'},400);const provider=body.provider||'openai';store.path(provider);
+        if(['/api/voice-storage','/api/engine-storage'].includes(url.pathname)){store.save(provider,body.remember);return reply(store.status());}
+        if(body.remember && !store.available())return reply({error:'No hay almacén seguro. Elegí uso solo en memoria.'},409);
+        const response=await keyRequest(url.pathname,body);
         if(!response.ok)return response;
-        vault.keys[provider]=body.key;
-        vault.save(provider,body.key?body.remember===true:false);
+        store.keys[provider]=body.key;
+        store.save(provider,body.key?body.remember===true:false);
         return response;
       }catch(error){return reply({error:error instanceof SyntaxError?'Solicitud inválida.':error.message},400);}
     }
@@ -119,12 +122,19 @@ async function start() {
       const project=await response.json();
       const exportResponse=await fetch('/api/projects/'+project.id+'/book.docx',{headers});
       if(!exportResponse.ok || !document.querySelector('#plan-dialog') || !document.querySelector('#ai-model'))return false;
+      if(!localStorage.getItem('sw-setup-seen')){if(!document.querySelector('#setup-dialog').open)return false;await skipSetup();}
       document.querySelector('#help-open').click();
       if(!document.querySelector('#help-dialog').open || document.querySelectorAll('.help-topic').length!==14)return false;
       document.querySelector('#help-close').click();
       const before=localStorage.getItem('desktop-smoke');
+      if(before==='persisted'){
+        if(document.documentElement.dataset.theme!=='dark'||document.documentElement.dataset.darkPalette!=='violet'||document.documentElement.dataset.lightPalette!=='pink')return false;
+      }else{
+        document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
+        for(const [mode,value] of [['dark','violet'],['light','pink']]){const select=document.querySelector('#palette-'+mode);select.value=value;select.onchange();}
+      }
       localStorage.setItem('desktop-smoke','persisted');
-      return {persistent:before==='persisted',project:project.title==='Prueba empaquetada',origin:location.href.split('#')[0]};
+      return {persistent:before==='persisted',appearance:before==='persisted',project:project.title==='Prueba empaquetada',origin:location.href.split('#')[0]};
     })()`);
     if (!safe || !safe.project) throw new Error('Renderer isolation/API');
     const secure=vault.status();

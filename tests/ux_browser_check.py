@@ -20,6 +20,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             errors = []; writes = []
             page.on('pageerror', lambda e: errors.append(str(e)))
             page.on('request', lambda r: writes.append(r.url) if r.method=='POST' else None)
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token)
             page.locator('#welcome').wait_for()
             assert not page.locator('#help-dialog').is_visible()

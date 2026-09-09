@@ -32,6 +32,7 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
               };
               window.toolCall=(id,name,args)=>testChannel.onmessage({data:JSON.stringify({type:'response.done',response:{status:'completed',output:[{type:'function_call',call_id:id,name,arguments:JSON.stringify(args)}]}})});
             ''')
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             assert not page.locator('#realtime-enabled').is_checked() and not connections
             page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
@@ -80,7 +81,9 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             page.wait_for_function('()=>!realtimeConfigured');assert not server.realtime.status()['configured']
             page.locator('#realtime-close').click();page.locator('#settings-close').click()
             # Cancelar mientras el permiso del micrófono todavía se resuelve.
-            page.evaluate('()=>{realtimeConfigured=true;realtimeConsent=true;document.querySelector("#realtime-enabled").checked=true;window.originalGetMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>window.resolveMic=resolve);startRealtime()}')
+            page.evaluate('()=>{realtimeConfigured=true;realtimeConsent=true;document.querySelector("#realtime-enabled").checked=true;window.originalGetMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>window.resolveMic=resolve);renderVoice()}')
+            page.locator('#dictate').click();page.wait_for_function('()=>!!window.resolveMic');page.locator('#dictate').click()
+            assert page.evaluate('realtime.listening===false') and page.locator('#dictate').get_attribute('aria-busy') is None
             page.locator('#realtime-stop').click()
             page.evaluate('async()=>{window.lateStream=await originalGetMedia({audio:true});resolveMic(lateStream)}')
             page.wait_for_function('()=>lateStream.getTracks().every(t=>t.readyState==="ended")')

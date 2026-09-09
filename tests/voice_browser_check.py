@@ -29,6 +29,7 @@ with tempfile.TemporaryDirectory(prefix='sw-voice-browser-') as temp:
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox','--use-fake-device-for-media-stream'])
             page=browser.new_page(permissions=['microphone']);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token)
             page.locator('#dictate:not([disabled])').wait_for()
             page.locator('#prompt').fill('Mi idea:')
@@ -58,13 +59,15 @@ with tempfile.TemporaryDirectory(prefix='sw-voice-browser-') as temp:
             page.locator('#read-last').click();page.locator('#settings-close').click();page.get_by_text('Lectura terminada.',exact=True).wait_for()
             assert reads==['¿Qué querés que sienta el lector?']
             assert page.evaluate('readingAudio===null && readingURL===null')
+            page.locator('[data-read=voice-test]').click();page.get_by_text('Lectura terminada.',exact=True).wait_for()
+            assert reads==['¿Qué querés que sienta el lector?']*2
             # Lectura automática solo al elegirla, y solo una vez por respuesta nueva.
             page.locator('#settings-open').click();page.locator('#auto-read').check();page.locator('#settings-close').click()
             with server.store.lock:
                 data=server.store.load(project);data['runs'].append({**data['runs'][0],'id':'voice-test2','text':'¿Quién es la protagonista?'});server.store.persist(data)
             page.wait_for_function("() => document.querySelectorAll('.run').length===2")
             page.get_by_text('Lectura terminada.',exact=True).wait_for();page.wait_for_timeout(1800)
-            assert reads==['¿Qué querés que sienta el lector?','¿Quién es la protagonista?']
+            assert reads==['¿Qué querés que sienta el lector?']*2+['¿Quién es la protagonista?']
             assert not errors,errors
             browser.close()
     finally:

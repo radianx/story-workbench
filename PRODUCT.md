@@ -47,10 +47,22 @@ El recorrido incorpora fichas provisionales, plan de capítulos/escenas, orden e
 
 ## Límites
 
-Primero un autor en su equipo; después pruebas con otros autores usando sus propias cuentas. Sin servicio central que comparta credenciales. Sin generación de libros enteros con un clic, colaboración simultánea, base vectorial o múltiples motores editoriales en la primera versión. La voz admite dos proveedores explícitos y separados del motor editorial. Exportación editorial avanzada para imprenta/EPUB queda fuera de este corte; la exportación DOCX es básica y no redistribuye build-novel.
+Primero un autor en su equipo; después pruebas con otros autores usando sus propias cuentas. Sin servicio central que comparta credenciales. Sin generación de libros enteros con un clic, colaboración simultánea ni base vectorial. La versión 0.7.0 amplía la decisión inicial de un único motor: Codex sigue siendo principal y los demás son experimentales. La voz admite dos proveedores explícitos y separados del motor editorial. Exportación editorial avanzada para imprenta/EPUB queda fuera de este corte; la exportación DOCX es básica y no redistribuye build-novel.
 
 Archivos locales no significan inferencia offline: el contexto enviado a Codex sale hacia su servicio. Tampoco eliminan el límite de contexto; seleccionamos material pertinente y explicitamos posibles omisiones.
 
 ## Corte 0.6.0 aplicado
 
 Configuración en la barra superior; chat y campo de mensaje amplios, micrófono junto a Enviar, clic para alternar escucha y Espacio mientras se mantiene (solo mensaje vacío). Paletas claras celeste/crema/rosado y oscuras violeta/rojo/azul, además de salvia; modo Sistema inicial. Ayuda y voz con modales adaptables, estado de cuenta accesible con punto de color, giro del libro por mouse/teclado. Acepta claves Gemini auth AQ. y permite recordar claves cifradas en el almacén nativo de escritorio; nunca en proyectos ni localStorage.
+
+## Corte 0.6.1 aplicado
+
+Apariencia persistida antes del primer pintado y verificación entre arranques de Electron. Microinteracciones ligadas a estados: espera de acciones, guardado, final de tarea, apertura de diálogos, micrófono y controles 3D. Movimiento reducido del sistema desactiva animaciones conservando feedback textual y funcional. Ver [pasada de UX](UX_REVIEW.md).
+
+## Corte 0.7.0 aplicado
+
+Asistente de primera apertura: cuenta, voz opcional y proyecto; omisible, persistente y reabrible. Navegador de secciones con Ctrl/Cmd+K, Ctrl/Cmd+, para configuración, flechas en pestañas y destinos compartidos con voz. Claves, permisos y aprobaciones requieren acción humana; no se afirma operación 100% por voz desde una instalación vacía.
+
+Maqueta de tapa blanda con tamaño inicial 6 × 9 pulgadas, estimación de páginas desde manuscritos guardados según área útil, páginas reales o lomo manual. Papel blanco/crema; valores anteriores permanecen manuales. No es paginación definitiva ni archivo de imprenta.
+
+Codex/ChatGPT principal y seis adaptadores editoriales experimentales: OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local. Selección explícita por proyecto, claves propias cifrables, sin fallback. Ver [alcance y fuentes](PROVIDERS.md).

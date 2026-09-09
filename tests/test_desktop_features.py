@@ -28,6 +28,10 @@ class Features(unittest.TestCase):
     def test_production_validation(self):
         value = dict(width=152.4, height=228.6, spine=20, title='Ficción', author='Autora')
         self.assertEqual(validate_production(value)['spine'], 20)
+        self.assertEqual(validate_production({**value,'sizing':'pages','pages':300,'paper':'cream'})['spine'],19.05)
+        self.assertEqual(validate_production({**value,'sizing':'estimate','pages':24})['spine'],1.37)
+        for bad in ({'pages':True},{'pages':1.5},{'pages':1501},{'paper':'other'},{'sizing':'other'}):
+            with self.assertRaises(Problem):validate_production({**value,**bad})
         for bad in ({'width':True}, {'height':float('nan')}, {'spine':101}, {'front':'https://evil.test/cover'}, {'back':'data:image/jpeg;base64,YWJj'}):
             with self.assertRaises(Problem): validate_production({**value, **bad})
 

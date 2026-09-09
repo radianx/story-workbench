@@ -1,3 +1,27 @@
+# Inicio, navegación y producción — 0.7.0
+
+- Primer inicio con tres pasos, omisión explícita/Escape y preferencia persistida. Reapertura en Configuración. Cuenta y voz reutilizan sus controles; no solicitan micrófono al abrir el recorrido.
+- Ir a una sección (Ctrl/Cmd+K), búsqueda y Enter; Tab/Shift+Tab nativos, flechas/Home/End en pestañas. Ctrl/Cmd+S no guarda el editor oculto desde un modal. Voz usa destinos explícitos y puede cerrar secciones sin cambios; no obtiene un click arbitrario para aprobar textos.
+- Motor editorial separado del proveedor de voz, con etiqueta experimental visible, claves fuera de proyectos y modalidad de guardado clara.
+- Libro 3D: 6 × 9 pulgadas, páginas estimadas/reales y papel. Estimación propia de prosa: 300 palabras/página a 6 × 9, márgenes de 15 mm, páginas pares y mínimo visual de 24. Los cambios sin guardar del editor no entran. Lomo: páginas × 0,0572 mm (blanco) o × 0,0635 mm (crema), según [KDP](https://kdp.amazon.com/en_US/help/topic/G201953020). Admite lomo manual y preserva maquetas existentes. No sustituye la paginación ni certifica elegibilidad KDP.
+
+# Microinteracciones y preferencias — 0.6.1
+
+Pasada sobre inicio, configuración, chat, guardado, revisión, voz y maqueta. Movimiento breve, ligado a acciones o estados reales; respeta `prefers-reduced-motion` sin perder información.
+
+| Situación | Cambio y utilidad |
+| --- | --- |
+| Arranque con un tema elegido | Restaurar modo y paletas antes del primer pintado evita el destello de otra apariencia. Preferencia por usuario local, compartida entre proyectos y conservada al reiniciar Electron. Sistema sigue siendo inicial. |
+| Preferencia guardada sin confirmación visible | Configuración explica el guardado automático y su alcance. Prueba explícita de modo oscuro, violeta y rosa entre dos arranques de Electron. |
+| Acción pendiente de respuesta | En controles directos, indicador de espera y aria-busy mientras dura la operación; evita repetir ese botón y se libera también ante error. El micrófono mantiene su función de toggle durante la conexión. |
+| Apertura de diálogo o paso del wizard | Entrada de 140 ms con desplazamiento de 6 px. Foco y cierre siguen siendo inmediatos; no se demoran acciones para completar animaciones. |
+| Guardado | Texto, símbolo y color diferencian borrador de guardado; transición breve, sin anunciar otra vez lo mismo en cada pulsación. |
+| Fin de una tarea | Señal breve en el progreso al pasar a completado. Se conserva el elemento de progreso entre actualizaciones; no se reanima la respuesta con cada fragmento recibido. |
+| Micrófono | Borde/fondo confirman captura y pausa, conservando etiqueta y estado accesible. Sin pulso continuo decorativo. |
+| Libro 3D | Giro suavizado con controles; arrastre directo sin retraso. |
+
+No se añadieron efectos de escritura letra a letra, desplazamiento automático animado, confeti ni transiciones de altura sobre respuestas: perjudicarían lectura, control o estabilidad. Las preferencias no sincronizan entre equipos ni cuentas ChatGPT; pertenecen al usuario local de la app (o perfil/origen del navegador).
+
 # Ajustes de conversación y apariencia — 0.6.0
 
 - Tuerca con ajustes generales, objetivo/flujo, modelo/esfuerzo y voz. El chat conserva espacio y el campo de mensaje tiene borde visible, etiqueta y micrófono junto a Enviar.

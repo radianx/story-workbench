@@ -22,13 +22,13 @@ moveSetting('.voice-controls','settings-voice');
 moveSetting('.composer [data-help=voice]','settings-voice');
 const label=document.createElement('label');label.htmlFor='prompt';label.className='message-label';label.textContent='Tu mensaje';$('prompt').before(label);
 $('prompt').rows=2;
-function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();$('settings-dialog').showModal();}
+function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();renderEngine();$('settings-dialog').showModal();}
 $('settings-open').onclick=openSettings;
 $('settings-close').onclick=()=>$('settings-dialog').close();
 $('settings-dialog').addEventListener('close',()=>{if(!document.querySelector('dialog[open]'))$('prompt').focus();});
 
 // Una paleta por modo: al seguir el sistema se conserva la preferencia de ambos.
-const palettes={light:{sage:'Original · salvia',sky:'Blanco · celeste',cream:'Blanco · crema / amarillo',pink:'Blanco · rosado'},dark:{sage:'Original · salvia',violet:'Negro · violeta',red:'Negro · rojo',blue:'Negro · azul'}};
+const palettes=appearancePalettes;
 for(const mode of ['light','dark']){
   const label=document.createElement('label');label.textContent=mode==='light'?'Paleta clara':'Paleta oscura';
   const select=document.createElement('select');select.id='palette-'+mode;
@@ -37,5 +37,6 @@ for(const mode of ['light','dark']){
   select.onchange=()=>{document.documentElement.dataset[mode+'Palette']=select.value;try{localStorage.setItem('sw-palette-'+mode,select.value);}catch{notice('La paleta se aplicó, pero no se pudo recordar.',true);}};
 }
 function restorePalettes(){for(const mode of ['light','dark']){let value;try{value=localStorage.getItem('sw-palette-'+mode);}catch{}value=Object.hasOwn(palettes[mode],value)?value:'sage';$('palette-'+mode).value=value;document.documentElement.dataset[mode+'Palette']=value;}}
+const appearanceNote=document.createElement('p');appearanceNote.className='appearance-note';appearanceNote.textContent='El modo y ambas paletas se guardan automáticamente para tu usuario en este equipo, también al reiniciar la app.';$('settings-general').append(appearanceNote);
 restorePalettes();window.addEventListener('storage',e=>{if(!e.key||e.key.startsWith('sw-palette-'))restorePalettes();});
 new ResizeObserver(()=>document.documentElement.style.setProperty('--topbar-height',document.querySelector('.topbar').offsetHeight+'px')).observe(document.querySelector('.topbar'));

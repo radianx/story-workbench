@@ -91,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js', '/settings.js'):
+            if path in ('/', '/appearance.js', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js', '/settings.js', '/setup.js', '/providers.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -99,8 +99,10 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path == '/api/voice-storage':
+                if path in ('/api/voice-storage','/api/engine-storage'):
                     self.send(200,dict(available=False,stored={},reason='El guardado seguro está disponible en la app de escritorio con un almacén de claves del sistema.'))
+                elif path == '/api/engines':
+                    self.send(200,self.server.assistant.providers.status())
                 elif path == '/api/realtime':
                     self.send(200,self.server.realtime.status())
                 elif path == '/api/voice':
@@ -154,8 +156,12 @@ class Handler(BaseHTTPRequestHandler):
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path
             store = self.server.store
-            if path == '/api/voice-storage':
+            if path in ('/api/voice-storage','/api/engine-storage'):
                 raise Problem('El guardado seguro requiere la app de escritorio y el almacén del sistema.')
+            if path == '/api/engine/key':
+                check(not self.server.assistant.active, 'Esperá a que termine la tarea antes de cambiar la clave.',409)
+                self.send(200,self.server.assistant.providers.configure(body.get('provider'),body.get('key')))
+                return
             if path == '/api/realtime/key':
                 self.send(200,self.server.realtime.configure(body.get('key'),body.get('provider','openai')))
                 return
@@ -224,6 +230,13 @@ class Handler(BaseHTTPRequestHandler):
                         result = store.snapshot(project)
                     elif path == '/api/run/save-draft':
                         result = store.save_draft(data, body.get('run'))
+                    elif path == '/api/project/engine':
+                        from workbench_providers import engine_preferences
+                        check(not self.server.assistant.active, 'Esperá a que termine la tarea antes de cambiar de motor.',409)
+                        data['engine'] = engine_preferences(body.get('engine'))
+                        data.update(thread=None,context_key=None)
+                        store.persist(data)
+                        result=store.snapshot(project)
                     elif path == '/api/project/ai':
                         from workbench_account import ai_preferences, resolve_ai
                         preferences = ai_preferences(body.get('preferences'))
@@ -280,7 +293,7 @@ class Handler(BaseHTTPRequestHandler):
                         result = store.snapshot(project)
                     elif path == '/api/thread/reset':
                         check(not self.server.assistant.active, 'Esperá a que termine la tarea.', 409)
-                        data.update(thread=None, context_key=None)
+                        data.update(thread=None, context_key=None, history_start=len(data['runs']))
                         store.persist(data)
                         result = store.snapshot(project)
                     elif path == '/api/run':

@@ -2,6 +2,7 @@
 // Ayuda propia, incluida con la app: no carga páginas externas ni llama al asistente.
 const helpTopics = [
   ['interview','Empezar y continuar la entrevista',[
+    'El asistente inicial aparece una vez, permite omitirlo y se reabre desde Configuración. Podés conectar cuentas, preparar claves opcionales y crear o abrir un proyecto. Ctrl/Cmd+K abre Ir a una sección; Ctrl/Cmd+, abre Configuración. Tab y Shift+Tab recorren controles y las flechas cambian pestañas. La voz online permite navegar después de conectarla; claves, permisos y aprobaciones editoriales siguen bajo control manual.',
     'Elegí Crear mi proyecto y Crear conversando. Una idea incompleta alcanza: el agente pregunta de a una. Si falta conectar ChatGPT, la app te muestra el acceso a tu cuenta.',
     'Respondé en el mensaje o usá Dictar respuesta. Enviar inicia el trabajo y consume tu cuota de Codex. Podés detener una tarea sin convertir su respuesta en material aprobado.',
     'Cuando quieras avanzar, cambiá Tipo de tarea a Redactar borrador. Guardar como borrador provisional crea un documento nuevo únicamente cuando lo elegís. Ver material abre el editor; Ocultar material devuelve espacio al chat.',
@@ -18,6 +19,7 @@ const helpTopics = [
     'Cuenta ChatGPT abre el inicio de sesión en tu navegador. Cada autor usa su propia cuenta. La escritura local funciona sin iniciar sesión; el asistente necesita internet y cuota disponible. Las tareas de Codex no usan claves API ni cambian a pago. Realtime es una opción separada y explícita.',
     'Abrí Configuración (la tuerca de arriba), luego Modelo y esfuerzo para elegirlos. Se guardan por proyecto y se aplican al próximo mensaje. Solo aparecen opciones compatibles que devuelve tu cuenta. Actualizar modelos vuelve a consultar su disponibilidad.',
     'Un esfuerzo mayor puede tardar más; no garantiza mejor voz literaria. Si un modelo guardado deja de estar disponible, elegí otro. La app no lo sustituye en silencio.',
+    'Elegir motor editorial permite mantener Codex con ChatGPT o usar OpenAI API, Gemini, Anthropic, DeepSeek, Kimi o un servidor local compatible. Los seis adaptadores alternativos son experimentales, requieren ID de modelo y clave propia salvo local, usan esfuerzo predeterminado y no cambian de proveedor ante errores. Se recuerda el motor por proyecto y las claves pueden cifrarse fuera de los proyectos.',
     'La guía editorial usa build-novel si está instalada, o la guía integrada cuando no está disponible. No necesitás instalar una skill para empezar.'
   ]],
   ['voice','Dictado, micrófono y lectura en voz alta',[
@@ -65,7 +67,7 @@ const helpTopics = [
   ['production','Tema, ambiente, foco y libro 3D',[
     'En Configuración elegís Claro, Oscuro o Sistema (inicial) y una paleta para cada modo: salvia, celeste, crema o rosado en claro; salvia, violeta, rojo o azul en oscuro. El icono sol/luna cambia rápidamente entre claro y oscuro. Ambiente es otra cosa: una imagen tenue detrás del editor, local a esta pestaña. No se envía al asistente y se retira al cambiar de proyecto.',
     'Modo foco oculta paneles secundarios. En creación guiada prioriza el chat; en escritura prioriza el documento. Salir de foco recupera los paneles sin detener una tarea.',
-    'Libro 3D es una maqueta visual de portada, lomo, contraportada y páginas. Usá las medidas y el grosor que confirme tu imprenta. El lomo no se calcula a partir del contador de palabras.',
+    'Libro 3D es una maqueta visual de portada, lomo, contraportada y páginas. Usá las medidas y el grosor que confirme tu imprenta. Por defecto usa 6 × 9 pulgadas y estima páginas del manuscrito guardado; podés ingresar la paginación real y elegir papel blanco o crema, o indicar un lomo manual. La estimación no sustituye la maquetación.',
     'Guardar maqueta conserva medidas y copias de las imágenes en el proyecto. Girar el libro solo cambia la vista. La maqueta no es una cubierta técnica lista para imprimir.'
   ]],
   ['translation','Traducción literaria: intención y revisión humana',[

@@ -10,7 +10,7 @@ function applyTheme(value) {
 function updateThemeIcon(){const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);$('theme-toggle').textContent=dark?'☀':'☾';$('theme-toggle').title=dark?'Usar tema claro':'Usar tema oscuro';$('theme-toggle').setAttribute('aria-label',$('theme-toggle').title);}
 $('theme-toggle').onclick=()=>{$('theme').value=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark';$('theme').onchange();};
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',updateThemeIcon);
-try { applyTheme(localStorage.getItem('sw-theme')); } catch { applyTheme('system'); }
+applyTheme(document.documentElement.dataset.theme);
 $('theme').onchange = () => {
   applyTheme($('theme').value);
   try {
@@ -24,7 +24,7 @@ window.addEventListener('storage', event => {
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {translate:'Traducción',draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando con ChatGPT…',running:'Codex está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
+const labels = {translate:'Traducción',draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando…',running:'La IA está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
 if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
@@ -47,7 +47,15 @@ async function api(path, data) {
   if (!response.ok) {const body = await response.json(); const error = new Error(body.error); error.status = response.status; throw error;}
   return response.headers.get('content-type').includes('application/json') ? response.json() : response.blob();
 }
-function action(fn) {return async event => {try {await fn(event);} catch(error) {notice(error.message,true);}};}
+function action(fn) {return async event => {
+  // Los paneles delegan clics a varios handlers; solo bloquear controles directos.
+  let button=event?.submitter||(event?.currentTarget?.matches?.('button')?event.currentTarget:null);
+  if(button?.id==='dictate')button=null; // El micrófono sigue siendo un toggle durante la conexión.
+  if(button?.getAttribute('aria-busy')==='true'){event.preventDefault();return;}
+  button?.setAttribute('aria-busy','true');
+  try {await fn(event);} catch(error) {notice(error.message,true);}
+  finally {button?.removeAttribute('aria-busy');}
+};}
 function confirmLeave() {return !dirty || confirm('Hay cambios sin guardar. Se conserva un borrador en esta pestaña. ¿Querés cambiar de documento?');}
 async function refreshProjects() {
   const data = await api('/api/projects');
@@ -55,7 +63,7 @@ async function refreshProjects() {
   if (state) $('project').value = state.id;
   return data.projects;
 }
-async function openProject(id) {
+async function openProject(id, startInterview=true) {
   if (!confirmLeave()) {$('project').value=state.id; return;}
   await cancelVoice();
   state = await api(`/api/projects/${id}`); resetVoiceProject(); $('prompt').value=sessionStorage.getItem('sw-message-'+id)||''; current = null; dirty=false;
@@ -68,11 +76,11 @@ async function openProject(id) {
   applyWorkflow();
   const savedMode=sessionStorage.getItem('sw-message-mode-'+id);
   if([...$('mode').options].some(option=>option.value===savedMode)){$('mode').value=savedMode;setTaskMode();}
-  renderDocuments(); renderAssistant();
+  renderDocuments(); renderAssistant(); renderEngine();
   if(state.documents.length) {const last=sessionStorage.getItem(`sw-doc-${id}`);openDocument(state.documents.some(d=>d.id===last)?last:state.documents[0].id,true);}
   else clearDocument();
   showPanel('conversation');
-  if(state.workflow==='guided' && !hasPurposeInterview()) {
+  if(startInterview && state.workflow==='guided' && !hasPurposeInterview()) {
     try {await beginInterview();} catch(error) {notice(error.message,true);}
   }
 }
@@ -109,7 +117,9 @@ function wordCount(text) {return text.trim() ? text.trim().split(/\s+/u).length:
 function updateStats() {
   const n=wordCount($('editor').value); $('words').textContent=`${n.toLocaleString('es')} palabras`;
   $('reading').textContent=`${Math.max(1,Math.ceil(n/220))} min de lectura`;
-  $('save-state').textContent=dirty?'Borrador sin guardar':'Guardado local';
+  const savedLabel=dirty?'Borrador sin guardar':'Guardado local';
+  if($('save-state').textContent!==savedLabel)$('save-state').textContent=savedLabel;
+  $('save-state').dataset.state=dirty?'dirty':'saved';$('save-state').setAttribute('role','status');
   $('save').disabled=!current || !dirty;
 }
 function markdown(text) {
@@ -199,7 +209,7 @@ function setTaskMode() {
 }
 async function beginInterview(retry=false) {
   const project=state.id;
-  if (!await ensureAccount()) return;
+  if (!await engineReady()) return;
   await api('/api/interview/start',{project,retry});
   if(state.id!==project)return;
   const incoming=await api(`/api/projects/${project}`);
@@ -216,7 +226,7 @@ $('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
   renderAISettings(); renderProgress(); updateRealtime(); updateVoice();
   const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||!!recording||transcribing;
-  $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
+  renderEngine();if(active)$('connection').textContent+=' · '+labels[active.status];
   const interview=state.runs.findLast(r=>r.mode==='interview' && (r.purpose||'novel')===(state.purpose||'novel'));
   $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
   $('interview-start').textContent=interview?'Retomar entrevista':'Comenzar entrevista';
@@ -227,7 +237,7 @@ function renderAssistant() {
     const scrollPosition=$('runs').scrollTop;
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.model)} · ${escapeHTML(effortLabels[r.effort]||r.effort)}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.provider&&r.provider!=='codex'?r.provider+' · experimental':'Codex')} · ${escapeHTML(r.reported_model||r.model)}${r.effort?' · '+escapeHTML(effortLabels[r.effort]||r.effort):''}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
     if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
     if(nearBottom)$('runs').scrollTop=$('runs').scrollHeight;else $('runs').scrollTop=scrollPosition;
     restoreTranslationFocus();updateLatestAnswer();
@@ -304,10 +314,10 @@ const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;s
 function savePromptDraft(){if(!state)return;try{sessionStorage.setItem('sw-message-'+state.id,$('prompt').value);sessionStorage.setItem('sw-message-mode-'+state.id,$('mode').value);}catch{notice('No se pudo conservar el mensaje en esta ventana. Copialo antes de salir.',true);}}
 $('prompt').addEventListener('input',savePromptDraft);
 $('send').onclick=action(async()=>{
-  if(dirty)throw new Error('Guardá el documento antes de enviarlo: Codex recibe la versión guardada.');
+  if(dirty)throw new Error('Guardá el documento antes de enviarlo: El motor editorial recibe la versión guardada.');
   const project=state.id, message=$('prompt').value, mode=$('mode').value, skill=$('skill').checked;
   if(!message.trim())return;
-  if(!await ensureAccount() || state.id!==project)return;
+  if(!await engineReady() || state.id!==project)return;
   await api('/api/run',{project,mode,prompt:message.trim(),skill});
   if(state.id!==project)return;
   if($('prompt').value===message){$('prompt').value='';savePromptDraft();}
@@ -335,9 +345,9 @@ $('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('
 $('focus').onclick=()=>{const focused=document.body.classList.toggle('focus');$('focus').textContent=focused?'⛶ Salir de foco':'⛶ Modo foco';$('focus').setAttribute('aria-pressed',focused);if(state?.workflow==='guided')$('prompt').focus();else if(current)$('editor').focus();};
 $('inspire').onclick=()=>{if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}else $('background-file').click();};
 $('background-file').onchange=action(e=>{const file=e.target.files[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10000000)throw new Error('Usá una imagen PNG, JPEG o WebP de hasta 10 MB.');backgroundURL=URL.createObjectURL(file);$('ambient-image').src=backgroundURL;$('ambient-image').hidden=false;$('inspire').textContent='◑ Quitar ambiente';notice('Imagen local de esta pestaña. No se envía a Codex.');e.target.value='';});
-window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();$('save').click();}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();$('focus').click();}});
+window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!document.querySelector('dialog[open]'))$('save').click();}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();if(!document.querySelector('dialog[open]'))$('focus').click();}});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-window.addEventListener('DOMContentLoaded',async()=>{try{const projects=await refreshProjects();if(projects.length){const saved=sessionStorage.getItem('sw-project');await openProject(projects.some(p=>p.id===saved)?saved:projects[0].id);}else{$('welcome').hidden=false;$('export').disabled=true;}}catch(error){$('welcome').hidden=false;notice(error.message,true);}});
+window.addEventListener('DOMContentLoaded',async()=>{try{const projects=await refreshProjects();if(!setupSeen()){$('welcome').hidden=false;await openSetup();return;}if(projects.length){const saved=sessionStorage.getItem('sw-project');await openProject(projects.some(p=>p.id===saved)?saved:projects[0].id);}else{$('welcome').hidden=false;$('export').disabled=true;}}catch(error){$('welcome').hidden=false;notice(error.message,true);}});
 setInterval(poll,1500);
 
 function outputPreference(id) {
@@ -356,10 +366,17 @@ function renderProgress() {
   const run = state.runs.at(-1), box = $('task-progress'); box.hidden = !run;
   if (!run) return;
   const steps = {connection:0, context:1, generation:2, validation:3, ready:4};
-  const names = ['Conectando con ChatGPT', 'Preparando el contexto', 'Generando la respuesta', 'Comprobando y guardando el resultado', 'Listo para revisar'];
+  const names = ['Conectando con el proveedor elegido', 'Preparando el contexto', 'Generando la respuesta', 'Comprobando y guardando el resultado', 'Listo para revisar'];
   const stage = run.status === 'completed' ? 4 : Math.min(steps[run.stage] ?? (run.status==='connecting'?0:2),3);
   const stopped = ['interrupted','failed','cancelling'].includes(run.status);
-  box.innerHTML = `<strong>${escapeHTML(labels[run.mode])} · ${stopped?escapeHTML(labels[run.status]):names[stage]}</strong><progress max="4" value="${stage}" aria-label="Etapas completadas de la tarea"></progress><small>${stage} de 4 etapas completadas. ${stage===4?'El resultado requiere tu revisión.':'No es un porcentaje del libro ni una estimación de tiempo.'}</small>`;
+  box.classList.toggle('just-completed',box.dataset.run===run.id && box.dataset.status!==run.status && run.status==='completed');
+  box.dataset.run=run.id;box.dataset.status=run.status;
+  if(!box.querySelector('progress'))box.innerHTML='<strong></strong><progress max="4" aria-label="Etapas completadas de la tarea"></progress><small></small>';
+  const title=`${labels[run.mode]} · ${stopped?labels[run.status]:names[stage]}`;
+  const detail=`${stage} de 4 etapas completadas. ${stage===4?'El resultado requiere tu revisión.':'No es un porcentaje del libro ni una estimación de tiempo.'}`;
+  if(box.firstElementChild.textContent!==title)box.firstElementChild.textContent=title;
+  box.querySelector('progress').value=stage;
+  if(box.lastElementChild.textContent!==detail)box.lastElementChild.textContent=detail;
 }
 let accountState = {status:'unknown'}, accountPolling = false;
 function renderAccount() {
@@ -401,7 +418,7 @@ setInterval(async () => {
     const previous=accountState.status; await refreshAccount();
     if (previous!=='connected' && accountState.status==='connected') {
       $('account-dialog').close();
-      if(state?.workflow==='guided' && !hasPurposeInterview()) await beginInterview();
+      if(state?.workflow==='guided' && selectedEngine()==='codex' && !$('setup-dialog').open && !hasPurposeInterview()) await beginInterview();
     }
   } catch(error) { notice(error.message,true); } finally { accountPolling=false; }
 }, 1000);

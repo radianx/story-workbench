@@ -8,6 +8,7 @@ try{
  assert(!fs.readFileSync(vault.path('gemini')).includes(vault.keys.gemini));assert.equal(fs.statSync(vault.path('gemini')).mode&0o777,0o600);
  const restarted=new VoiceVault(root,storage,'linux');assert.equal(restarted.load('gemini'),vault.keys.gemini);assert.equal(restarted.status().stored.gemini,true);
  for(const backend of ['basic_text','unknown']){const unavailable=new VoiceVault(root,{...storage,getSelectedStorageBackend:()=>backend},'linux');assert.equal(unavailable.available(),false);assert.equal(unavailable.load('gemini'),null);unavailable.keys.gemini='dummy';assert.throws(()=>unavailable.save('gemini',true));}
+ const editor=new VoiceVault(path.join(root,'editor'),storage,'linux',['openai','gemini','anthropic','deepseek','kimi','local']);for(const provider of editor.providers){editor.keys[provider]='ficticia-'+provider;editor.save(provider,true);assert.equal(new VoiceVault(editor.root,storage,'linux',editor.providers).load(provider),'ficticia-'+provider);}assert.equal(vault.keys.kimi,undefined);
  assert.throws(()=>vault.save('gemini','true'));assert.throws(()=>vault.save('../escape',false));
  fs.writeFileSync(vault.path('gemini'),'corrupt');assert.equal(restarted.load('gemini'),null);assert(restarted.error);
  vault.save('gemini',false);assert.equal(vault.status().stored.gemini,false);

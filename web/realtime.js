@@ -1,7 +1,7 @@
 'use strict';
 let realtime=null, realtimeConfigured=false, realtimeConsent=false, realtimeProviders={};
 const realtimeBusy=()=>!!realtime;
-const realtimeSignature=()=>JSON.stringify([state.id,state.purpose,state.translation_config,state.documents.filter(d=>d.selected).map(d=>[d.id,d.hash])]);
+const realtimeSignature=()=>JSON.stringify([state.id,state.purpose,state.engine,state.translation_config,state.documents.filter(d=>d.selected).map(d=>[d.id,d.hash])]);
 const voiceProvider=()=>$('realtime-provider').value;
 function realtimeStatus(message){$('realtime-status').textContent=message;}
 function renderRealtime(){
@@ -28,12 +28,7 @@ async function realtimeAction(session,args){
   if(!args||Object.keys(args).sort().join(',')!=='action,mode,target,text'||Object.values(args).some(v=>typeof v!=='string')||args.text.length>12000||args.target.length>100)throw new Error('Acción inválida.');
   const {action:operation,target,mode,text}=args;
   if(operation==='navigate'){
-    if(['conversation','proposals','decisions'].includes(target))showPanel(target);
-    else if(target==='help')openHelp();
-    else if(['translation','plan','book'].includes(target)){
-      const button=$(target+'-open');if(button.hidden||button.disabled)throw new Error('Sección no disponible en este modo.');
-      if(document.querySelector('dialog[open]'))throw new Error('Cerrá el diálogo actual antes de abrir otro.');button.click();
-    }else throw new Error('Sección no permitida.');
+    await navigateWorkbench(target);
     return {visible:target};
   }
   if(operation==='set_theme'){
@@ -58,14 +53,14 @@ async function realtimeAction(session,args){
     if($('prompt').value.trim()&&$('prompt').value!==text)throw new Error('Ya hay un mensaje sin enviar. No se reemplazó.');
     $('mode').value=mode;setTaskMode();$('prompt').value=text;savePromptDraft();showPanel('conversation');return {prepared:true,sent:false};
   }
-  if(dirty)throw new Error('Guardá primero los cambios del documento; Codex recibe la versión guardada.');
+  if(dirty)throw new Error('Guardá primero los cambios del documento; El motor editorial recibe la versión guardada.');
   if(busy())throw new Error('Ya hay una tarea en curso.');
-  if(!await ensureAccount())throw new Error('Conectá tu cuenta ChatGPT para lanzar tareas de Codex.');
+  if(!await engineReady())throw new Error('Configurá el motor editorial elegido para lanzar tareas.');
   if(realtime!==session||state.id!==session.project||session.signature!==realtimeSignature())throw new Error('La sesión cambió antes del envío.');
   if(session.cancelled?.has(session.currentCall))throw new Error('La petición oral fue interrumpida antes del envío.');
   const run=await api('/api/run',{project:session.project,mode,prompt:text,skill:$('skill').checked});
   if(realtime===session){showPanel('conversation');await poll();}
-  return {started:true,run:run.id,next:'El resultado quedará en la conversación de Codex. Consultá get_context para leerlo cuando termine; no está aprobado.'};
+  return {started:true,run:run.id,next:'El resultado quedará en la conversación editorial. Consultá get_context para leerlo cuando termine; no está aprobado.'};
 }
 async function runVoiceTool(session,name,args){
   if(realtime!==session||session.signature!==realtimeSignature())throw new Error('La sesión o sus fuentes cambiaron.');

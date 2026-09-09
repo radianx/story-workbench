@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#blank').click()
             page.locator('#project-name').fill('Traducción ficticia');page.locator('#wizard-next').click()
             page.locator('#wizard-purpose').select_option('translation')

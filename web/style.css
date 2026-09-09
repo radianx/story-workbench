@@ -156,3 +156,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .document-icon{color:var(--green);border-color:var(--line)}
 .context-note,.context-note p,.connection,.assistant-tabs button,.document-item small{color:var(--muted)}
 .context-note strong,.context-icon{color:var(--green)}
+
+/* Movimiento con propósito: confirmar acciones y orientar cambios de contexto. */
+.appearance-note{color:var(--muted);font-size:12px;line-height:1.6}
+button{transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}
+button:enabled:active{box-shadow:inset 0 0 0 2px var(--line)}
+button[aria-busy=true]{cursor:progress;pointer-events:none}
+button[aria-busy=true]::after{content:'';display:inline-block;width:10px;height:10px;margin-left:7px;vertical-align:middle;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:workbench-wait 800ms linear infinite}
+@keyframes workbench-wait{to{rotate:360deg}}
+@keyframes workbench-enter{from{opacity:0;translate:0 6px}to{opacity:1;translate:0 0}}
+@keyframes workbench-ready{from{box-shadow:0 0 0 3px var(--green)}to{box-shadow:0 0 0 0 transparent}}
+dialog[open]{animation:workbench-enter 140ms ease-out}
+#wizard-details:not([hidden]),#wizard-approach:not([hidden]){animation:workbench-enter 140ms ease-out}
+.task-progress.just-completed{animation:workbench-ready 320ms ease-out}
+progress::-webkit-progress-value{transition:width 180ms ease-out}
+#save-state{border-radius:4px;padding:3px 5px;transition:background-color 160ms,color 160ms}
+#save-state[data-state=dirty]{color:var(--warm)}
+#save-state[data-state=saved]{color:var(--green);background:var(--pale)}
+#save-state[data-state=dirty]::before{content:'● '}
+#save-state[data-state=saved]::before{content:'✓ '}
+#dictate{transition:color 140ms,border-color 140ms,background-color 140ms,box-shadow 140ms}
+#dictate[aria-pressed=true]{background:var(--pale);box-shadow:0 0 0 3px var(--pale)}
+.book-model{transition:transform 180ms ease-out}
+#book-stage.dragging .book-model{transition:none}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+#setup-dialog{width:min(760px,calc(100vw - 32px));max-width:760px}#setup-dialog section{min-height:210px}#setup-dialog h3:focus{outline:none}#setup-existing{margin-top:24px}.setup-footer{display:flex;justify-content:space-between;margin-top:24px}#navigation-dialog{width:min(620px,calc(100vw - 32px))}#navigation-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:18px}#setup-progress{color:var(--muted)}
+
+#engine-dialog{width:min(760px,calc(100vw - 32px));max-width:760px}.engine-consent{display:block;margin:24px 0}#engine-api-fields input[type=checkbox]{width:auto}#engine-local-label[hidden]{display:none}

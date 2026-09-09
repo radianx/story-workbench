@@ -22,6 +22,7 @@ def main():
                 page=browser.new_page(viewport={'width':1440,'height':1000},device_scale_factor=1)
                 errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.emulate_media(color_scheme='dark')
+                page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
                 page.goto(server.origin+'/#token='+server.token)
                 theme=page.locator('#theme')
                 assert theme.input_value()=='system'
@@ -239,7 +240,7 @@ def main():
                 page.locator('#book-open').click()
                 page.locator('#book-width').fill('140')
                 page.locator('#book-height').fill('210')
-                page.locator('#book-thickness').fill('32')
+                page.locator('#book-sizing').select_option('manual');page.locator('#book-thickness').fill('32')
                 page.locator('#book-name').fill('La biblioteca del mar')
                 page.locator('#book-author').fill('Autora ficticia')
                 page.get_by_role('button',name='Contraportada',exact=True).click()

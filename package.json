@@ -1,7 +1,7 @@
 {
   "name": "story-workbench",
-  "version": "0.6.0",
-  "description": "Escritura guiada y revisión editorial local con ChatGPT",
+  "version": "0.7.0",
+  "description": "Escritura guiada y revisi\u00f3n editorial local con ChatGPT",
   "private": true,
   "license": "UNLICENSED",
   "author": "A. J. Sbardella",

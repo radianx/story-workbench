@@ -1,11 +1,11 @@
-# Distribución de escritorio 0.6.0
+# Distribución de escritorio 0.7.0
 
 Paquetes preliminares locales para probar con otros autores. No se publicaron, no contienen credenciales, proyectos, conversaciones ni habilidades globales. No hay licencia definitiva del producto; `UNLICENSED` evita declarar una licencia inexistente.
 
 ## Para el usuario
 
-- **Linux:** paquete `Story-Workbench-0.6.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
-- **Windows:** `Story-Workbench-0.6.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
+- **Linux:** paquete `Story-Workbench-0.7.0-linux-amd64.deb`, x64, Ubuntu 24.04 o posterior como base de este build. Abrir con el instalador gráfico, instalar y buscar Story Workbench en el menú. Otras distribuciones/versiones no están validadas. El paquete configura el helper de sandbox/AppArmor mediante los scripts de electron-builder.
+- **Windows:** `Story-Workbench-0.7.0-win-x64.exe`, x64. Abrir, elegir instalación para el usuario y seguir el asistente. El paquete está generado desde Linux; falta comprobar instalación y uso en Windows real. El sistema puede mostrar una advertencia de editor desconocido porque todavía no tiene firma.
 - **ChatGPT:** Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro. Usar la cuenta propia en el navegador predeterminado. La app detecta cuando termina el acceso. El editor permanece disponible sin iniciar sesión.
 
 No se comparte la cuenta del creador. El escritorio usa su propio directorio Codex y requiere conectar la cuenta una vez; la versión `python3 app.py` conserva el uso de Codex instalado. La IA editorial usa conexión online y cuota Codex disponible. La voz online opcional usa clave API separada de OpenAI o Gemini, con sus límites y posibles cargos; no usa los beneficios ChatGPT/AI Plus como crédito transferible.
@@ -14,7 +14,7 @@ Datos de escritorio: `~/.config/story-workbench/projects` en Linux y `%APPDATA%/
 
 ## Funciones de esta entrega
 
-La 0.6.0 amplía el chat, mueve los ajustes a la tuerca, añade seis paletas, micrófono toggle/Espacio, guardado seguro opcional de claves y giro 3D con mouse. Conserva los [modos traducción/rol](MODES.md) y [voz online OpenAI/Gemini](REALTIME.md) de 0.5.0. Incluye la ayuda opcional buscable y mejoras de recuperación, lectura y navegación descritas en [UX_REVIEW.md](UX_REVIEW.md). Mantiene las funciones de 0.3.0: prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
+La 0.7.0 verifica modo y paletas entre arranques y restaura la apariencia antes del primer pintado; añade microinteracciones accesibles en acciones, guardado, tareas, diálogos y maqueta. Conserva el chat amplio, tuerca, seis paletas, micrófono toggle/Espacio y guardado seguro de claves de 0.6.0. Conserva los [modos traducción/rol](MODES.md) y [voz online OpenAI/Gemini](REALTIME.md) de 0.5.0. Incluye la ayuda opcional buscable y mejoras de recuperación, lectura y navegación descritas en [UX_REVIEW.md](UX_REVIEW.md). Mantiene las funciones de 0.3.0: prioriza la entrevista, añade dictado español offline, lectura del sistema, Deshacer/Rehacer, modelo/esfuerzo por proyecto, redacción con guardado explícito, fichas narrativas, plan ordenable, metas y revisión por versión, y exportación del libro a Markdown/DOCX. Ver [propuesta aplicada](PRODUCT_IMPROVEMENTS.md).
 
 Barra por etapas observadas: conexión, contexto, generación y comprobación/guardado. No se inventa un porcentaje del libro ni una duración. Un error o cancelación conserva progreso parcial. Las respuestas nuevas están resaltadas y son colapsables; cada autor puede marcarlas como vistas. Aceptar una propuesta abre su documento y selecciona el texto recién aplicado.
 
@@ -60,4 +60,6 @@ El test de cuenta unitario simula completar el OAuth y verifica que nunca se dev
 
 Referencias de implementación: [seguridad Electron](https://www.electronjs.org/docs/latest/tutorial/security), [distribución Electron](https://www.electronjs.org/docs/latest/tutorial/application-distribution), [App Server de Codex](https://learn.chatgpt.com/docs/app-server), [Python para Windows](https://www.python.org/downloads/windows/) y [empaquetado PyInstaller](https://pyinstaller.org/en/stable/operating-mode.html).
 
-Validación 0.6.0: Linux desempaquetado con voz y clave ficticia cifrada/recuperada/eliminada en GNOME Keyring sobre LXQt; Windows Python/Vosk bajo Wine. La instalación actual no se actualiza sin la contraseña administrativa. Ver [resultados](MVP_RESULTS.md).
+Validaciones y límites de cada build: ver el registro de resultados. La instalación actual no se actualiza sin la contraseña administrativa. Ver [resultados](MVP_RESULTS.md).
+
+En 0.7.0 se agrega el asistente inicial, la navegación de secciones, el lomo por páginas y seis motores editoriales experimentales. Sus claves se guardan en `editor-keys`, separadas de `voice-keys`, mediante el mismo almacén nativo. Ver [proveedores](PROVIDERS.md).
