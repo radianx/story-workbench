@@ -5,6 +5,7 @@ const realtimeSignature=()=>JSON.stringify([state.id,state.purpose,state.transla
 const voiceProvider=()=>$('realtime-provider').value;
 function realtimeStatus(message){$('realtime-status').textContent=message;}
 function renderRealtime(){
+  if($('voice-session'))$('voice-session').hidden=!realtime;
   $('realtime-start').hidden=!$('realtime-enabled').checked||!!realtime;
   $('realtime-global-stop').hidden=!realtime;
   $('realtime-stop').hidden=!realtime;$('realtime-mute').hidden=!realtime?.stream;
@@ -106,16 +107,18 @@ async function realtimeEvent(session,event){
   }
   if(answered)sendRealtime(session,{type:'response.create'});
 }
-async function startRealtime(){
+async function startRealtime(options={}){
   if(realtime||!state)return;
   if(!realtimeConfigured||!realtimeConsent||!$('realtime-enabled').checked)throw new Error('Configurá la clave y aceptá el uso de la API antes de conectar.');
+  $('settings-dialog')?.close();$('realtime-dialog').close();
   await cancelVoice();
-  const session={provider:voiceProvider(),project:state.id,signature:realtimeSignature(),actions:$('realtime-allow-actions').checked,seen:new Set(),queue:Promise.resolve()};
+  const session={listening:!options.pushToTalk||spaceListening,continuous:!options.pushToTalk,provider:voiceProvider(),project:state.id,signature:realtimeSignature(),actions:$('realtime-allow-actions').checked,seen:new Set(),queue:Promise.resolve()};
   realtime=session;realtimeStatus(session.provider==='gemini'?'Conectando Gemini Live…':'Conectando gpt-realtime…');renderRealtime();
   session.timeout=setTimeout(()=>{if(realtime===session)stopRealtime('La conexión tardó demasiado. Micrófono cerrado.');},45000);
   try{
     session.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
     if(realtime!==session){session.stream.getTracks().forEach(t=>t.stop());return;}
+    session.stream.getAudioTracks().forEach(t=>t.enabled=session.listening);
     if(session.provider==='gemini'){await startGeminiVoice(session);return;}
     session.pc=new RTCPeerConnection();session.audio=new Audio();session.audio.autoplay=true;
     session.pc.ontrack=e=>{if(realtime===session){session.audio.srcObject=e.streams[0];session.audio.play().catch(()=>{if(realtime===session)stopRealtime('No se pudo reproducir la voz. Volvé a conectar.');});}};
@@ -135,34 +138,47 @@ async function startRealtime(){
 }
 $('realtime-enabled').onchange=()=>{
   if(!$('realtime-enabled').checked)stopRealtime('Desactivado. El dictado sigue siendo local.');
-  else if(!realtimeConfigured||!realtimeConsent)$('realtime-dialog').showModal();
+  else if(!realtimeConfigured||!realtimeConsent)openVoiceSettings();
   renderRealtime();
 };
-$('realtime-settings').onclick=()=>{$('realtime-dialog').showModal();};
+function updateVoiceProviderNote(){$('realtime-provider-note').textContent=voiceProvider()==='gemini'?'Modelo: gemini-3.1-flash-live-preview. Usa una clave de Google AI Studio. AI Plus y la API son servicios separados; acceso, cuota y posibles cargos dependen del proyecto de la clave. Gemini puede operar la app sin una clave OpenAI. Las tareas editoriales siguen usando Codex con ChatGPT.':'Modelo: gpt-realtime. La API se factura por separado. Esta versión de Codex no admite Realtime con la sesión ChatGPT. No hay cambio automático a pago.';}
+function openVoiceSettings(){updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));$('realtime-dialog').showModal();}
+$('realtime-settings').onclick=openVoiceSettings;
 $('realtime-dialog').addEventListener('close',()=>{$('realtime-key').value='';});
 $('realtime-close').onclick=()=>{$('realtime-dialog').close();};
 $('realtime-consent').onchange=()=>{realtimeConsent=false;stopRealtime('Guardá el consentimiento para volver a conectar.');};
 $('realtime-allow-actions').onchange=()=>{stopRealtime('Permisos cambiados. Volvé a conectar para aplicarlos.');};
 $('realtime-save').onclick=action(async()=>{
+  try{
   if(!$('realtime-consent').checked)throw new Error('Confirmá el envío al proveedor y las condiciones de la API antes de habilitarlo.');
   stopRealtime();
-  const key=$('realtime-key').value;$('realtime-key').value='';
-  if(key){const result=await api('/api/realtime/key',{key,provider:voiceProvider()});realtimeProviders=result.providers;realtimeConfigured=realtimeProviders[voiceProvider()];}
+  const key=$('realtime-key').value.trim(),remember=$('realtime-remember').checked;$('realtime-key').value='';
+  if(key){const result=await api('/api/realtime/key',{key,provider:voiceProvider(),remember});realtimeProviders=result.providers;realtimeConfigured=realtimeProviders[voiceProvider()];}
+  if(!key&&voiceStorage.available)await api('/api/voice-storage',{provider:voiceProvider(),remember});
   if(!realtimeConfigured)throw new Error('Falta una clave API. Ingresala en este diálogo.');
-  realtimeConsent=true;$('realtime-dialog').close();realtimeStatus('Configurado. Pulsá Conversar por voz para abrir el micrófono y conectar.');renderRealtime();
+  realtimeConsent=true;$('realtime-enabled').checked=true;await refreshVoiceStorage();$('realtime-dialog').close();$('settings-dialog')?.close();realtimeStatus('Configurado. Pulsá el micrófono del chat para conectar, o mantené Espacio para hablar.');renderRealtime();
+  }catch(error){try{const status=await api('/api/realtime');realtimeProviders=status.providers;realtimeConfigured=!!realtimeProviders[voiceProvider()];await refreshVoiceStorage();renderRealtime();}catch{}throw error;}
 });
 $('realtime-forget').onclick=action(async()=>{
   stopRealtime();const result=await api('/api/realtime/key',{key:'',provider:voiceProvider()});realtimeProviders=result.providers;realtimeConfigured=realtimeProviders[voiceProvider()];
   realtimeConsent=false;$('realtime-consent').checked=false;$('realtime-key').value='';$('realtime-enabled').checked=false;
-  realtimeStatus('Clave olvidada. Realtime desactivado.');renderRealtime();
+  await refreshVoiceStorage();realtimeStatus('Clave olvidada. Realtime desactivado.');renderRealtime();
 });
 $('realtime-start').onclick=action(startRealtime);
 $('realtime-stop').onclick=$('realtime-global-stop').onclick=()=>stopRealtime();
-$('realtime-mute').onclick=()=>{
-  if(!realtime?.stream)return;
-  const enabled=!realtime.stream.getAudioTracks()[0]?.enabled;realtime.stream.getAudioTracks().forEach(t=>t.enabled=enabled);
-  if(realtime.provider==='gemini'&&!enabled)sendGemini(realtime,{realtimeInput:{audioStreamEnd:true}});
-  $('realtime-mute').setAttribute('aria-pressed',String(!enabled));$('realtime-mute').textContent=enabled?'Pausar micrófono':'Reactivar micrófono';
-};
-$('realtime-provider').onchange=()=>{stopRealtime('Proveedor cambiado. Confirmá sus condiciones antes de conectar.');$('realtime-key').value='';realtimeConsent=false;$('realtime-consent').checked=false;realtimeConfigured=!!realtimeProviders[voiceProvider()];$('realtime-provider-note').textContent=voiceProvider()==='gemini'?'Modelo: gemini-3.1-flash-live-preview. Usa una clave de Google AI Studio. AI Plus y la API son servicios separados; acceso, cuota y posibles cargos dependen del proyecto de la clave. Gemini puede operar la app sin una clave OpenAI. Las tareas editoriales siguen usando Codex con ChatGPT.':'Modelo: gpt-realtime. La API se factura por separado. Esta versión de Codex no admite Realtime con la sesión ChatGPT. No hay cambio automático a pago.';renderRealtime();};
+function setVoiceListening(enabled,continuous=false){
+  if(!realtime)return;realtime.listening=enabled;realtime.continuous=continuous;
+  realtime.stream?.getAudioTracks().forEach(t=>t.enabled=enabled);
+  if(realtime.provider==='gemini'&&!enabled&&realtime.inputNode){realtime.flushInput=true;realtime.inputNode.port.postMessage('end');}
+  $('realtime-mute').setAttribute('aria-pressed',String(!enabled));$('realtime-mute').textContent=enabled?'Pausar micrófono':'Reactivar micrófono';renderVoice();
+}
+$('realtime-mute').onclick=()=>{if(realtime)setVoiceListening(!realtime.listening,!realtime.listening);};
+let voiceStorage={available:false,stored:{}};
+async function refreshVoiceStorage(){
+  voiceStorage=await api('/api/voice-storage');$('realtime-remember').disabled=!voiceStorage.available;
+  $('realtime-remember').checked=!!voiceStorage.stored[voiceProvider()];$('realtime-storage-status').textContent=voiceStorage.reason;
+  $('realtime-key-status').textContent=realtimeConfigured?(voiceStorage.stored[voiceProvider()]?'Clave guardada cifrada. No hace falta volver a ingresarla.':'Clave disponible solo en memoria.'):'No hay clave configurada para este proveedor.';
+}
+$('realtime-provider').onchange=()=>{try{localStorage.setItem('sw-voice-provider',voiceProvider());}catch{}stopRealtime('Proveedor cambiado. Confirmá sus condiciones antes de conectar.');$('realtime-key').value='';realtimeConsent=false;$('realtime-consent').checked=false;realtimeConfigured=!!realtimeProviders[voiceProvider()];updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));renderRealtime();};
+try{const provider=localStorage.getItem('sw-voice-provider');if(['openai','gemini'].includes(provider))$('realtime-provider').value=provider;}catch{}
 api('/api/realtime').then(result=>{realtimeProviders=result.providers;realtimeConfigured=!!realtimeProviders[voiceProvider()];renderRealtime();}).catch(error=>realtimeStatus(error.message));

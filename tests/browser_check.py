@@ -23,28 +23,28 @@ def main():
                 errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.emulate_media(color_scheme='dark')
                 page.goto(server.origin+'/#token='+server.token)
-                theme=page.get_by_role('combobox',name='Tema de apariencia')
+                theme=page.locator('#theme')
                 assert theme.input_value()=='system'
                 assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
                 page.emulate_media(color_scheme='light')
                 assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(245, 246, 241)'
-                theme.select_option('dark')
+                page.locator('#settings-open').click();theme.select_option('dark')
                 assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
                 page.reload()
                 assert theme.input_value()=='dark'
-                theme.select_option('light')
+                page.locator('#settings-open').click();theme.select_option('light')
                 page.emulate_media(color_scheme='dark')
                 assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(245, 246, 241)'
                 theme.select_option('system')
                 assert page.evaluate("localStorage.getItem('sw-theme')") is None
                 assert page.locator('body').evaluate('(el) => getComputedStyle(el).backgroundColor')=='rgb(21, 28, 24)'
-                page.get_by_role('button',name='Explorar un proyecto ficticio').click()
+                page.locator('#settings-close').click();page.get_by_role('button',name='Explorar un proyecto ficticio').click()
                 page.locator('#editor').wait_for()
                 page.wait_for_function("() => document.querySelector('#editor').value.includes('llave azul')")
                 page.screenshot(path='/tmp/story-workbench-dark.png',full_page=True)
                 project=server.store.list_projects()[0]['id']
                 data=server.store.snapshot(project);doc=data['documents'][0]
-                page.locator('#ai-summary').click(); page.locator('#ai-model:not([disabled])').wait_for()
+                page.locator('#settings-open').click(); page.locator('#ai-model:not([disabled])').wait_for()
                 assert page.locator('#ai-model').input_value()=='modelo-a'
                 page.locator('#ai-effort').select_option('high')
                 page.wait_for_function("() => !document.querySelector('#ai-effort').disabled")
@@ -198,9 +198,9 @@ def main():
                     page.locator('#focus').click()
                     assert page.locator('.assistant').is_visible() and not page.locator('.manuscript').is_visible()
                     page.locator('#focus').click()
-                    page.locator('#workflow').select_option('writing')
+                    page.locator('#settings-open').click();page.locator('#workflow').select_option('writing');page.locator('#settings-close').click()
                     page.wait_for_function("() => !document.body.classList.contains('guided')")
-                    page.locator('#workflow').select_option('guided')
+                    page.locator('#settings-open').click();page.locator('#workflow').select_option('guided');page.locator('#settings-close').click()
                     page.wait_for_function("() => document.body.classList.contains('guided')")
                     assert len(server.store.load(guided)['runs'])==1
                     page.locator('#prompt').fill('Quiero asombro y esperanza.')
@@ -262,7 +262,7 @@ def main():
                 page.screenshot(path='/tmp/story-workbench-guided-test.png',full_page=True)
                 page.set_viewport_size({'width':390,'height':844})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-                theme.select_option('light')
+                page.locator('#settings-open').click();theme.select_option('light')
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 page.evaluate("localStorage.setItem('sw-theme','invalid')")
                 page.reload()

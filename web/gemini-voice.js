@@ -56,7 +56,8 @@ async function startGeminiVoice(session){
   session.inputSource=session.audioContext.createMediaStreamSource(session.stream);
   session.inputSource.connect(session.inputNode);session.inputNode.connect(session.audioContext.destination);
   session.inputNode.port.onmessage=event=>{
-    if(!session.ready||realtime!==session||!session.stream.getAudioTracks()[0]?.enabled)return;
+    if(event.data==='end'){session.flushInput=false;if(!session.listening)sendGemini(session,{realtimeInput:{audioStreamEnd:true}});return;}
+    if(!session.ready||realtime!==session||(!session.stream.getAudioTracks()[0]?.enabled&&!session.flushInput))return;
     if(session.socket.bufferedAmount>1000000){stopRealtime('La conexión no puede enviar el audio a tiempo. Micrófono cerrado.');return;}
     sendGemini(session,{realtimeInput:{audio:{mimeType:'audio/pcm;rate=16000',data:pcmBase64([event.data])}}});
   };

@@ -1,3 +1,12 @@
+# Ajustes de conversación y apariencia — 0.6.0
+
+- Tuerca con ajustes generales, objetivo/flujo, modelo/esfuerzo y voz. El chat conserva espacio y el campo de mensaje tiene borde visible, etiqueta y micrófono junto a Enviar.
+- Clic alterna captura; mantener Espacio abre el micrófono y soltarlo lo pausa. No intercepta texto ya escrito, otros formularios ni diálogos. Soltar o perder foco termina la captura iniciada con teclado. Repetición de tecla no agrega espacios. La voz online puede responder con el micrófono pausado.
+- Modo Sistema inicial y paletas independientes para claro/oscuro, persistentes. Seis nuevas variantes y salvia original. Botón sol/luna y estado de ChatGPT por color con descripción accesible.
+- Modales de configuración/voz de hasta 1100 px y ayuda de hasta 1280 px; columnas adaptables, casillas alineadas, detalles secundarios plegados.
+- Arrastre de mouse y flechas para girar/inclinar la maqueta 3D; permanecen los sliders.
+- La clave puede recordarse cifrada solo en escritorio con almacén nativo seguro; la configuración informa disponibilidad y no revela la clave recuperada.
+
 # Ayuda y usabilidad — 0.4.0
 
 Pasada sobre los recorridos de la app: inicio, biblioteca, entrevista, edición, revisión, decisiones, plan, voz, cuenta, apariencia, exportación y maqueta. Aplicada el 2026-09-09. Es una inspección con comprobaciones de navegador, no un estudio con usuarios ni una auditoría completa de accesibilidad.

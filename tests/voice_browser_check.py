@@ -43,18 +43,23 @@ with tempfile.TemporaryDirectory(prefix='sw-voice-browser-') as temp:
             page.locator('#dictate').click();page.wait_for_function("() => document.querySelector('#voice-status').textContent.includes('Grabando')")
             page.locator('#dictate-cancel').click();page.get_by_text('Dictado descartado.',exact=True).wait_for()
             assert len(transcriptions)==1
+            # Mantener Espacio dicta sin enviar; soltar transcribe y devuelve el teclado.
+            page.locator('#prompt').fill('');page.keyboard.down('Space');page.wait_for_function('()=>!!recording?.node')
+            page.wait_for_timeout(400);page.keyboard.down('Space');assert page.locator('#prompt').input_value()=='';page.keyboard.up('Space');page.wait_for_function('()=>!recording&&!transcribing')
+            assert len(transcriptions)==2 and server.store.load(project)['runs']==[], (len(transcriptions),page.locator('#voice-status').inner_text(),page.evaluate('({spaceListening,recording,transcribing})'))
+            page.locator('#prompt').focus();page.keyboard.press('Space');assert page.evaluate('recording===null')
             # Error de permiso controlado: vuelve a permitir entrada escrita.
             page.evaluate("() => {navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('denied','NotAllowedError')}}")
             page.locator('#dictate').click();page.get_by_text('Micrófono no autorizado. Podés responder escribiendo.',exact=True).wait_for()
             assert page.locator('#send').is_enabled()
             with server.store.lock:
                 data=server.store.load(project);data['runs']=[dict(id='voice-test',mode='interview',prompt='Prueba',status='completed',text='¿Qué querés que sienta el lector?',sources=[],date=0)];server.store.persist(data)
-            page.locator('#read-last:not([disabled])').wait_for()
-            page.locator('#read-last').click();page.get_by_text('Lectura terminada.',exact=True).wait_for()
+            page.locator('#settings-open').click();page.locator('#read-last:not([disabled])').wait_for()
+            page.locator('#read-last').click();page.locator('#settings-close').click();page.get_by_text('Lectura terminada.',exact=True).wait_for()
             assert reads==['¿Qué querés que sienta el lector?']
             assert page.evaluate('readingAudio===null && readingURL===null')
             # Lectura automática solo al elegirla, y solo una vez por respuesta nueva.
-            page.locator('#auto-read').check()
+            page.locator('#settings-open').click();page.locator('#auto-read').check();page.locator('#settings-close').click()
             with server.store.lock:
                 data=server.store.load(project);data['runs'].append({**data['runs'][0],'id':'voice-test2','text':'¿Quién es la protagonista?'});server.store.persist(data)
             page.wait_for_function("() => document.querySelectorAll('.run').length===2")

@@ -5,7 +5,11 @@ function applyTheme(value) {
   const theme = ['light', 'dark'].includes(value) ? value : 'system';
   document.documentElement.dataset.theme = theme;
   $('theme').value = theme;
+  updateThemeIcon();
 }
+function updateThemeIcon(){const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);$('theme-toggle').textContent=dark?'☀':'☾';$('theme-toggle').title=dark?'Usar tema claro':'Usar tema oscuro';$('theme-toggle').setAttribute('aria-label',$('theme-toggle').title);}
+$('theme-toggle').onclick=()=>{$('theme').value=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark';$('theme').onchange();};
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',updateThemeIcon);
 try { applyTheme(localStorage.getItem('sw-theme')); } catch { applyTheme('system'); }
 $('theme').onchange = () => {
   applyTheme($('theme').value);
@@ -211,7 +215,7 @@ $('mode').onchange=()=>{setTaskMode();savePromptDraft();};
 $('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
   renderAISettings(); renderProgress(); updateRealtime(); updateVoice();
-  const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||voiceBusy();
+  const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||!!recording||transcribing;
   $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
   const interview=state.runs.findLast(r=>r.mode==='interview' && (r.purpose||'novel')===(state.purpose||'novel'));
   $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
@@ -361,7 +365,8 @@ let accountState = {status:'unknown'}, accountPolling = false;
 function renderAccount() {
   const status = accountState.status;
   renderAISettings();
-  $('account-open').textContent = status === 'connected' ? 'ChatGPT conectado' : 'Cuenta ChatGPT';
+  $('account-open').innerHTML='<i aria-hidden="true"></i><span>ChatGPT</span>';$('account-open').dataset.status=status;
+  $('account-open').title=status==='connected'?'Cuenta ChatGPT conectada':['checking','waiting'].includes(status)?'Conexión ChatGPT en curso':'Cuenta ChatGPT desconectada. Abrir cuenta';$('account-open').setAttribute('aria-label',$('account-open').title);
   $('account-status').textContent = ({unknown:'Conectá tu cuenta para comenzar.', checking:'Comprobando la conexión…', connected:'Tu cuenta ChatGPT está conectada. Ya podés crear y revisar.', signed_out:'Iniciá sesión en el navegador con tu propia cuenta ChatGPT.', waiting:'Continuá en tu navegador. Volvé a esta ventana cuando termines.', error:accountState.error})[status] || '';
   $('account-login').hidden = ['connected','waiting','checking'].includes(status);
   $('account-logout').hidden = status !== 'connected'; $('account-cancel').hidden = status !== 'waiting';

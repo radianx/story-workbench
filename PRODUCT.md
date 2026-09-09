@@ -35,7 +35,7 @@ Inspiración de interacción: NotebookLM, no copia de su identidad visual. Bibli
 
 ## Corte 0.5.0 aplicado
 
-Traducción literaria con encargo/glosario, consultas de matiz, criterio humano, copia revisada separada y exportación por unidades. Modo extra de preparación de mundos para rol, sin juego en vivo. Asistente de voz optativo con OpenAI gpt-realtime o Gemini Live: navegación, mensajes, criterios pendientes y tareas Codex; aprobación editorial siempre manual. Las claves permanecen solo en memoria y no sustituyen la cuenta ChatGPT del motor editorial. Ver [modos](MODES.md) y [voz, costes y alcance](REALTIME.md).
+Traducción literaria con encargo/glosario, consultas de matiz, criterio humano, copia revisada separada y exportación por unidades. Modo extra de preparación de mundos para rol, sin juego en vivo. Asistente de voz optativo con OpenAI gpt-realtime o Gemini Live: navegación, mensajes, criterios pendientes y tareas Codex; aprobación editorial siempre manual. En ese corte las claves permanecían solo en memoria y no sustituyen la cuenta ChatGPT del motor editorial. Ver [modos](MODES.md) y [voz, costes y alcance](REALTIME.md).
 
 ## Corte 0.4.0 aplicado
 
@@ -50,3 +50,7 @@ El recorrido incorpora fichas provisionales, plan de capítulos/escenas, orden e
 Primero un autor en su equipo; después pruebas con otros autores usando sus propias cuentas. Sin servicio central que comparta credenciales. Sin generación de libros enteros con un clic, colaboración simultánea, base vectorial o múltiples motores editoriales en la primera versión. La voz admite dos proveedores explícitos y separados del motor editorial. Exportación editorial avanzada para imprenta/EPUB queda fuera de este corte; la exportación DOCX es básica y no redistribuye build-novel.
 
 Archivos locales no significan inferencia offline: el contexto enviado a Codex sale hacia su servicio. Tampoco eliminan el límite de contexto; seleccionamos material pertinente y explicitamos posibles omisiones.
+
+## Corte 0.6.0 aplicado
+
+Configuración en la barra superior; chat y campo de mensaje amplios, micrófono junto a Enviar, clic para alternar escucha y Espacio mientras se mantiene (solo mensaje vacío). Paletas claras celeste/crema/rosado y oscuras violeta/rojo/azul, además de salvia; modo Sistema inicial. Ayuda y voz con modales adaptables, estado de cuenta accesible con punto de color, giro del libro por mouse/teclado. Acepta claves Gemini auth AQ. y permite recordar claves cifradas en el almacén nativo de escritorio; nunca en proyectos ni localStorage.

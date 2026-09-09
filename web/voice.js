@@ -4,12 +4,14 @@ const remoteVoiceBusy=()=>typeof realtimeBusy==='function'&&realtimeBusy();
 const voiceBusy=()=>!!recording||transcribing||remoteVoiceBusy();
 function voiceStatus(message){$('voice-status').textContent=message;}
 function renderVoice(){
-  $('dictate').disabled=!state||transcribing||remoteVoiceBusy()||!voiceCapabilities.dictation;
-  $('dictate').textContent=recording?'■ Terminar dictado':'● Dictar respuesta';
-  $('dictate').setAttribute('aria-pressed',String(!!recording));$('dictate-cancel').hidden=!recording;
+  const online=$('realtime-enabled').checked,listening=!!recording||(remoteVoiceBusy()&&realtime.listening);
+  $('dictate').disabled=!state||transcribing||(!online&&!voiceCapabilities.dictation);
+  $('dictate').innerHTML=listening?'■':'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg>';
+  $('dictate').title=online?(listening?'Pausar escucha continua':'Activar escucha continua · mantené Espacio para hablar'):(recording?'Terminar dictado':'Dictar respuesta · mantené Espacio para hablar');$('dictate').setAttribute('aria-label',$('dictate').title);
+  $('dictate').setAttribute('aria-pressed',String(listening));$('dictate-cancel').hidden=!recording;
   $('read-last').disabled=!voiceCapabilities.reading||remoteVoiceBusy()||!state?.runs.some(r=>r.status==='completed'&&r.text);
   $('read-stop').hidden=!readingActive;
-  if(state)$('send').disabled=!!busy()||voiceBusy();
+  if(state)$('send').disabled=!!busy()||!!recording||transcribing;
 }
 function stopReading(){readingGeneration++;readingActive=false;readingAudio?.pause();readingAudio=null;if(readingURL)URL.revokeObjectURL(readingURL);readingURL=null;renderVoice();}
 async function readText(text){
@@ -71,10 +73,10 @@ async function startDictation(){
     capture.source=capture.context.createMediaStreamSource(capture.stream);capture.source.connect(capture.node);capture.node.connect(capture.context.destination);
     await capture.context.resume();const started=Date.now();
     capture.timer=setInterval(()=>voiceStatus(`Grabando · ${Math.min(45,Math.floor((Date.now()-started)/1000))} / 45 segundos. No se envía a ChatGPT.`),500);
-    capture.timeout=setTimeout(()=>finishDictation().catch(e=>voiceStatus(e.message)),45000);voiceStatus('Grabando. Pulsá Terminar dictado cuando quieras.');
+    capture.timeout=setTimeout(()=>finishDictation().catch(e=>voiceStatus(e.message)),45000);voiceStatus('Grabando. Volvé a pulsar el micrófono para terminar.');
   } catch(error){if(generation===voiceGeneration){await cancelVoice();voiceStatus(error.name==='NotAllowedError'?'Micrófono no autorizado. Podés responder escribiendo.':error.message);}else await releaseRecording(capture);}
 }
-$('dictate').onclick=action(startDictation);
+$('dictate').onclick=action(async()=>{if($('realtime-enabled').checked){if(!realtimeConfigured||!realtimeConsent){openVoiceSettings();return;}if(realtime)setVoiceListening(!realtime.listening,!realtime.listening);else await startRealtime();}else await startDictation();});
 $('dictate-cancel').onclick=action(async()=>{await cancelVoice();voiceStatus('Dictado descartado.');});
 $('read-last').onclick=action(()=>readText(state.runs.findLast(r=>r.status==='completed'&&r.text).text));
 $('read-stop').onclick=()=>{stopReading();voiceStatus('Lectura detenida.');};
@@ -89,3 +91,24 @@ function updateVoice(){
 function resetVoiceProject(){lastVoiceRun=state?.runs.at(-1)?.id||null;$('auto-read').checked=false;voiceStatus('Dictado español local; revisás el texto antes de enviarlo.');}
 window.addEventListener('beforeunload',()=>{cancelVoice();});
 api('/api/voice').then(value=>{voiceCapabilities=value;renderVoice();voiceStatus(value.dictation?'Dictado español local; revisás el texto antes de enviarlo.':'El dictado requiere el paquete de escritorio con voz.');if(!value.reading)voiceStatus($('voice-status').textContent+' No hay voz del sistema disponible.');}).catch(error=>voiceStatus(error.message));
+
+let spaceListening=false;
+function releaseSpace(){
+  if(!spaceListening)return;spaceListening=false;
+  if(remoteVoiceBusy()&&!realtime.continuous)setVoiceListening(false);
+  if(recording?.pushToTalk){if(recording.node)finishDictation().catch(e=>voiceStatus(e.message));else cancelVoice();}
+}
+window.addEventListener('keydown',event=>{
+  if(event.code==='Space'&&event.repeat&&spaceListening){event.preventDefault();return;}
+  if(event.code!=='Space'||event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey||!state||$('prompt').value.length||document.querySelector('dialog[open]'))return;
+  const focused=document.activeElement;
+  if(focused!==$('prompt')&&focused!==$('dictate')&&(focused?.matches('input,textarea,select,button,a,summary')||focused?.isContentEditable))return;
+  if(recording||transcribing||(remoteVoiceBusy()&&realtime.listening)){if(focused===$('dictate'))event.preventDefault();return;}
+  event.preventDefault();spaceListening=true;
+  if($('realtime-enabled').checked){
+    if(!realtimeConfigured||!realtimeConsent){spaceListening=false;openVoiceSettings();return;}
+    if(realtime)setVoiceListening(true,false);else startRealtime({pushToTalk:true}).catch(e=>voiceStatus(e.message));
+  }else{startDictation().catch(e=>voiceStatus(e.message));if(recording)recording.pushToTalk=true;}
+});
+window.addEventListener('keyup',event=>{if(event.code==='Space')releaseSpace();});
+window.addEventListener('blur',releaseSpace);

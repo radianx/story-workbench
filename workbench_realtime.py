@@ -67,7 +67,9 @@ class Realtime:
     def configure(self,key,provider='openai'):
         check(provider in ('openai','gemini'),'Proveedor de voz inválido.')
         text_value(key,2048)
-        check(not key or (key.startswith('sk-' if provider=='openai' else 'AIza') and key.isascii() and not any(c.isspace() for c in key)), 'Ingresá una clave API válida o usá Olvidar clave.')
+        check(not key or (len(key)>=12 and key.isascii() and all(33<=ord(c)<=126 for c in key)), 'La clave debe ser texto sin espacios ni saltos de línea.')
+        if key and provider=='openai':check(key.startswith('sk-'),'Esta clave no corresponde a OpenAI. Si viene de AI Studio, elegí Google · Gemini Live.')
+        if key and provider=='gemini':check(not key.startswith('sk-'),'Esta clave corresponde a OpenAI. Elegí OpenAI o ingresá una clave de AI Studio.')
         if provider=='openai':self.key=key
         else:self.gemini_key=key
         return self.status()

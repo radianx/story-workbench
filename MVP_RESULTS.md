@@ -1,3 +1,16 @@
+# Chat, configuración y micrófono 0.6.0 — 2026-09-09
+
+- Recorridos locales de navegador: base, UX, voz local, modos, OpenAI simulado, Gemini simulado y configuración. Se verifican las seis paletas y persistencia/sistema, modales amplios y compactos, chat principal, giro 3D con mouse/teclado, toggle, Espacio, repetición de tecla y liberación al perder foco. Datos ficticios y micrófono virtual.
+- `tests/voice_vault_check.cjs`: cifrado inyectado, reinicio, permisos, borrado, corrupción, rutas y rechazo de `basic_text`. No se confunde este doble con el almacén nativo.
+- Con clave Gemini autorizada recibida solo por stdin privado: autenticación, token efímero, setup, envío de PCM sintético y respuesta de audio/transcripción reales confirmados. También se observó una acción de tema y consulta de contexto. El chequeo estricto de la orden oral «oscuro» no pasó: en un intento eligió Sistema, en otro consultó contexto. Por eso no se declara validada la fidelidad de órdenes por voz ni éxito de `live_gemini_check.py`. Conexiones cerradas; clave no guardada en archivos. OpenAI real sigue sin probarse.
+- Código de escritorio con guardado optativo vía safeStorage; sin fallback de texto plano, restauración sin autoconexión y borrado por proveedor. En este LXQt el autodetector devolvía basic_text: la detección de Secret Service activo permitió cifrar una clave ficticia con gnome_libsecret.
+
+- Pasaron 27 pruebas de servidor y 4 del protocolo stdio. Sintaxis JS/Python y diff sin errores.
+- `tests/desktop_check.py --voice` pasó con el paquete Linux 0.6.0 final: UI aislada, voz local, cámara denegada, preferencias, cifrado nativo de clave ficticia, recuperación al reiniciar y eliminación del archivo al olvidar. Una repetición superó el timeout de 55 s durante compresión simultánea; la ejecución final con margen de 120 s pasó ambas aperturas y las aserciones de borrado.
+- Windows: Python/Vosk/guardado/historial/bloqueo pasaron bajo Wine. No se presenta como prueba de instalador, GUI, micrófono ni DPAPI en Windows nativo.
+- Verificados 75 hashes del runtime Linux y 92 del Windows; web y módulos asar idénticos a las fuentes, sin cuentas/manuscritos/skills globales. Generados instaladores locales 0.6.0 y SHA256SUMS, sin firma ni publicación.
+- La instalación local consultada sigue en 0.5.0. La actualización con sudo no interactivo requiere contraseña; el .deb 0.6.0 queda listo para instalar y reiniciar la app.
+
 # Traducción, rol y asistentes de voz 0.5.0 — 2026-09-09
 
 - Pasaron 27 pruebas de servidor y 4 del cliente stdio. Nuevas comprobaciones cubren criterio humano, copias traducidas, conflictos, revisión por versión, exportación, modos antiguos, claves en memoria, consentimiento, exclusión de fuentes retiradas, contratos HTTP y errores de ambos proveedores.

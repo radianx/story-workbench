@@ -54,6 +54,8 @@ class RealtimeHTTP(unittest.TestCase):
     request=test_workbench.HTTPTests.request
     def test_authenticated_memory_key_and_consent(self):
         self.assertEqual(self.request('/api/realtime')[0],200)
+        self.assertFalse(json.loads(self.request('/api/voice-storage')[1])['available'])
+        self.assertEqual(self.request('/api/voice-storage',headers={'Authorization':'bad'})[0],401)
         self.assertEqual(self.request('/api/realtime/key',{'key':KEY},headers={'Authorization':'bad'})[0],401)
         code,body=self.request('/api/realtime/key',{'key':KEY});self.assertEqual(code,200);self.assertNotIn(KEY.encode(),body)
         project=self.server.store.create('Prueba local')['id']
@@ -67,7 +69,11 @@ class GeminiTests(unittest.TestCase):
     def test_single_use_scoped_token_without_openai_key(self):
         with tempfile.TemporaryDirectory() as directory:
             store=Store(directory);project=store.create('Gemini ficticio',True)['id'];engine=Realtime()
-            engine.configure('AIza-ficticia-solo-test','gemini')
+            for key in ['AQ.ficticia-solo-test','AIza-ficticia-solo-test']:
+                engine.configure(key,'gemini')
+                self.assertTrue(engine.status()['providers']['gemini'])
+            for key in ['AQ.con espacio ficticio','AQ.con\nficticio','sk-ficticia-solo-test']:
+                with self.assertRaises(Problem):engine.configure(key,'gemini')
             self.assertFalse(engine.status()['configured']);self.assertTrue(engine.status()['providers']['gemini'])
             with patch('workbench_realtime.urllib.request.build_opener') as opener:
                 with self.assertRaises(Problem):engine.connect_gemini(store.snapshot(project),False,True)

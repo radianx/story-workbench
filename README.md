@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio 0.5.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio 0.6.0**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -42,7 +42,7 @@ Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que con
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura local de respuestas, detención y lectura automática opcional de respuestas nuevas. |
-| Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves solo en memoria, sin fallback. Ver [condiciones y validación](REALTIME.md). |
+| Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
 | Traducción | Entrevista de intención/idiomas, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |
 | Modelos | Catálogo de la cuenta ChatGPT y esfuerzos compatibles; selección por proyecto, comprobación al enviar y modelo/esfuerzo efectivo en cada respuesta. |
@@ -88,6 +88,8 @@ python3 tests/ux_browser_check.py
 python3 tests/modes_browser_check.py
 python3 tests/realtime_browser_check.py
 python3 tests/gemini_browser_check.py
+python3 tests/settings_browser_check.py
+node tests/voice_vault_check.cjs
 # Motores locales reales; requiere recursos de voz y voz del sistema.
 python3 tests/live_voice_check.py
 # Prueba real con cuota ChatGPT y corpus ficticio temporal.
@@ -103,4 +105,6 @@ Ver [resultados del MVP](MVP_RESULTS.md), [prueba inicial del motor](SMOKE_RESUL
 
 Ver [pasada de UX y ayuda aplicada en 0.4.0](UX_REVIEW.md).
 
-Ver [modos de traducción y rol](MODES.md) y [voz online, proveedores y condiciones](REALTIME.md), incorporados en 0.5.0.
+Ver [modos de traducción y rol](MODES.md) y [voz online, proveedores y condiciones](REALTIME.md), incorporados en 0.6.0.
+
+La 0.6.0 centra el chat, reúne ajustes en la tuerca, añade seis paletas, micrófono toggle/Espacio y giro 3D con mouse. Ver [UX](UX_REVIEW.md).

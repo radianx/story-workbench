@@ -20,14 +20,19 @@ with tempfile.TemporaryDirectory(prefix='sw-desktop-') as temp:
     # Test-only: Ubuntu restricts user namespaces in an uninstalled unpacked app.
     # The shipped app never disables sandboxing; the .deb configures chrome-sandbox.
     result=subprocess.run(command,
-                          env=env,text=True,capture_output=True,timeout=55)
+                          env=env,text=True,capture_output=True,timeout=120)
     print(result.stdout)
     if result.returncode:
         print(result.stderr[-4000:])
     assert result.returncode==0, result.returncode
     assert 'OK Electron' in result.stdout
+    native='OK almacén nativo: clave ficticia cifrada' in result.stdout
     result=subprocess.run(command,
-                          env=env,text=True,capture_output=True,timeout=55)
+                          env=env,text=True,capture_output=True,timeout=120)
+    if native:
+        assert 'OK almacén nativo: recuperado al reiniciar y eliminado' in result.stdout,result.stdout
+        assert not (Path(temp)/'voice-keys/gemini.bin').exists()
+        print('OK clave ficticia recuperada del almacén nativo tras reinicio y eliminada.')
     assert result.returncode==0, result.stderr[-1000:]
     assert '"persistent":true' in result.stdout, result.stdout
     print('OK preferencias conservadas al reiniciar con otro puerto local.')

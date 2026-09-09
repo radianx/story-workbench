@@ -29,17 +29,27 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
               window.geminiReceive=data=>geminiSocket.onmessage({data:JSON.stringify(data)});
             ''')
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
-            page.locator('#realtime-options summary').click();page.locator('#realtime-enabled').check()
+            page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
             page.locator('#realtime-provider').select_option('gemini')
             assert 'AI Plus' in page.locator('#realtime-provider-note').inner_text()
             page.locator('#realtime-key').fill('AIza-ficticia-solo-test');page.locator('#realtime-consent').check();page.locator('#realtime-save').click()
-            page.locator('#realtime-start').click();page.wait_for_function('()=>geminiSent.some(e=>e.realtimeInput?.audio?.data.length>0)')
+            page.locator('#dictate').click();page.wait_for_function('()=>geminiSent.some(e=>e.realtimeInput?.audio?.data.length>0)')
             assert connections==[project] and not server.realtime.key
             assert page.evaluate('geminiSocket.url.includes("access_token=") && !geminiSocket.url.includes("AIza")')
             assert 'AIza' not in page.evaluate('JSON.stringify([sessionStorage,localStorage])')
             page.evaluate('()=>geminiReceive({toolCall:{functionCalls:[{id:"theme",name:"workbench_action",args:{action:"set_theme",target:"dark",mode:"",text:""}}]}})')
             page.wait_for_function('()=>geminiSent.some(e=>e.toolResponse?.functionResponses[0].id==="theme")')
             assert page.locator('#theme').input_value()=='dark'
+            # Clic alterna la escucha; Espacio solo mientras se mantiene, sin reconectar.
+            page.locator('#dictate').click();assert page.evaluate('!realtime.listening && !realtime.stream.getAudioTracks()[0].enabled')
+            page.keyboard.down('Space');page.wait_for_function('()=>realtime.listening && !realtime.continuous')
+            page.keyboard.up('Space');assert page.evaluate('!realtime.listening && realtime.ready')
+            page.locator('#dictate').click();assert page.evaluate('realtime.listening && realtime.continuous')
+            page.locator('#dictate').click();page.locator('#prompt').fill('Una idea')
+            page.keyboard.press('Space');assert page.locator('#prompt').input_value()=='Una idea ' and page.evaluate('!realtime.listening')
+            page.locator('#prompt').fill('');page.keyboard.down('Space');assert page.evaluate('realtime.listening')
+            page.evaluate("window.dispatchEvent(new Event('blur'))");assert page.evaluate('!realtime.listening');page.keyboard.up('Space')
+            page.locator('#dictate').click();assert len(connections)==1
             # PCM little-endian 24 kHz reproducible y barge-in sin esperar herramientas.
             page.evaluate('()=>geminiReceive({serverContent:{modelTurn:{parts:[{inlineData:{mimeType:"audio/pcm;rate=24000",data:btoa("\\0".repeat(48000))}}]},outputTranscription:{text:"Una pregunta ficticia."}}})')
             page.wait_for_function('()=>realtime.output.size>0')
@@ -49,11 +59,11 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
             page.evaluate('()=>{geminiReceive({toolCallCancellation:{ids:["cancelled"]}});geminiReceive({toolCall:{functionCalls:[{id:"cancelled",name:"workbench_action",args:{action:"set_theme",target:"light",mode:"",text:""}}]}})}')
             page.wait_for_timeout(100);assert page.locator('#theme').input_value()=='dark'
             page.locator('#realtime-mute').click()
-            assert page.evaluate('geminiSent.some(e=>e.realtimeInput?.audioStreamEnd)')
+            page.wait_for_function('()=>geminiSent.some(e=>e.realtimeInput?.audioStreamEnd)')
             page.evaluate('()=>{window.finishedStream=realtime.stream;window.finishedAudio=realtime.audioContext}')
             page.locator('#realtime-global-stop').click()
             page.wait_for_function('()=>finishedAudio.state==="closed" && finishedStream.getTracks().every(t=>t.readyState==="ended")')
-            page.locator('#realtime-settings').click();page.locator('#realtime-provider').select_option('openai')
+            page.locator('#settings-open').click();page.locator('#realtime-settings').click();page.locator('#realtime-provider').select_option('openai')
             assert not page.locator('#realtime-consent').is_checked() and page.locator('#realtime-key').input_value()==''
             assert not page.evaluate('realtimeConfigured') and not errors,errors
             browser.close()

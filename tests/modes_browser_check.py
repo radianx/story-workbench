@@ -64,7 +64,7 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.set_viewport_size({'width':390,'height':844});assert page.locator('#translation-dialog').evaluate('el=>el.scrollWidth<=el.clientWidth')
             page.screenshot(path='/tmp/story-workbench-translation.png',full_page=True)
             page.locator('#translation-close').click();page.set_viewport_size({'width':1440,'height':1000})
-            page.locator('#purpose').select_option('rpg');page.wait_for_function('()=>state?.purpose==="rpg"')
+            page.locator('#settings-open').click();page.locator('#purpose').select_option('rpg');page.locator('#settings-close').click();page.wait_for_function('()=>state?.purpose==="rpg"')
             assert page.locator('#book-open').is_hidden() and page.locator('#plan-open').is_hidden()
             page.locator('[data-rpg-starter]').click();assert page.locator('#mode').input_value()=='draft'
             assert 'jugadores' in page.locator('#prompt').input_value()

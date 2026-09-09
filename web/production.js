@@ -67,3 +67,11 @@ $('book-form').onsubmit = action(async event => {
     book = production; bookDirty = false; $('book-save-state').textContent = 'Maqueta guardada en este proyecto.';
   } finally { $('book-save').disabled = false; }
 });
+
+let bookDrag=null;
+const bookStage=$('book-stage');bookStage.tabIndex=0;bookStage.setAttribute('aria-label','Vista 3D: arrastrá para girar o usá las flechas. Los controles de giro también están debajo.');
+bookStage.onpointerdown=event=>{if(event.button!==0||!book)return;bookDrag={id:event.pointerId,x:event.clientX,y:event.clientY,rotation:Number($('book-rotation').value),tilt:Number($('book-tilt').value)};bookStage.setPointerCapture(event.pointerId);bookStage.classList.add('dragging');};
+function rotateBook(rotation,tilt){$('book-rotation').value=Math.round(((rotation+360)%720+720)%720-360);$('book-tilt').value=Math.max(-35,Math.min(35,Math.round(tilt)));renderBook();}
+bookStage.onpointermove=event=>{if(bookDrag?.id===event.pointerId&&book)rotateBook(bookDrag.rotation+(event.clientX-bookDrag.x)*.65,bookDrag.tilt-(event.clientY-bookDrag.y)*.3);};
+bookStage.onpointerup=bookStage.onpointercancel=bookStage.onlostpointercapture=()=>{bookDrag=null;bookStage.classList.remove('dragging');};
+bookStage.onkeydown=event=>{if(!book||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();rotateBook(Number($('book-rotation').value)+(event.key==='ArrowRight'?10:event.key==='ArrowLeft'?-10:0),Number($('book-tilt').value)+(event.key==='ArrowDown'?5:event.key==='ArrowUp'?-5:0));};

@@ -70,10 +70,10 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('#plan-close').click()
             page.locator('#mode').select_option('diagnosis')
             assert 'sin reescribir' in page.locator('#mode-hint').inner_text()
-            page.locator('.task-guidance [data-help]').click()
+            page.locator('#settings-open').click();page.locator('.task-guidance [data-help]').click()
             assert page.locator('#help-review').evaluate('(el)=>el.open')
             page.keyboard.press('Escape')
-            assert page.locator('#export').get_attribute('title')
+            page.locator('#settings-close').click();assert page.locator('#export').get_attribute('title')
             assert page.locator('#tip-export').inner_text()
             page.locator('#search').fill('palabra-inexistente')
             assert 'No hay coincidencias' in page.locator('#documents').inner_text()
@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             with server.store.lock:
                 data=server.store.load(project); data['runs']=[run]; server.store.persist(data)
             page.locator('.run').wait_for()
-            page.locator('#workflow').select_option('guided')
+            page.locator('#settings-open').click();page.locator('#workflow').select_option('guided');page.locator('#settings-close').click()
             page.wait_for_function("() => document.body.classList.contains('guided')")
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
             page.locator('#latest-answer').wait_for()
@@ -111,7 +111,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             # Respuesta HTTP demorada: no borrar lo escrito después de pulsar Enviar.
             server.account.set(status='connected', models=MODELS)
             page.locator('#account-open').click(); page.locator('#account-close').click()
-            page.locator('#ai-summary').click(); page.locator('#ai-model:not([disabled])').wait_for()
+            page.locator('#settings-open').click();page.locator('#ai-model:not([disabled])').wait_for();page.locator('#settings-close').click()
             sent = []
             def intercept(route):
                 sent.append(route.request.post_data_json)
@@ -143,7 +143,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('#library-toggle').click()
             page.screenshot(path='/tmp/story-workbench-ux-compact.png', full_page=True)
             page.emulate_media(color_scheme='dark')
-            page.locator('[data-help=voice]').click()
+            page.locator('#settings-open').click();page.locator('[data-help=voice]').click()
             assert page.locator('#help-voice').evaluate('(el)=>el.open')
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
             assert page.locator('#help-dialog').evaluate('(el)=>el.scrollWidth<=el.clientWidth')

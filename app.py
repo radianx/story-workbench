@@ -91,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js'):
+            if path in ('/', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js', '/settings.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -99,7 +99,9 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path == '/api/realtime':
+                if path == '/api/voice-storage':
+                    self.send(200,dict(available=False,stored={},reason='El guardado seguro está disponible en la app de escritorio con un almacén de claves del sistema.'))
+                elif path == '/api/realtime':
                     self.send(200,self.server.realtime.status())
                 elif path == '/api/voice':
                     self.send(200, self.server.speech.status())
@@ -152,6 +154,8 @@ class Handler(BaseHTTPRequestHandler):
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path
             store = self.server.store
+            if path == '/api/voice-storage':
+                raise Problem('El guardado seguro requiere la app de escritorio y el almacén del sistema.')
             if path == '/api/realtime/key':
                 self.send(200,self.server.realtime.configure(body.get('key'),body.get('provider','openai')))
                 return

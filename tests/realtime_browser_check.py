@@ -34,15 +34,15 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             ''')
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             assert not page.locator('#realtime-enabled').is_checked() and not connections
-            page.locator('#realtime-options summary').click();page.locator('#realtime-enabled').check()
+            page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
             page.locator('#realtime-key').fill('sk-ficticia-solo-test')
             page.locator('#realtime-save').click();page.get_by_text('Confirmá el envío al proveedor y las condiciones de la API antes de habilitarlo.',exact=True).wait_for()
             assert not connections and not server.realtime.status()['configured']
             page.locator('#notice-close').click();page.locator('#realtime-consent').check();page.locator('#realtime-save').click()
             assert page.locator('#realtime-key').input_value()==''
             assert 'sk-ficticia' not in page.evaluate('JSON.stringify([localStorage,sessionStorage])')
-            page.locator('#realtime-start').click();page.wait_for_function("()=>document.querySelector('#realtime-status').textContent.includes('API activa')")
-            assert connections==[project] and page.locator('#send').is_disabled()
+            page.locator('#dictate').click();page.wait_for_function("()=>document.querySelector('#realtime-status').textContent.includes('API activa')")
+            assert connections==[project] and page.locator('#send').is_enabled()
             def call(id,action,target='',mode='',text=''):
                 page.evaluate('(x)=>toolCall(x.id,"workbench_action",x.args)',dict(id=id,args=dict(action=action,target=target,mode=mode,text=text)))
                 page.wait_for_function('(id)=>sentRTC.some(e=>e.item?.call_id===id)',arg=id)
@@ -69,16 +69,16 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             page.locator('#realtime-stop').click();assert page.evaluate('testTracks.every(t=>t.readyState==="ended")')
             assert page.locator('#send').is_enabled()
             # Modo conversación sin acciones, incluso ante una llamada inventada.
-            page.locator('#realtime-settings').click();page.locator('#realtime-allow-actions').uncheck();page.locator('#realtime-close').click()
-            page.locator('#realtime-start').click();page.wait_for_function('()=>!!realtime?.channel && !document.querySelector("#realtime-status").textContent.includes("Conectando")')
+            page.locator('#settings-open').click();page.locator('#realtime-settings').click();page.locator('#realtime-allow-actions').uncheck();page.locator('#realtime-close').click();page.locator('#settings-close').click()
+            page.locator('#dictate').click();page.wait_for_function('()=>!!realtime?.channel && !document.querySelector("#realtime-status").textContent.includes("Conectando")')
             assert 'error' in call('not-enabled','set_theme','light')
             # Retirar una fuente detiene la sesión y libera el micrófono.
             page.locator('.document-item input[type=checkbox]').first.uncheck()
             page.wait_for_function('()=>realtime===null')
             assert page.evaluate('testTracks.every(t=>t.readyState==="ended")')
-            page.locator('#realtime-settings').click();page.locator('#realtime-forget').click()
+            page.locator('#settings-open').click();page.locator('#realtime-settings').click();page.locator('#realtime-forget').click()
             page.wait_for_function('()=>!realtimeConfigured');assert not server.realtime.status()['configured']
-            page.locator('#realtime-close').click()
+            page.locator('#realtime-close').click();page.locator('#settings-close').click()
             # Cancelar mientras el permiso del micrófono todavía se resuelve.
             page.evaluate('()=>{realtimeConfigured=true;realtimeConsent=true;document.querySelector("#realtime-enabled").checked=true;window.originalGetMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>window.resolveMic=resolve);startRealtime()}')
             page.locator('#realtime-stop').click()
