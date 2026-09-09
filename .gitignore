@@ -8,3 +8,7 @@ dist/
 private/
 *.log
 .DS_Store
+src-tauri/target/
+src-tauri/binaries/
+src-tauri/runtime/
+src-tauri/gen/

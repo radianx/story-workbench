@@ -114,3 +114,5 @@ Ver [modos de traducción y rol](MODES.md) y [voz online, proveedores y condicio
 La 0.7.0 restaura la apariencia antes del primer pintado, comprueba su persistencia entre arranques y añade microinteracciones para acciones pendientes, guardado, tareas, diálogos y controles 3D. Ver [UX](UX_REVIEW.md).
 
 La 0.7.0 añade asistente inicial omisible y reabrible, navegación con Ctrl/Cmd+K y por voz a más secciones, cálculo físico de lomo y [seis motores experimentales](PROVIDERS.md). La voz requiere conexión previa; credenciales, consentimiento y aprobaciones editoriales conservan controles manuales.
+
+La migración a Tauri comenzó como vista previa separada: compilación y dos arranques Linux comprobados, con backend sidecar, editor, tema persistido, navegación y libro 3D. Electron 0.7.0 sigue siendo la entrega distribuible. Ver [estado, fuentes oficiales y pendientes de Tauri](TAURI_MIGRATION.md).

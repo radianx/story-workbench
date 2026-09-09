@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "La interfaz no puede ejecutar procesos ni acceder directamente al disco.",
+  "windows": ["main"],
+  "permissions": []
+}
