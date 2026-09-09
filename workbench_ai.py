@@ -1,6 +1,7 @@
 """Un trabajo Codex a la vez, con fuentes explícitas y propuestas sin escritura."""
 import asyncio
 import json
+import os
 import shutil
 from pathlib import Path
 import threading
@@ -10,7 +11,7 @@ from scripts.codex_smoke import Server, SmokeError
 from workbench_store import Problem, check, digest, uid
 
 MODES = {
-    'interview': 'Conducí la entrevista inicial de build-novel en español, una pregunta relevante por turno. Partí de la idea y respuestas ya aportadas; no reinicies ni repitas preguntas resueltas. No redactes el manuscrito ni decidas canon por el autor.',
+    'interview': 'Conducí la entrevista editorial inicial en español, una pregunta relevante por turno. Partí de la idea y respuestas ya aportadas; no reinicies ni repitas preguntas resueltas. No redactes el manuscrito ni decidas canon por el autor.',
     'chat': 'Conversá con el autor. No propongas reemplazos salvo que se pidan. Respondé en español.',
     'diagnosis': 'Diagnosticá continuidad, voz y legibilidad. Priorizá hallazgos y citá nombres de fuentes y pasajes. No reescribas.',
     'impact': 'Analizá qué pasajes de las fuentes seleccionadas podrían verse afectados por el cambio hipotético. Separá impactos seguros, posibles y dudas. Una hipótesis no cambia el canon. No reescribas.',
@@ -26,7 +27,7 @@ PROPOSAL_SCHEMA = {'type': 'object', 'properties': {
 
 
 def editor_overrides():
-    executable = shutil.which('codex')
+    executable = os.environ.get('STORY_CODEX_BINARY') or shutil.which('codex')
     check(executable, 'No se encontró Codex instalado.')
     binary = json.dumps(str(Path(executable).resolve()))
     overrides = ['default_permissions="storyworkbench"',
@@ -57,7 +58,7 @@ class Assistant:
                 check(use_skill is True, 'La entrevista guiada requiere build-novel.')
             check(sum(len(d['content']) for d in docs) <= 60_000,
                   'El contexto supera 60.000 caracteres. Seleccioná menos fuentes; no se recortará en silencio.')
-            run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', text='', error='',
+            run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash']} for d in docs],
                        source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill))
             data['runs'].append(run)
@@ -109,6 +110,7 @@ class Assistant:
         # Perfil estricto: el agente solo ve su carpeta vacía y archivos mínimos del sistema.
         overrides = editor_overrides()
         async with Server(cwd, overrides, experimental=True) as server:
+            self.update(project, run['id'], stage='context')
             if self.cancel.is_set():
                 self.update(project, run['id'], status='interrupted')
                 return
@@ -117,10 +119,15 @@ class Assistant:
                 listing = await server.rpc('skills/list', {'cwds': [str(cwd)], 'forceReload': True})
                 matches = [s for group in listing['data'] for s in group['skills']
                            if s['name'] == 'build-novel' and s.get('enabled')]
-                check(len(matches) == 1, 'build-novel no está disponible. Instalalo para continuar la entrevista o usá otra tarea sin la skill.')
-                skill = matches[0]['path']
-            interview_guide = ''
-            if run['mode'] == 'interview':
+                check(len(matches) <= 1, 'Hay varias instalaciones de build-novel. Revisá la instalación.')
+                skill = matches[0]['path'] if matches else None
+            self.update(project, run['id'], guide='build-novel' if skill else 'integrated')
+            interview_guide = ('Acompañá al autor desde su punto de partida. Primero aclarar la experiencia que '
+                'busca para el lector; después explorar protagonista, deseo, conflicto, mundo, voz y alcance '
+                'en el orden que resulte útil. Aprovechá lo ya respondido. Separá opciones de decisiones. '
+                'Cuando alcance para un plan, ofrecé un esquema provisional y pedí aprobación antes de redactar. '
+                'Si el autor pide avanzar o revisar, respetá el alcance solicitado.') if run['mode'] == 'interview' else ''
+            if run['mode'] == 'interview' and skill:
                 guide = Path(skill).parent / 'references' / 'interview.md'
                 check(guide.is_file() and guide.stat().st_size <= 30_000,
                       'No se encontró una guía de entrevista válida en build-novel. Revisá su instalación.')
@@ -146,7 +153,7 @@ class Assistant:
                                  'No afirmes haber escrito archivos ni marcado decisiones como aprobadas. '
                                  'Consultá solo vacíos relevantes, recomendá brevemente cuando ayude y terminá con '
                                  'una sola pregunta. No despliegues un cuestionario ni adelantes una novela. '
-                                 'Guía instalada de la entrevista:\n' + interview_guide)
+                                 'Guía editorial de la entrevista:\n' + interview_guide)
             policy = {'cwd': str(cwd), 'permissions': 'storyworkbench', 'approvalPolicy': 'never',
                       'approvalsReviewer': 'user', 'modelProvider': 'openai',
                       'allowProviderModelFallback': False, 'developerInstructions': instructions}
@@ -175,7 +182,7 @@ class Assistant:
                 params['outputSchema'] = PROPOSAL_SCHEMA
             response = await server.rpc('turn/start', params)
             turn_id = response['turn']['id']
-            self.update(project, run['id'], status='running', resumed=resumed)
+            self.update(project, run['id'], status='running', stage='generation', resumed=resumed)
             output, last_save, last_interrupt = '', 0, 0
             async with asyncio.timeout(240):
                 while True:
@@ -206,11 +213,13 @@ class Assistant:
                             reason = 'Límite de uso alcanzado.' if info in ('usageLimitExceeded', 'rateLimitExceeded') else 'Falló el turno de Codex; revisá sesión, cuota o conexión.'
                             raise Problem(reason + ' Sin fallback API.')
                         if status == 'completed' and run['mode'] == 'proposal':
+                            self.update(project, run['id'], stage='validation')
                             result = json.loads(output)
                             with self.store.lock:
                                 data = self.store.load(project)
                                 self.store.proposals_from_result(data, run, result['proposals'])
                                 self.store.persist(data)
                             output = result['summary']
-                        self.update(project, run['id'], text=output, status=status)
+                        self.update(project, run['id'], text=output, status=status,
+                                    stage='ready' if status == 'completed' else 'stopped')
                         return

@@ -54,7 +54,7 @@ async function openProject(id) {
   state = await api(`/api/projects/${id}`); current = null; dirty=false;
   if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}
   sessionStorage.setItem('sw-project',id);
-  $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false;
+  $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false; $('book-open').disabled = false;
   $('project').value=id; $('project-title').textContent=state.title;
   lastRuns=lastProposals=lastDecisions='';
   applyWorkflow(); renderDocuments(); renderAssistant();
@@ -185,6 +185,7 @@ function setTaskMode() {
 }
 async function beginInterview(retry=false) {
   const project=state.id;
+  if (!await ensureAccount()) return;
   await api('/api/interview/start',{project,retry});
   if(state.id!==project)return;
   const incoming=await api(`/api/projects/${project}`);
@@ -199,6 +200,7 @@ $('workflow').onchange=action(async e=>{
 $('mode').onchange=setTaskMode;
 $('interview-start').onclick=action(()=>beginInterview(true));
 function renderAssistant() {
+  renderProgress();
   const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active;
   $('connection').textContent=active?labels[active.status]:'Codex · ChatGPT';
   const interview=state.runs.findLast(r=>r.mode==='interview');
@@ -209,15 +211,15 @@ function renderAssistant() {
   if(runsKey!==lastRuns){
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}</div><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources"><summary>${r.sources.length} fuentes enviadas ${r.skill?'· build-novel':''}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}</div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
-    if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>build-novel te acompaña, una pregunta por vez.</p></div>';
+    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
     if(nearBottom || state.runs.length===1)$('runs').scrollTop=$('runs').scrollHeight;
   }
   const proposalsKey=JSON.stringify(state.proposals);
   $('proposal-count').textContent=state.proposals.filter(p=>p.status==='pending').length;
   if(proposalsKey!==lastProposals){
     lastProposals=proposalsKey;
-    $('proposals').innerHTML=state.proposals.slice().reverse().map(p=>`<article class="proposal"><h4>${escapeHTML(state.documents.find(d=>d.id===p.document)?.name||'Documento')}</h4><p>${escapeHTML(p.reason)}</p><small>ANTES</small><pre class="before">${escapeHTML(p.before)}</pre><small>PROPUESTA</small><pre class="after">${escapeHTML(p.after)}</pre><div class="proposal-actions">${p.status==='pending'?`<button class="quiet" data-reject="${p.id}">Rechazar</button><button class="primary" data-accept="${p.id}">Aceptar bloque</button>`:`<span class="tag">${labels[p.status]}</span>`}</div></article>`).join('') || '<p class="assistant-empty">Cuando pidas «Proponer cambios», los bloques aparecerán aquí para revisarlos.</p>';
+    $('proposals').innerHTML=state.proposals.slice().reverse().map(p=>`<article class="proposal"><details data-output="proposal-${p.id}" ${outputPreference('proposal-'+p.id).open!==false?'open':''}><summary>${escapeHTML(state.documents.find(d=>d.id===p.document)?.name||'Documento')} · ${labels[p.status]}</summary><p>${escapeHTML(p.reason)}</p><small>ANTES</small><pre class="before">${escapeHTML(p.before)}</pre><small>PROPUESTA</small><pre class="after">${escapeHTML(p.after)}</pre><div class="proposal-actions">${p.status==='pending'?`<button class="quiet" data-reject="${p.id}">Rechazar</button><button class="primary" data-accept="${p.id}">Aceptar bloque</button>`:`<span class="tag">${labels[p.status]}</span>`}</div></details></article>`).join('') || '<p class="assistant-empty">Cuando pidas «Proponer cambios», los bloques aparecerán aquí para revisarlos.</p>';
   }
   const decisionsKey=JSON.stringify(state.decisions);
   if(decisionsKey!==lastDecisions){lastDecisions=decisionsKey;$('decisions').innerHTML=state.decisions.slice().reverse().map(d=>`<div class="decision"><span class="tag">${labels[d.status]}</span><p>${escapeHTML(d.text)}</p><small>${new Date(d.date*1000).toLocaleString('es')}</small></div>`).join('') || '<p class="assistant-empty">Todavía no registraste decisiones.</p>';}
@@ -264,10 +266,23 @@ document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>showPanel(b.d
 document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>{if(!current)return;view='edit';renderView();const e=$('editor'),start=e.selectionStart,end=e.selectionEnd,selected=e.value.slice(start,end),mark=b.dataset.format==='bold'?'**':b.dataset.format==='italic'?'*':'## ';e.setRangeText(mark+selected+(b.dataset.format==='heading'?'':mark),start,end,'select');e.focus();e.dispatchEvent(new Event('input'));});
 $('history').onclick=action(async e=>{const b=e.target.closest('[data-restore]');if(!b)return;if(dirty)throw new Error('Guardá o descargá tu borrador antes de restaurar.');if(!confirm('¿Restaurar esta versión? También conservaremos la versión actual.'))return;const doc=await api('/api/document/restore',{project:state.id,document:current.id,version:b.dataset.restore,hash:current.hash});state.documents=state.documents.map(d=>d.id===doc.id?doc:d);sessionStorage.removeItem(draftKey());openDocument(doc.id,true);notice('Versión restaurada.');});
 $('runs').onclick=action(async e=>{const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;setTaskMode();$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
-$('send').onclick=action(async()=>{if(dirty)throw new Error('Guardá el documento antes de enviarlo: Codex recibe la versión guardada.');if(!$('prompt').value.trim())return;await api('/api/run',{project:state.id,mode:$('mode').value,prompt:$('prompt').value.trim(),skill:$('skill').checked});$('prompt').value='';showPanel('conversation');await poll();});
+$('send').onclick=action(async()=>{if(dirty)throw new Error('Guardá el documento antes de enviarlo: Codex recibe la versión guardada.');if(!$('prompt').value.trim())return;if(!await ensureAccount())return;await api('/api/run',{project:state.id,mode:$('mode').value,prompt:$('prompt').value.trim(),skill:$('skill').checked});$('prompt').value='';showPanel('conversation');await poll();});
 $('cancel').onclick=action(async()=>{const run=busy();if(run){await api('/api/run/cancel',{project:state.id,run:run.id});await poll();}});
 $('prompt').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('send').click();}};
-$('proposals').onclick=action(async e=>{const b=e.target.closest('[data-accept],[data-reject]');if(!b)return;if(dirty && b.dataset.accept)throw new Error('Guardá o descargá tu borrador antes de aceptar cambios.');const id=current?.id;state=await api('/api/proposal/decide',{project:state.id,proposal:b.dataset.accept||b.dataset.reject,accept:!!b.dataset.accept});if(id && b.dataset.accept){sessionStorage.removeItem(draftKey());openDocument(id,true);}renderAssistant();notice(b.dataset.accept?'Bloque aceptado. La versión anterior se conserva.':'Propuesta rechazada.');});
+$('proposals').onclick=action(async e=>{
+  const button=e.target.closest('[data-accept],[data-reject]'); if(!button)return;
+  const accept=!!button.dataset.accept;
+  if(dirty && accept)throw new Error('Guardá o descargá tu borrador antes de aceptar cambios.');
+  const proposal=state.proposals.find(p=>p.id===(button.dataset.accept||button.dataset.reject));
+  const offset=state.documents.find(d=>d.id===proposal.document)?.content.indexOf(proposal.before);
+  state=await api('/api/proposal/decide',{project:state.id,proposal:proposal.id,accept});
+  if(accept){
+    if(current)sessionStorage.removeItem(draftKey());
+    openDocument(proposal.document,true); view='edit'; renderView();
+    $('editor').focus(); $('editor').setSelectionRange(offset,offset+proposal.after.length);
+  }
+  renderAssistant();notice(accept?'Bloque aceptado y resaltado en el editor. La versión anterior se conserva.':'Propuesta rechazada.');
+});
 $('decision-form').onsubmit=action(async e=>{e.preventDefault();state=await api('/api/decision',{project:state.id,text:$('decision-text').value,status:$('decision-status').value});$('decision-text').value='';renderAssistant();notice('Decisión registrada.');});
 $('new-thread').onclick=action(async()=>{if(!confirm('¿Abrir una conversación nueva? Conservaremos las anteriores como historial y las decisiones registradas.'))return;state=await api('/api/thread/reset',{project:state.id});notice('El próximo mensaje abrirá una conversación nueva.');});
 $('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('Guardá antes de exportar el proyecto o descargá el borrador como Markdown.');const blob=await api(`/api/projects/${state.id}/export`);download(blob,'story-workbench.zip');});
@@ -278,3 +293,67 @@ window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCa
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 (async()=>{try{const projects=await refreshProjects();if(projects.length){const saved=sessionStorage.getItem('sw-project');await openProject(projects.some(p=>p.id===saved)?saved:projects[0].id);}else{$('welcome').hidden=false;$('export').disabled=true;}}catch(error){$('welcome').hidden=false;notice(error.message,true);}})();
 setInterval(poll,1500);
+
+function outputPreference(id) {
+  try { return JSON.parse(localStorage.getItem(`sw-output-${state.id}-${id}`) || '{}'); } catch { return {}; }
+}
+function saveOutputPreference(id, values) {
+  try { localStorage.setItem(`sw-output-${state.id}-${id}`, JSON.stringify({...outputPreference(id), ...values})); } catch { /* Lectura y escritura siguen funcionando sin almacenamiento de UI. */ }
+}
+document.addEventListener('click', event => {
+  const summary = event.target.closest('summary');
+  if (summary?.parentElement.dataset.output) saveOutputPreference(summary.parentElement.dataset.output, {open:!summary.parentElement.open});
+  const seen = event.target.closest('[data-seen]');
+  if (seen) { saveOutputPreference(seen.dataset.seen, {seen:true}); lastRuns=''; renderAssistant(); }
+});
+function renderProgress() {
+  const run = state.runs.at(-1), box = $('task-progress'); box.hidden = !run;
+  if (!run) return;
+  const steps = {connection:0, context:1, generation:2, validation:3, ready:4};
+  const names = ['Conectando con ChatGPT', 'Preparando el contexto', 'Generando la respuesta', 'Comprobando y guardando el resultado', 'Listo para revisar'];
+  const stage = run.status === 'completed' ? 4 : Math.min(steps[run.stage] ?? (run.status==='connecting'?0:2),3);
+  const stopped = ['interrupted','failed','cancelling'].includes(run.status);
+  box.innerHTML = `<strong>${escapeHTML(labels[run.mode])} · ${stopped?escapeHTML(labels[run.status]):names[stage]}</strong><progress max="4" value="${stage}" aria-label="Etapas completadas de la tarea"></progress><small>${stage} de 4 etapas completadas. ${stage===4?'El resultado requiere tu revisión.':'No es un porcentaje del libro ni una estimación de tiempo.'}</small>`;
+}
+let accountState = {status:'unknown'}, accountPolling = false;
+function renderAccount() {
+  const status = accountState.status;
+  $('account-open').textContent = status === 'connected' ? 'ChatGPT conectado' : 'Cuenta ChatGPT';
+  $('account-status').textContent = ({unknown:'Conectá tu cuenta para comenzar.', checking:'Comprobando la conexión…', connected:'Tu cuenta ChatGPT está conectada. Ya podés crear y revisar.', signed_out:'Iniciá sesión en el navegador con tu propia cuenta ChatGPT.', waiting:'Continuá en tu navegador. Volvé a esta ventana cuando termines.', error:accountState.error})[status] || '';
+  $('account-login').hidden = ['connected','waiting','checking'].includes(status);
+  $('account-logout').hidden = status !== 'connected'; $('account-cancel').hidden = status !== 'waiting';
+  $('account-link').hidden = status !== 'waiting'; $('account-link').removeAttribute('href');
+  if (status === 'waiting') {
+    try {const url=new URL(accountState.url);if(url.origin==='https://auth.openai.com' && !url.username && !url.password)$('account-link').href=url.href;} catch { $('account-link').hidden=true; }
+  }
+}
+async function refreshAccount() {
+  accountState = await api('/api/account');
+  if (accountState.status === 'unknown') accountState = await api('/api/account/refresh', {});
+  renderAccount(); return accountState;
+}
+async function ensureAccount() {
+  await refreshAccount();
+  if (accountState.status === 'connected') return true;
+  $('account-dialog').showModal();
+  return false;
+}
+$('account-open').onclick = action(async () => { $('account-dialog').showModal(); await refreshAccount(); });
+$('account-close').onclick = () => $('account-dialog').close();
+$('account-login').onclick = action(async () => { accountState=await api('/api/account/login',{}); renderAccount(); });
+$('account-cancel').onclick = action(async () => { accountState=await api('/api/account/cancel',{}); renderAccount(); });
+$('account-logout').onclick = action(async () => {
+  if (!confirm('¿Cerrar la sesión de ChatGPT que usa esta app? Tus proyectos permanecen guardados.')) return;
+  accountState=await api('/api/account/logout',{}); renderAccount();
+});
+setInterval(async () => {
+  if (accountPolling || !['checking','waiting'].includes(accountState.status)) return;
+  accountPolling=true;
+  try {
+    const previous=accountState.status; await refreshAccount();
+    if (previous!=='connected' && accountState.status==='connected') {
+      $('account-dialog').close();
+      if(state?.workflow==='guided' && !state.runs.some(r=>r.mode==='interview')) await beginInterview();
+    }
+  } catch(error) { notice(error.message,true); } finally { accountPolling=false; }
+}, 1000);

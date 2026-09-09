@@ -40,8 +40,12 @@ def text_value(value, limit=MAX_TEXT, empty=True):
     return value
 
 
+def is_link(path):
+    return path.is_symlink() or getattr(path, 'is_junction', lambda: False)()
+
+
 def atomic(path, text):
-    check(not path.is_symlink(), 'No se permiten enlaces simbólicos.')
+    check(not is_link(path), 'No se permiten enlaces simbólicos.')
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix='.save-')
     try:
         with os.fdopen(fd, 'w', encoding='utf-8', newline='') as f:
@@ -49,11 +53,12 @@ def atomic(path, text):
             f.flush()
             os.fsync(f.fileno())
         os.replace(temp, path)
-        directory = os.open(path.parent, os.O_DIRECTORY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        if os.name != 'nt':
+            directory = os.open(path.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
     finally:
         if os.path.exists(temp):
             os.unlink(temp)
@@ -63,7 +68,7 @@ class Store:
     # ponytail: un proceso y un lock local; usar transacciones si hay varios servidores.
     def __init__(self, root):
         self.root = Path(root).absolute()
-        check(not any(p.is_symlink() for p in (self.root, *self.root.parents)),
+        check(not any(is_link(p) for p in (self.root, *self.root.parents)),
               'El directorio de datos no puede ser un enlace.')
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.lock = threading.RLock()
@@ -84,7 +89,7 @@ class Store:
             check(isinstance(part, str) and part not in ('.', '..') and '/' not in part and '\\' not in part,
                   'Ruta inválida.')
             path /= part
-        check(not any(p.is_symlink() for p in (path, *path.parents)), 'No se permiten enlaces simbólicos.')
+        check(not any(is_link(p) for p in (path, *path.parents)), 'No se permiten enlaces simbólicos.')
         check(path.is_relative_to(self.root), 'Ruta fuera del proyecto.')
         return path
 

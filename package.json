@@ -1,0 +1,62 @@
+{
+  "name": "story-workbench",
+  "version": "0.2.0",
+  "description": "Escritura guiada y revisión editorial local con ChatGPT",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "A. J. Sbardella",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "desktop": "electron .",
+    "prepare:desktop": "python3 desktop/prepare.py",
+    "dist:linux": "npm run prepare:desktop -- --target linux && electron-builder --linux deb --publish never",
+    "dist:win": "npm run prepare:desktop -- --target win && electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "@openai/codex": "0.153.4"
+  },
+  "build": {
+    "appId": "local.storyworkbench.desktop",
+    "productName": "Story Workbench",
+    "directories": {
+      "output": "dist/installers"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/runtime",
+        "to": "runtime"
+      }
+    ],
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Office",
+      "maintainer": "A. J. Sbardella",
+      "executableName": "story-workbench",
+      "icon": "desktop/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "desktop/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "artifactName": "Story-Workbench-${version}-${os}-${arch}.${ext}",
+    "compression": "normal"
+  },
+  "homepage": "workbench://app"
+}

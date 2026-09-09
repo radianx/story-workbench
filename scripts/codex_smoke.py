@@ -36,10 +36,12 @@ def launch_settings():
         'features.multi_agent': False, 'features.apps': False,
         'web_search': 'disabled', 'model_reasoning_effort': 'low',
     }
+    if os.environ.get('STORY_DESKTOP'):
+        overrides['cli_auth_credentials_store'] = 'file'
     for section in ('mcp_servers', 'plugins'):
         for name in config.get(section, {}):
             overrides[f'{section}.{name}.enabled'] = False
-    command = ['codex', 'app-server', '--listen', 'stdio://']
+    command = [os.environ.get('STORY_CODEX_BINARY', 'codex'), 'app-server', '--listen', 'stdio://']
     for key, value in overrides.items():
         command += ['-c', f'{key}={json.dumps(value)}']
     env = {k: v for k, v in os.environ.items()
@@ -64,17 +66,18 @@ class Server:
                 'name': 'story_workbench_smoke', 'version': '0.1.0'},
                 'capabilities': {'experimentalApi': self.experimental}})
             await self.send({'method': 'initialized', 'params': {}})
-            chatgpt_only(await self.rpc('account/read', {'refreshToken': False}))
+            if self.require_account:
+                chatgpt_only(await self.rpc('account/read', {'refreshToken': False}))
         except BaseException:
             await self.__aexit__(None, None, None)
             raise
-        print('OK initialize + cuenta ChatGPT', flush=True)
         return self
 
-    def __init__(self, cwd, overrides=(), experimental=False):
+    def __init__(self, cwd, overrides=(), experimental=False, require_account=True):
         self.cwd = str(cwd)
         self.overrides = overrides
         self.experimental = experimental
+        self.require_account = require_account
 
     async def __aexit__(self, *_):
         if self.process.returncode is None:

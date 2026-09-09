@@ -14,6 +14,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='sw-browser-') as directory:
         server=AppServer(0,directory)
         threading.Thread(target=server.serve_forever,daemon=True).start()
+        server.account.set(status='connected') # Auth protocol has a separate executable test.
         try:
             with sync_playwright() as p:
                 browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
@@ -139,6 +140,47 @@ def main():
                     page.wait_for_function("() => document.querySelectorAll('.run').length===2")
                     assert server.store.load(guided)['runs'][-1]['mode']=='interview'
                     assert server.store.load(guided)['runs'][-1]['prompt']=='Quiero asombro y esperanza.'
+                # Progress and collapse survive polling, and new output can be acknowledged.
+                assert page.locator('#task-progress progress').get_attribute('value')=='4'
+                output=page.locator('.run-output').first
+                output.locator(':scope > summary').click()
+                assert not output.evaluate('(e)=>e.open')
+                page.wait_for_timeout(1800)
+                assert not output.evaluate('(e)=>e.open')
+                page.reload();page.wait_for_selector('.run-output')
+                assert not page.locator('.run-output').first.evaluate('(e)=>e.open')
+                page.locator('.run-output').last.get_by_role('button',name='Marcar como visto').click()
+                assert 'is-new' not in page.locator('.run-output').last.get_attribute('class')
+                # Failed and interrupted jobs never claim full completion.
+                with server.store.lock:
+                    data=server.store.load(guided);data['runs'][-1].update(status='failed',stage='generation')
+                    server.store.persist(data)
+                page.wait_for_function("() => document.querySelector('#task-progress progress').value===2")
+                assert 'No completado' in page.locator('#task-progress').inner_text()
+                # Native CSS 3D, dimensions, safe images, persistence and project isolation.
+                page.locator('#book-open').click()
+                page.locator('#book-width').fill('140')
+                page.locator('#book-height').fill('210')
+                page.locator('#book-thickness').fill('32')
+                page.locator('#book-name').fill('La biblioteca del mar')
+                page.locator('#book-author').fill('Autora ficticia')
+                page.get_by_role('button',name='Contraportada',exact=True).click()
+                assert page.locator('#book-rotation').input_value()=='-208'
+                png=page.locator('.brand-mark').screenshot()
+                page.locator('#book-front-file').set_input_files({'name':'cover.png','mimeType':'image/png','buffer':png})
+                page.wait_for_function("() => document.querySelector('#book-front').style.backgroundImage.includes('data:image/jpeg')")
+                page.locator('#book-save').click()
+                page.get_by_text('Maqueta guardada en este proyecto.',exact=True).wait_for()
+                page.screenshot(path='/tmp/story-workbench-book-3d.png',full_page=True)
+                page.locator('#book-close').click()
+                page.reload();page.wait_for_selector('#book-open:not([disabled])');page.locator('#book-open').click()
+                assert page.locator('#book-width').input_value()=='140'
+                assert page.locator('#book-thickness').input_value()=='32'
+                assert 'data:image/jpeg' in page.locator('#book-front').evaluate('(e)=>e.style.backgroundImage')
+                assert server.store.snapshot(guided)['documents']==[]
+                page.set_viewport_size({'width':390,'height':844})
+                assert page.locator('#book-dialog').evaluate('(e)=>e.scrollWidth<=e.clientWidth')
+                page.locator('#book-close').click()
                 page.screenshot(path='/tmp/story-workbench-guided-test.png',full_page=True)
                 page.set_viewport_size({'width':390,'height':844})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

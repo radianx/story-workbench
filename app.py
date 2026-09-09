@@ -2,18 +2,20 @@
 """Story Workbench — python3 app.py; solo loopback, sin dependencias."""
 import argparse
 import io
-import fcntl
 import os
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import mimetypes
 from pathlib import Path
 import secrets
+import sys
+import threading
 from urllib.parse import urlsplit
 import zipfile
 
-from workbench_store import Store, Problem, check, text_value, ROLES, WORKFLOWS
+from workbench_store import Store, Problem, check, text_value, ROLES, WORKFLOWS, is_link
 from workbench_ai import Assistant
+from workbench_account import Account
 
 WEB = Path(__file__).parent / 'web'
 
@@ -23,13 +25,22 @@ class AppServer(ThreadingHTTPServer):
 
     def __init__(self, port, root):
         root = Path(root).absolute()
-        check(not any(p.is_symlink() for p in (root, *root.parents)), 'El directorio de datos no puede ser un enlace.')
+        check(not any(is_link(p) for p in (root, *root.parents)), 'El directorio de datos no puede ser un enlace.')
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
-        self.instance_fd = os.open(root / '.server.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        self.instance_fd = os.open(root / '.server.lock', os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0), 0o600)
         try:
-            fcntl.flock(self.instance_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if os.name == 'nt':
+                import msvcrt
+                try:
+                    msvcrt.locking(self.instance_fd, msvcrt.LK_NBLCK, 1)
+                except OSError as error:
+                    raise BlockingIOError('El directorio ya está abierto.') from error
+            else:
+                import fcntl
+                fcntl.flock(self.instance_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             self.store = Store(root)
             self.assistant = Assistant(self.store)
+            self.account = Account(root)
             self.token = secrets.token_urlsafe(32)
             super().__init__(('127.0.0.1', port), Handler)
             self.origin = f'http://127.0.0.1:{self.server_port}'
@@ -75,7 +86,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/app.js', '/style.css'):
+            if path in ('/', '/app.js', '/style.css', '/production.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -83,7 +94,9 @@ class Handler(BaseHTTPRequestHandler):
             self.gate()
             store = self.server.store
             with store.lock:
-                if path == '/api/projects':
+                if path == '/api/account':
+                    self.send(200, self.server.account.snapshot())
+                elif path == '/api/projects':
                     self.send(200, {'projects': store.list_projects(), 'active': self.server.assistant.active})
                 else:
                     parts = path.strip('/').split('/')
@@ -120,6 +133,21 @@ class Handler(BaseHTTPRequestHandler):
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path
             store = self.server.store
+            if path.startswith('/api/account/'):
+                operation = path.rsplit('/', 1)[-1]
+                check(operation in ('login', 'refresh', 'logout', 'cancel'), 'Operación inválida.')
+                check(not self.server.assistant.active, 'Esperá a que termine la tarea antes de cambiar la sesión.', 409)
+                if operation == 'cancel':
+                    self.server.account.cancel.set()
+                    result = self.server.account.snapshot()
+                else:
+                    result = self.server.account.start(operation)
+                self.send(200, result)
+                return
+            if path == '/api/quit':
+                self.send(200, {'ok': True})
+                threading.Thread(target=self.server.shutdown, daemon=True).start()
+                return
             with store.lock:
                 if path == '/api/projects':
                     result = store.create(body.get('title'), bool(body.get('demo')),
@@ -127,7 +155,12 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     project = body.get('project')
                     data = store.load(project)
-                    if path == '/api/project/workflow':
+                    if path == '/api/project/production':
+                        from workbench_production import validate_production
+                        data['production'] = validate_production(body.get('production'))
+                        store.persist(data)
+                        result = store.snapshot(project)
+                    elif path == '/api/project/workflow':
                         check(body.get('workflow') in WORKFLOWS, 'Forma de trabajo inválida.')
                         data['workflow'] = body['workflow']
                         store.persist(data)
@@ -203,13 +236,23 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', type=Path, default=Path(__file__).parent / 'private' / 'workbench')
     args = parser.parse_args()
     server = AppServer(args.port, args.data_dir)
+    if os.environ.get('STORY_DESKTOP'):
+        print(json.dumps({'origin': server.origin, 'token': server.token}), flush=True)
+        def watch_parent():
+            sys.stdin.read()
+            server.shutdown()
+        threading.Thread(target=watch_parent, daemon=True).start()
     print(f'Story Workbench · Abrí {server.origin}/#token={server.token}', flush=True)
     print('Datos privados locales. Ctrl+C para detener.', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        pass
+    finally:
+        server.account.cancel.set()
         server.assistant.cancel.set()
         if server.assistant.thread:
             server.assistant.thread.join(timeout=12)
-    finally:
+        if server.account.thread:
+            server.account.thread.join(timeout=8)
         server.server_close()
