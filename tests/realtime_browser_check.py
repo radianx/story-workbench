@@ -35,6 +35,7 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             assert not page.locator('#realtime-enabled').is_checked() and not connections
+            page.evaluate("()=>{$('voice-volume').value='45';$('voice-volume').oninput();}")
             page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
             page.locator('#realtime-key').fill('sk-ficticia-solo-test')
             page.locator('#realtime-save').click();page.get_by_text('Confirmá el envío al proveedor y las condiciones de la API antes de habilitarlo.',exact=True).wait_for()
@@ -44,6 +45,9 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             assert 'sk-ficticia' not in page.evaluate('JSON.stringify([localStorage,sessionStorage])')
             page.locator('#dictate').click();page.wait_for_function("()=>document.querySelector('#realtime-status').textContent.includes('API activa')")
             assert connections==[project] and page.locator('#send').is_enabled()
+            assert page.evaluate('realtime.audio.volume')==.45
+            page.evaluate("()=>{$('voice-volume').value='0';$('voice-volume').oninput();}")
+            assert page.evaluate('realtime.audio.volume')==0
             def call(id,action,target='',mode='',text=''):
                 page.evaluate('(x)=>toolCall(x.id,"workbench_action",x.args)',dict(id=id,args=dict(action=action,target=target,mode=mode,text=text)))
                 page.wait_for_function('(id)=>sentRTC.some(e=>e.item?.call_id===id)',arg=id)

@@ -6,7 +6,7 @@
   try{
     for(let n=0;n<100&&typeof openSetup!=='function';n++)await new Promise(r=>setTimeout(r,100));
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
-    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark')throw Error('persisted-theme');}
+    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35')throw Error('persisted-preferences');}
     else for(let n=0;n<100&&!document.querySelector('#setup-dialog').open;n++)await new Promise(r=>setTimeout(r,100));
     if(document.querySelector('#setup-dialog').open){
       if(document.querySelector('#setup-progress').textContent!=='Paso 1 de 4'||!document.querySelector('#setup-appearance #theme'))throw Error('setup-theme');
@@ -21,6 +21,7 @@
     if(!document.querySelector('#editor').value.includes('llave azul'))throw Error('editor');
     if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls select').length!==1)throw Error('composer-theme');
     await navigateWorkbench('settings');document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
+    $('voice-volume').value='35';$('voice-volume').oninput();
     await navigateWorkbench('back');await navigateWorkbench('book');
     if(document.querySelector('#book-width').value!=='152.4')throw Error('book');
     document.querySelector('#book-close').click();
@@ -82,7 +83,7 @@
       constructor(url){this.openai=url.includes('api.openai.com');setTimeout(()=>{this.onopen?.();this.onmessage?.({data:JSON.stringify(this.openai?{type:'session.created'}:{setupComplete:{}})});},20);}
       send(value){const data=JSON.parse(value);sent.push(data);
         if(data.type==='response.create'||data.realtimeInput?.text)setTimeout(()=>{
-          const pcm=btoa(String.fromCharCode(...new Uint8Array(4800)));
+          const samples=new Int16Array(2400);samples.fill(1000);const pcm=btoa(String.fromCharCode(...new Uint8Array(samples.buffer)));
           for(const message of this.openai?[{type:'response.output_audio.delta',delta:pcm},{type:'response.done',response:{status:'completed'}}]:[{serverContent:{modelTurn:{parts:[{inlineData:{mimeType:'audio/pcm;rate=24000',data:pcm}}]}}},{serverContent:{turnComplete:true}}])this.onmessage?.({data:JSON.stringify(message)});
         },10);
       }
@@ -93,6 +94,7 @@
       await startRealtime();await new Promise(r=>setTimeout(r,800));
       if(!realtime?.ready||!sent.some(message=>message.realtimeInput?.audio))throw Error('gemini-pcm');
       playGeminiAudio(realtime,{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(2400)))});
+      if(Math.abs(realtime.volumeNode.gain.value-.35)>.00001)throw Error('voice-volume');
       await new Promise(r=>setTimeout(r,150));
       const geminiTracks=realtime.stream.getTracks();stopRealtime();
       if(geminiTracks.some(t=>t.readyState!=='ended'))throw Error('gemini-release');

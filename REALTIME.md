@@ -19,7 +19,7 @@ La conversación oral y sus subtítulos son temporales, no un historial editoria
 
 ## Lectura de respuestas
 
-Configuración → Voz y lectura → **Leer respuestas con** permite usar el proveedor de voz autorizado (predeterminado) o elegir **Siempre voz local**. La preferencia se recuerda en el equipo; recordar una clave no reactiva el consentimiento. Escuchar y la lectura automática de respuestas nuevas comparten este comportamiento.
+Configuración → Voz y lectura → **Leer respuestas con** permite usar el proveedor de voz autorizado (predeterminado) o elegir **Siempre voz local**. El control **Volumen de voz** ajusta de 0 a 100% el asistente online y la lectura, sin cambiar el micrófono. Se recuerda en el equipo. La preferencia del lector también se recuerda; recordar una clave no reactiva el consentimiento. Escuchar y la lectura automática de respuestas nuevas comparten este comportamiento.
 
 La casilla **Leer respuestas**, junto al micrófono del chat, activa la lectura de las nuevas respuestas editoriales. Desmarcarla detiene la lectura actual. No reproduce el historial al activarla y se desactiva al cambiar de proyecto. También funciona cuando termina una tarea iniciada por voz: cierra la conversación oral para narrar sin eco; pulsá el micrófono para retomarla.
 
@@ -50,3 +50,5 @@ Pruebas ejecutables sin cargos: `tests/test_realtime.py` (consentimiento, claves
 Protocolo Gemini consultado el 2026-09-09: [inicio WebSocket](https://ai.google.dev/gemini-api/docs/live-api/get-started-websocket), [tokens temporales](https://ai.google.dev/gemini-api/docs/live-api/ephemeral-tokens), [referencia de mensajes y configuración](https://ai.google.dev/api/live). Se usa el contrato JSON de referencia (`generationConfig`, `bidiGenerateContentSetup`), no los nombres de opciones del SDK. Ambos modelos/transportes deben volver a comprobarse si el proveedor cambia su API.
 
 Claves Gemini: se admiten las nuevas auth keys `AQ.` y las claves `AIza`, con validación de longitud y caracteres antes de delegar autenticación al proveedor; se informa si se eligió OpenAI por error. [Formato oficial](https://ai.google.dev/gemini-api/docs/api-key). [Almacenes nativos de keyring](https://docs.rs/keyring/3.6.3/keyring/).
+
+En 0.8.2 Gemini Live usa una voz explícita (`Kore`) para la lectura. Los mensajes binarios se decodifican directamente; la UI muestra Esperando audio hasta recibir muestras no silenciosas. Si pasan 15 segundos sin voz, o el turno termina vacío/silencioso, se informa y se usa el respaldo local. La activación de audio también puede cancelarse y está incluida en el plazo de preparación. Las pruebas reales detectaron respuestas Gemini correctas y otras vacías o muy demoradas: la estabilidad del proveedor sigue sin estar validada. [Configuración de voz en Gemini Live](https://ai.google.dev/gemini-api/docs/live-api/capabilities#change-voice-and-language).

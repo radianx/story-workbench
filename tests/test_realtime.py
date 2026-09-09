@@ -27,6 +27,7 @@ class RealtimeTests(unittest.TestCase):
                 if provider=='openai':
                     self.assertEqual(payload['expires_after']['seconds'],60)
                     self.assertIsNone(setup['audio']['input']['turn_detection'])
+                else:self.assertEqual(setup['generationConfig']['speechConfig']['voiceConfig']['prebuiltVoiceConfig']['voiceName'],'Kore')
                 opener.return_value.open.side_effect=urllib.error.HTTPError(request.full_url,401,KEY,{},None)
                 with self.assertRaises(Problem) as error:engine.read_session(provider,True)
                 self.assertNotIn(KEY,str(error.exception));self.assertFalse(engine.connecting.locked())

@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
                 send(raw){const data=JSON.parse(raw);geminiSent.push(data);if(data.setup)queueMicrotask(()=>this.onmessage({data:JSON.stringify({setupComplete:{}})}))}
                 close(){this.readyState=3;this.onclose?.()}
               };
-              window.geminiReceive=data=>geminiSocket.onmessage({data:JSON.stringify(data)});
+              window.geminiReceive=data=>geminiSocket.onmessage({data:new TextEncoder().encode(JSON.stringify(data)).buffer});
             ''')
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
@@ -54,6 +54,10 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
             # PCM little-endian 24 kHz reproducible y barge-in sin esperar herramientas.
             page.evaluate('()=>geminiReceive({serverContent:{modelTurn:{parts:[{inlineData:{mimeType:"audio/pcm;rate=24000",data:btoa("\\0".repeat(48000))}}]},outputTranscription:{text:"Una pregunta ficticia."}}})')
             page.wait_for_function('()=>realtime.output.size>0')
+            page.evaluate("()=>{$('voice-volume').value='25';$('voice-volume').oninput();}")
+            assert page.evaluate('realtime.volumeNode.gain.value')==.25
+            page.evaluate("()=>{$('voice-volume').value='0';$('voice-volume').oninput();}")
+            assert page.evaluate('realtime.volumeNode.gain.value')==0
             page.evaluate('()=>geminiReceive({serverContent:{interrupted:true}})')
             page.wait_for_function('()=>realtime.output.size===0')
             # Cancelar una acción antes de ejecutarla no cambia la UI.

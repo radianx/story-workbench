@@ -117,7 +117,7 @@ async function startRealtime(options={}){
     if(realtime!==session){session.stream.getTracks().forEach(t=>t.stop());return;}
     session.stream.getAudioTracks().forEach(t=>t.enabled=session.listening);
     if(session.provider==='gemini'){await startGeminiVoice(session);return;}
-    session.pc=new RTCPeerConnection();session.audio=new Audio();session.audio.autoplay=true;
+    session.pc=new RTCPeerConnection();session.audio=new Audio();session.audio.volume=voiceVolume;session.audio.autoplay=true;
     session.pc.ontrack=e=>{if(realtime===session){session.audio.srcObject=e.streams[0];session.audio.play().catch(()=>{if(realtime===session)stopRealtime('No se pudo reproducir la voz. Volvé a conectar.');});}};
     session.pc.onconnectionstatechange=()=>{if(realtime===session&&['failed','disconnected','closed'].includes(session.pc.connectionState))stopRealtime('Conexión de voz cerrada. Podés reconectar manualmente.');};
     session.stream.getTracks().forEach(track=>session.pc.addTrack(track,session.stream));

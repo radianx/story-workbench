@@ -15,13 +15,15 @@ function playGeminiAudio(session,inline){
   if((session.playAt||0)-context.currentTime>30)throw new Error('La reproducción no puede seguir el ritmo del audio.');
   const buffer=context.createBuffer(1,samples,24000),channel=buffer.getChannelData(0);
   for(let i=0;i<samples;i++)channel[i]=view.getInt16(i*2,true)/32768;
-  const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);session.output.add(source);
+  if(!session.volumeNode){session.volumeNode=context.createGain();session.volumeNode.gain.value=voiceVolume;session.volumeNode.connect(context.destination);}
+  const source=context.createBufferSource();source.buffer=buffer;source.connect(session.volumeNode);session.output.add(source);
   source.onended=()=>{session.output.delete(source);source.disconnect();};
   session.playAt=Math.max(context.currentTime,session.playAt||0);source.start(session.playAt);session.playAt+=buffer.duration;
+  return channel.some(sample=>sample!==0);
 }
 async function geminiEvent(session,event){
   if(realtime!==session)return;
-  const raw=typeof event.data==='string'?event.data:await event.data.text();
+  const raw=typeof event.data==='string'?event.data:new TextDecoder().decode(event.data);
   if(realtime!==session)return;
   if(raw.length>2000000)throw new Error('Respuesta de voz demasiado grande.');
   const data=JSON.parse(raw);
@@ -65,6 +67,7 @@ async function startGeminiVoice(session){
   const result=await api('/api/realtime/connect',{project:session.project,provider:'gemini',consent:true,actions:session.actions});
   if(realtime!==session)return;
   session.socket=new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token='+encodeURIComponent(result.token));
+  session.socket.binaryType='arraybuffer';
   session.socket.onopen=()=>sendGemini(session,{setup:result.setup});
   session.socket.onmessage=event=>{geminiEvent(session,event).catch(()=>{if(realtime===session)stopRealtime('Respuesta de Gemini inválida o no disponible. Revisá cuota y acceso en AI Studio.');});};
   session.socket.onerror=()=>{if(realtime===session)stopRealtime('No se pudo conectar con Gemini Live. Revisá conexión y acceso en AI Studio.');};

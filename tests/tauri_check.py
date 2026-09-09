@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
                 result=subprocess.run([str(args.dialog_tool),'search','--onlyvisible','--name','Guardar exportación'],capture_output=True,text=True)
                 if result.returncode:continue
                 window=result.stdout.splitlines()[-1]
-                subprocess.run([str(args.dialog_tool),'windowactivate','--sync',window],check=True,capture_output=True)
+                subprocess.run([str(args.dialog_tool),'windowfocus','--sync',window],check=True,capture_output=True)
                 if len(dialog_count)%3!=1:
                     subprocess.run([str(args.dialog_tool),'key','--clearmodifiers','ctrl+l'],check=True)
                     subprocess.run([str(args.dialog_tool),'type','--clearmodifiers','--',str(Path(directory)/f'export-{len(dialog_count)}.{"docx" if len(dialog_count)%3==0 else "md"}')],check=True)

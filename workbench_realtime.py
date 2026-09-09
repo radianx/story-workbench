@@ -136,6 +136,7 @@ class Realtime:
             # Token de un uso; la clave permanente no llega al WebSocket del renderer.
             setup=dict(model='models/'+GEMINI_MODEL,generationConfig=dict(responseModalities=['AUDIO']),
                        systemInstruction=dict(parts=[dict(text=READING_INSTRUCTIONS if reading else voice_instructions(data))]),outputAudioTranscription={})
+            if reading:setup['generationConfig']['speechConfig']=dict(voiceConfig=dict(prebuiltVoiceConfig=dict(voiceName='Kore')))
             if not reading:
                 setup['tools']=[dict(functionDeclarations=[dict(name=t['name'],description=t['description'],parametersJsonSchema=t['parameters'])
                                   for t in (TOOLS if actions else TOOLS[:1])])]

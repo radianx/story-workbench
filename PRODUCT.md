@@ -69,7 +69,7 @@ Codex/ChatGPT principal y seis adaptadores editoriales experimentales: OpenAI AP
 
 ## Lectura online en Tauri 0.8.0
 
-Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática se activa con Leer respuestas junto al micrófono; desmarcarla detiene la lectura y cambiar de proyecto la desactiva. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Incluida en la distribución Tauri 0.8.0.
+Escuchar respuestas usa el proveedor de voz autorizado, OpenAI Realtime o Gemini Live, con TTS local como respaldo automático. La preferencia Siempre voz local queda guardada. Volumen de voz (0–100%) se recuerda para el usuario y controla conversación online y lectura sin cambiar el micrófono. La lectura no abre el micrófono, no dispone de herramientas y no recibe contexto editorial adicional al texto que el autor eligió escuchar. La lectura automática se activa con Leer respuestas junto al micrófono; desmarcarla detiene la lectura y cambiar de proyecto la desactiva. Usa WebSocket y no requiere WebRTC; la conversación oral OpenAI sigue teniendo esa limitación en el WebKit de este Linux. Ver [lectura y comprobaciones](REALTIME.md#lectura-de-respuestas). Incluida en la distribución Tauri 0.8.0.
 
 ## Escritorio Tauri 0.8.0
 

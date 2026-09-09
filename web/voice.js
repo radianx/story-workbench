@@ -1,5 +1,17 @@
 'use strict';
 let voiceCapabilities={}, recording=null, transcribing=false, voiceGeneration=0, readingGeneration=0, readingAudio=null, readingURL=null, readingActive=false, onlineReading=null;
+let voiceVolume=1;
+function applyVoiceVolume(value){
+  const level=Number(value);voiceVolume=Number.isFinite(level)&&level>=0&&level<=100?level/100:1;
+  $('voice-volume').value=Math.round(voiceVolume*100);$('voice-volume-value').textContent=voiceVolume?Math.round(voiceVolume*100)+'%':'Silenciado';
+  for(const session of [typeof realtime==='undefined'?null:realtime,onlineReading]){
+    if(session?.volumeNode)session.volumeNode.gain.value=voiceVolume;
+    if(session?.audio)session.audio.volume=voiceVolume;
+  }
+  if(readingAudio)readingAudio.volume=voiceVolume;
+}
+$('voice-volume').oninput=()=>{applyVoiceVolume($('voice-volume').value);try{localStorage.setItem('sw-voice-volume',$('voice-volume').value);}catch{}};
+applyVoiceVolume(storedAppearance('sw-voice-volume','100'));
 const remoteVoiceBusy=()=>typeof realtimeBusy==='function'&&realtimeBusy();
 const voiceBusy=()=>!!recording||transcribing||remoteVoiceBusy();
 function voiceStatus(message){$('voice-status').textContent=message;}
@@ -20,7 +32,7 @@ async function readText(text){
   if(remoteVoiceBusy())stopRealtime('Conversación cerrada para escuchar el texto. Micrófono cerrado.');
   stopReading();readingActive=true;const generation=readingGeneration;
   const chunks=text.match(/[\s\S]{1,400}(?:\s|$)|[\s\S]{1,400}/gu)||[];
-  let reader=null,fallback=false;
+  let reader=null,fallback=false,fallbackReason='La lectura online no está disponible.';
   voiceStatus('Preparando lectura local…');$('read-stop').hidden=false;
   try {
     if(onlineReadingAllowed()){
@@ -30,18 +42,18 @@ async function readText(text){
     for(const chunk of chunks){
       if(generation!==readingGeneration)return;
       if(reader){
-        voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
-        try{await reader.read(chunk);continue;}catch{reader.close();reader=null;fallback=true;}
+        voiceStatus('Esperando audio de '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
+        try{await reader.read(chunk);continue;}catch(error){reader.close();reader=null;fallback=true;if(error.message==='No llegó audio.')fallbackReason='No llegó audio del proveedor.';}
         if(generation!==readingGeneration)return;
       }
       const blob=await api('/api/voice/read',{text:chunk});
       if(generation!==readingGeneration)return;
-      readingURL=URL.createObjectURL(blob);readingAudio=new Audio(readingURL);renderVoice();voiceStatus(fallback?'Retomando el fragmento con voz local · lectura online no disponible.':'Leyendo en este equipo…');
+      readingURL=URL.createObjectURL(blob);readingAudio=new Audio(readingURL);readingAudio.volume=voiceVolume;renderVoice();voiceStatus(fallback?'Retomando el fragmento con voz local. '+fallbackReason:'Leyendo en este equipo…');
       await new Promise((resolve,reject)=>{readingAudio.onended=resolve;readingAudio.onerror=()=>reject(new Error('No se pudo reproducir el audio.'));readingAudio.onpause=resolve;readingAudio.play().catch(reject);});
       if(generation!==readingGeneration)return;
       URL.revokeObjectURL(readingURL);readingURL=null;readingAudio=null;
     }
-    voiceStatus(fallback?'Lectura terminada con voz local de respaldo.':'Lectura terminada.');
+    voiceStatus(fallback?'Lectura terminada con voz local de respaldo. '+fallbackReason:'Lectura terminada.');
   } finally {if(generation===readingGeneration){stopReading();renderVoice();}}
 }
 // Sesión de lectura sin micrófono, herramientas, fuentes ni historial editorial.
@@ -49,24 +61,27 @@ async function createOnlineReader(provider,generation){
   const session={provider,audioContext:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null};
   onlineReading=session;
   const cancelled=()=>session.closed||generation!==readingGeneration;
-  session.close=()=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(Error('Lectura cerrada.'));session.pending?.reject(Error('Lectura cerrada.'));session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
-  const fail=()=>session.close();
+  session.close=(error=Error('Lectura cerrada.'))=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(error);session.pending?.reject(error);session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
+  const fail=error=>session.close(error instanceof Error?error:Error('Se interrumpió la conexión de voz.'));
+  const ready=new Promise((resolve,reject)=>{session.resolveReady=resolve;session.rejectReady=reject;});
+  session.connectTimer=setTimeout(fail,30000);
   try{
-    await session.audioContext.resume();
+    // Incluye la activación de audio en el plazo y permite cancelarla si el motor la bloquea.
+    await Promise.race([session.audioContext.resume(),ready]);
     if(cancelled())throw Error('Lectura cancelada.');
     const connection=await api('/api/realtime/read-session',{provider,consent:true});
     if(cancelled())throw Error('Lectura cancelada.');
     session.socket=provider==='gemini'
       ?new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token='+encodeURIComponent(connection.token))
       :new WebSocket('wss://api.openai.com/v1/realtime?model='+encodeURIComponent(connection.model),['realtime','openai-insecure-api-key.'+connection.token]);
-    const ready=new Promise((resolve,reject)=>{session.resolveReady=resolve;session.rejectReady=reject;});
-    session.connectTimer=setTimeout(fail,30000);session.limit=setTimeout(fail,600000);
+    session.socket.binaryType='arraybuffer';
+    session.limit=setTimeout(fail,600000);
     session.socket.onerror=fail;session.socket.onclose=fail;
     session.socket.onopen=()=>{if(provider==='gemini')session.socket.send(JSON.stringify({setup:connection.setup}));};
     session.queue=Promise.resolve();
     session.socket.onmessage=event=>{session.queue=session.queue.then(async()=>{
       if(cancelled())return;
-      const raw=typeof event.data==='string'?event.data:await event.data.text();
+      const raw=typeof event.data==='string'?event.data:new TextDecoder().decode(event.data);
       if(cancelled())return;
       if(raw.length>2000000)throw Error('Respuesta demasiado grande.');
       const data=JSON.parse(raw);
@@ -74,7 +89,10 @@ async function createOnlineReader(provider,generation){
       if(data.setupComplete||data.type==='session.created'){clearTimeout(session.connectTimer);session.resolveReady();return;}
       const pending=session.pending;if(!pending)return;
       const audio=provider==='gemini'?(data.serverContent?.modelTurn?.parts||[]).filter(p=>p.inlineData).map(p=>p.inlineData):data.type==='response.output_audio.delta'?[{mimeType:'audio/pcm;rate=24000',data:data.delta}]:[];
-      for(const part of audio){playGeminiAudio(session,part);if(part.data.length)pending.received=true;}
+      for(const part of audio)if(playGeminiAudio(session,part)){
+        pending.received=true;clearTimeout(pending.firstAudio);
+        voiceStatus('Leyendo con '+(provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
+      }
       if(data.serverContent?.interrupted)throw Error('Lectura interrumpida.');
       if(data.type==='response.done'){
         if(data.response?.status!=='completed')throw Error('Lectura incompleta.');
@@ -88,10 +106,11 @@ async function createOnlineReader(provider,generation){
     session.read=text=>new Promise((resolve,reject)=>{
       if(cancelled()){reject(Error('Lectura cerrada.'));return;}
       session.pending={resolve,reject,received:false,done:false};
+      session.pending.firstAudio=setTimeout(()=>fail(Error('No llegó audio.')),15000);
       const timeout=setTimeout(fail,90000);
       session.drain=setInterval(()=>{const p=session.pending;if(p?.done&&!session.output.size){clearTimeout(timeout);clearInterval(session.drain);session.pending=null;p.resolve();}},40);
       // Al cerrar se cancela también la espera del fragmento actual.
-      session.pending.reject=error=>{clearTimeout(timeout);clearInterval(session.drain);reject(error);};
+      session.pending.reject=error=>{clearTimeout(session.pending?.firstAudio);clearTimeout(timeout);clearInterval(session.drain);reject(error);};
       const message=provider==='gemini'?{realtimeInput:{text}}:{type:'response.create',response:{conversation:'none',output_modalities:['audio'],tools:[],tool_choice:'none',input:[{type:'message',role:'user',content:[{type:'input_text',text}]}]}};
       try{session.socket.send(JSON.stringify(message));}catch{fail();}
     });

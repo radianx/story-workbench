@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
                 constructor(url,protocols){this.gemini=url.includes('googleapis');
                   if(!this.gemini&&protocols[1]!=='openai-insecure-api-key.ephemeral-fixture')throw Error('token');
                   setTimeout(()=>{this.onopen?.();if(!this.gemini)this.emit({type:'session.created'});},10);}
-                emit(data){if(this.readyState===1)this.onmessage?.({data:JSON.stringify(data)});}
+                emit(data){if(this.readyState===1)this.onmessage?.({data:this.gemini?new TextEncoder().encode(JSON.stringify(data)).buffer:JSON.stringify(data)});}
                 send(raw){const data=JSON.parse(raw);
                   if(data.setup){setTimeout(()=>this.emit({setupComplete:{}}),5);return;}
                   const text=this.gemini?data.realtimeInput.text:data.response.input[0].content[0].text;
@@ -42,7 +42,7 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
                   if(readerMode==='tool'){setTimeout(()=>this.emit({toolCall:{functionCalls:[{name:'workbench_action'}]}}),10);return;}
                   setTimeout(()=>{
                     {
-                      const pcm=readerMode==='empty'?'':btoa(String.fromCharCode(...new Uint8Array(4800)));
+                      const samples=new Int16Array(2400);if(readerMode!=='silent')samples.fill(1000);const pcm=readerMode==='empty'?'':btoa(String.fromCharCode(...new Uint8Array(samples.buffer)));
                       this.emit(this.gemini?{serverContent:{modelTurn:{parts:[{inlineData:{mimeType:'audio/pcm;rate=24000',data:pcm}}]}}}:{type:'response.output_audio.delta',delta:pcm});
                     }
                     this.emit(this.gemini?{serverContent:{turnComplete:true}}:{type:'response.done',response:{status:'completed'}});
@@ -52,25 +52,44 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
               };
             ''')
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
+            page.locator('#settings-open').click()
+            page.locator('#voice-volume').evaluate("e=>{e.value='35';e.dispatchEvent(new Event('input'));}")
+            page.locator('#voice-volume').focus();page.keyboard.press('ArrowRight')
+            assert page.locator('#voice-volume-value').inner_text()=='36%'
+            page.locator('#settings-close').click()
+            page.evaluate("""()=>{
+              window.gains=[];window.localVolumes=[];
+              const play=playGeminiAudio;playGeminiAudio=(s,a)=>{const audible=play(s,a);gains.push(s.volumeNode?.gain.value);return audible;};
+              const localPlay=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){localVolumes.push(this.volume);return localPlay.call(this);};
+            }""")
             page.evaluate("()=>readText('Lectura local inicial.')")
             assert local==['Lectura local inicial.'] and not sessions
+            assert page.evaluate('localVolumes')==[.36]
             for provider in ('openai','gemini'):
                 page.evaluate("p=>{$('realtime-provider').value=p;realtimeConfigured=true;realtimeConsent=true;$('realtime-enabled').checked=true;readerSent=[];}",provider)
                 value=('Una escena ficticia en la biblioteca. '*35).strip()
                 page.evaluate('text=>readText(text)',value)
                 assert page.evaluate("readerSent.join('')")==value and sessions[-1]==provider
                 assert len(local)==1 and page.evaluate('!readingActive && onlineReading===null && micRequests===0')
-            for failure in ('error','empty','tool'):
+            assert all(abs(gain-.36)<.00001 for gain in page.evaluate('gains'))
+            for failure in ('error','empty','silent','tool','hold'):
                 page.evaluate('mode=>readerMode=mode',failure)
                 value='Respaldo local por '+failure
                 page.evaluate('text=>readText(text)',value)
                 assert local[-1]==value
                 assert 'respaldo' in page.locator('#voice-status').inner_text()
+                if failure in ('empty','silent','hold'):assert 'No llegó audio' in page.locator('#voice-status').inner_text()
             before=len(local)
             page.evaluate("()=>{readerMode='hold';window.readingPromise=readText('Lectura cancelada.');}")
             page.wait_for_function('()=>onlineReading?.pending')
             page.locator('#read-stop').click();page.evaluate('()=>readingPromise')
             assert len(local)==before and page.evaluate('!readingActive && onlineReading===null')
+            # La cancelación también libera una activación de audio suspendida por el motor.
+            count=len(sessions)
+            page.evaluate("()=>{window.originalResume=AudioContext.prototype.resume;AudioContext.prototype.resume=()=>new Promise(()=>{});window.readingPromise=readText('Audio bloqueado.');}")
+            page.locator('#read-stop').click();page.evaluate('()=>readingPromise')
+            assert len(sessions)==count and len(local)==before
+            page.evaluate('()=>{AudioContext.prototype.resume=originalResume;}')
             # Cancelar mientras llega el token no abre luego un socket ni activa el respaldo.
             pending=[]
             page.route('**/api/realtime/read-session',lambda route:pending.append(route))
@@ -110,6 +129,7 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             assert len(sessions)==count and local[-1]=='Solo voz local elegida.'
             page.reload();page.locator('#workspace').wait_for()
             assert page.locator('#reading-mode').input_value()=='local'
+            assert page.locator('#voice-volume').input_value()=='36'
             assert page.evaluate('micRequests')==0
             assert not server.store.load(project)['runs'] and not server.store.load(project)['decisions']
             assert not errors,errors
