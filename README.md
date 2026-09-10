@@ -84,7 +84,7 @@ La opción build-novel usa la instalación local descubierta por Codex. Se verif
 - El servicio valida Host, Origin y token; rechaza symlinks y rutas fuera del proyecto. Solo un proceso puede abrir un directorio de datos. Es un prototipo de un usuario local, no un servidor público ni una defensa ante procesos maliciosos ejecutados con tu mismo usuario del sistema.
 - Las versiones recuperables se guardan antes de reemplazar un archivo. Un cierre abrupto puede dejar una propuesta pendiente aunque el texto ya haya cambiado: la comprobación de hash evita aplicarla otra vez. No editar simultáneamente sus archivos desde otro programa durante un guardado; la comprobación de conflictos no coordina procesos externos ajenos.
 
-Pendientes: edición directa de carpetas externas, importar EPUB/DOCX, exportación KDP/PDF, imágenes generadas, índice de relaciones entre libros/traducciones, evaluación editorial extensa, firma de instaladores y validación nativa Windows/macOS. No hay remoto ni publicación. Los servicios API optativos de voz y los seis adaptadores editoriales experimentales requieren elección explícita; no se hicieron llamadas de pago durante esta entrega.
+Pendientes: edición directa de carpetas externas, importar EPUB/DOCX, exportación KDP/PDF, imágenes generadas, índice de relaciones entre libros/traducciones, evaluación editorial extensa, firma de instaladores y validación nativa Windows/macOS. Repositorio: [radianx/story-workbench](https://github.com/radianx/story-workbench). Los servicios API optativos de voz y los seis adaptadores editoriales experimentales requieren elección explícita; no se hicieron llamadas de pago durante esta entrega.
 
 ## Comprobar
 

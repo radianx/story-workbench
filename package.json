@@ -15,5 +15,12 @@
     "@openai/codex": "0.153.4",
     "@tauri-apps/cli": "2.11.4"
   },
-  "homepage": "workbench://app"
+  "homepage": "https://github.com/radianx/story-workbench",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/radianx/story-workbench.git"
+  },
+  "bugs": {
+    "url": "https://github.com/radianx/story-workbench/issues"
+  }
 }

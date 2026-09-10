@@ -6,7 +6,7 @@ El código propio del proyecto y sus contribuciones se distribuyen bajo la [lice
 
 ## Primer arranque
 
-1. Creá un fork en GitHub, cloná tu fork y entrá en la carpeta del repositorio.
+1. Creá un fork de [radianx/story-workbench](https://github.com/radianx/story-workbench), cloná tu fork y entrá en la carpeta del repositorio.
 2. Leé [README.md](README.md), [PRODUCT.md](PRODUCT.md) y [AGENTS.md](AGENTS.md). README describe el estado actual; los cortes antiguos de producto y resultados son históricos.
 3. Con Python 3.11 o posterior, ejecutá desde la raíz:
 
@@ -94,4 +94,4 @@ Las funciones grandes pendientes se describen en [README.md](README.md#datos-y-l
 - Ejecutar el workflow **Checks** en GitHub. Después de su primera ejecución, configurar las comprobaciones requeridas para PR en la rama principal según las opciones de la cuenta. El workflow por sí solo no configura protección de ramas.
 - Crear unos pocos issues concretos con criterio de aceptación; reservar `good first issue` para tareas pequeñas con ubicación y forma de comprobarlas. `help wanted` puede indicar pruebas de plataforma o revisión editorial.
 
-El workflow no publica paquetes ni usa cuentas de autores. Su ejecución en GitHub y las opciones anteriores deben verificarse después de crear el remoto. Las [guías de contribución](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors) y las [recomendaciones de seguridad para Actions](https://docs.github.com/en/actions/reference/security/secure-use) explican las convenciones utilizadas.
+El workflow no publica paquetes ni usa cuentas de autores. Su ejecución en GitHub y las opciones anteriores deben verificarse después de subir el workflow al remoto. Las [guías de contribución](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors) y las [recomendaciones de seguridad para Actions](https://docs.github.com/en/actions/reference/security/secure-use) explican las convenciones utilizadas.
