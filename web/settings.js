@@ -3,6 +3,13 @@
 const moveSetting=(selector,section)=>$(section).append(document.querySelector(selector));
 const appearanceControls=document.createElement('div');appearanceControls.id='appearance-controls';$('settings-general').append(appearanceControls);
 moveSetting('.theme-picker','appearance-controls');moveSetting('#inspire','settings-general');
+const fontLabel=document.createElement('label');fontLabel.htmlFor='app-font';fontLabel.textContent='Tipografía de la app';
+const fontSelect=document.createElement('select');fontSelect.id='app-font';fontSelect.setAttribute('aria-describedby','app-font-note');
+fontSelect.replaceChildren(...Object.entries(appFonts).map(([key,value])=>new Option(value.label,key)));
+fontSelect.value=document.documentElement.dataset.font;
+const fontNote=document.createElement('p');fontNote.id='app-font-note';fontNote.textContent='Usa las fuentes disponibles en tu equipo, sin descargas. Se guarda para tu usuario y no modifica los archivos del libro.';
+appearanceControls.append(fontLabel,fontSelect,fontNote);
+fontSelect.onchange=action(()=>{applyAppFont(fontSelect.value);localStorage.setItem('sw-font',fontSelect.value);});
 for(const id of ['purpose','workflow'])moveSetting('#'+id,'settings-project');
 for(const label of document.querySelectorAll('.sources .workflow-picker'))label.remove();
 for(const id of ['purpose','workflow']){const label=document.createElement('label');label.htmlFor=id;label.textContent=id==='purpose'?'Objetivo':'Forma de trabajo';$(id).before(label);}

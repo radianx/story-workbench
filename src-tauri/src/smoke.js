@@ -6,8 +6,10 @@
   try{
     for(let n=0;n<100&&typeof openSetup!=='function';n++)await new Promise(r=>setTimeout(r,100));
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
-    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35'||document.documentElement.dataset.darkPalette!=='custom'||document.querySelector('#background-opacity').value!=='42')throw Error('persisted-preferences');}
+    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35'||document.documentElement.dataset.darkPalette!=='custom'||document.querySelector('#background-opacity').value!=='42'||document.documentElement.dataset.font!=='mono')throw Error('persisted-preferences');}
     else for(let n=0;n<100&&!document.querySelector('#setup-dialog').open;n++)await new Promise(r=>setTimeout(r,100));
+    if(!document.querySelector('#app-font')||document.querySelector('#app-font').options.length!==5)throw Error('font-options');
+    document.querySelector('#app-font').value='mono';document.querySelector('#app-font').dispatchEvent(new Event('change'));
     if(document.querySelector('#setup-dialog').open){
       if(document.querySelector('#setup-progress').textContent!=='Paso 1 de 4'||!document.querySelector('#setup-appearance #theme'))throw Error('setup-theme');
       openVoiceSettings();notice('Error ficticio de configuración',true);
@@ -19,7 +21,7 @@
     const response=await fetch('/api/projects',{method:'POST',headers,body:JSON.stringify({title:'Ficción Tauri',demo:true})});
     if(!response.ok)throw Error('create');const project=await response.json();await openProject(project.id);
     if(!document.querySelector('#editor').value.includes('llave azul'))throw Error('editor');
-    if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls select').length!==1)throw Error('composer-theme');
+    if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls #theme').length!==1)throw Error('composer-theme');
     await navigateWorkbench('settings');document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
     stage='custom-theme';customizeCurrentTheme();
     if(!customTheme('dark')||!/^#[0-9a-f]{6}$/i.test(customTheme('dark').colors.green))throw Error('custom-theme');
@@ -47,7 +49,7 @@
       if(!folder.path)throw Error('folder-select');
       const preview=await api('/api/import/preview',{path:folder.path});
       if(preview.files.length!==1||preview.files[0].name!=='cuento.md')throw Error('folder-preview');
-      const imported=await api('/api/projects',{title:'Carpeta ficticia',workflow:'guided',import_folder:{path:folder.path,files:['cuento.md']}});
+      const imported=await api('/api/projects',{title:'Carpeta ficticia',workflow:'writing',import_folder:{path:folder.path,files:['cuento.md']}});
       const snapshot=await api('/api/projects/'+imported.id);
       if(snapshot.documents.length!==1||snapshot.documents[0].selected)throw Error('folder-copy');
       if((await api('/api/desktop/folder',{})).path!==null)throw Error('folder-cancel');
@@ -135,5 +137,5 @@
     if(readingActive)throw Error('reading');
     localStorage.setItem('tauri-smoke','1');
     await fetch('/__capabilities',{method:'POST',headers,body:JSON.stringify({webrtc:hasRTC})});await finish(true);
-  }catch(error){await finish(false);}
+  }catch(error){stage+='-'+String(error.message||error);await finish(false);}
 })();

@@ -39,6 +39,16 @@ with tempfile.TemporaryDirectory(prefix='sw-windows-sidecar-') as directory:
             assert backend, 'No handshake'
             request=urllib.request.Request(backend['origin']+'/api/projects',headers={'Authorization':'Bearer '+backend['token']})
             with urllib.request.urlopen(request,timeout=10) as response:assert response.status==200
+            headers={'Authorization':'Bearer '+backend['token'],'Origin':backend['origin'],'Content-Type':'application/json'}
+            request=urllib.request.Request(backend['origin']+'/api/projects',headers=headers,data=json.dumps({'title':'Equipo ficticio'}).encode())
+            with urllib.request.urlopen(request,timeout=10) as response:project=json.load(response)['id']
+            request=urllib.request.Request(backend['origin']+'/api/project/team',headers=headers,data=json.dumps({'project':project,'preferences':{'model':'sin-catalogo','effort':'low'}}).encode())
+            try:urllib.request.urlopen(request,timeout=10)
+            except urllib.error.HTTPError as error:
+                assert error.code==400 and 'No se encontraron modelos' in json.load(error)['error']
+            else:raise AssertionError('Expected validation without an account')
+            request=urllib.request.Request(backend['origin']+'/team.js',headers=headers)
+            with urllib.request.urlopen(request,timeout=10) as response:assert b'function renderTeam' in response.read()
             process.stdin.close();assert process.wait(timeout=30)==0
             try:urllib.request.urlopen(request,timeout=2)
             except OSError:pass

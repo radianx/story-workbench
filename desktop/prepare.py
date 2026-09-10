@@ -57,7 +57,7 @@ def main():
         (runtime / 'python' / 'python314._pth').write_text('python314.zip\n.\n../server\n', encoding='utf-8')
         server = runtime / 'server'
         server.mkdir()
-        for name in ('app.py','workbench_ai.py','workbench_providers.py','workbench_account.py','workbench_store.py','workbench_production.py','workbench_export.py','workbench_voice.py','workbench_modes.py','workbench_realtime.py','workbench_workspace.py'):
+        for name in ('app.py','workbench_ai.py','workbench_providers.py','workbench_account.py','workbench_store.py','workbench_production.py','workbench_export.py','workbench_voice.py','workbench_modes.py','workbench_realtime.py','workbench_workspace.py', 'workbench_team.py'):
             shutil.copy(ROOT / name, server / name)
         (server / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/codex_smoke.py', server / 'scripts/codex_smoke.py')

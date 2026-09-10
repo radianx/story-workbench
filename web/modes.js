@@ -1,6 +1,6 @@
 'use strict';
 const purposeNames={novel:'Historia / libro',translation:'Traducción literaria',rpg:'Mundo para rol · extra'};
-function hasPurposeInterview(){return state.runs.some(r=>r.mode==='interview'&&(r.purpose||'novel')===(state.purpose||'novel'));}
+function hasPurposeInterview(){return currentRuns().some(r=>r.mode==='interview'&&(r.purpose||'novel')===(state.purpose||'novel'));}
 function updateWizardPurpose(){
   const purpose=$('wizard-purpose').value,extra=purpose!=='novel';
   document.querySelector('[name=start-workflow][value=writing]').disabled=extra;

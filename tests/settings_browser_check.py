@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='sw-settings-') as temp:
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             page.locator('#settings-open').click();assert page.locator('#settings-dialog').bounding_box()['width']>950
-            assert page.locator('#appearance-controls select').count()==1 and page.locator('.local-badge').count()==0
+            assert page.locator('#appearance-controls #theme').count()==1 and page.locator('#appearance-controls #app-font').count()==1 and page.locator('.local-badge').count()==0
             for mode,values in [('light',['sky','cream','pink']),('dark',['violet','red','blue'])]:
                 page.locator('#theme').select_option(mode);colors=[]
                 for value in values:

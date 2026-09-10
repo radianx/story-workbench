@@ -27,13 +27,14 @@ $('theme').onchange = () => {
   } catch { notice('El tema se aplicó, pero el navegador no permitió recordar la elección.', true); }
 };
 window.addEventListener('storage', event => {
+  if(event.key===null||event.key==='sw-font')applyAppFont(storedAppearance('sw-font','system'));
   if(event.key===null||event.key==='sw-theme'||event.key.startsWith('sw-palette-')||event.key.startsWith('sw-custom-')){
     for(const mode of ['light','dark']){const value=storedAppearance('sw-palette-'+mode,'sage');document.documentElement.dataset[mode+'Palette']=Object.hasOwn(appearancePalettes[mode],value)?value:'sage';}
     applyTheme(storedAppearance('sw-theme','system'));
   }
 });
 const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {translate:'Traducción',draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando…',running:'La IA está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
+const labels = {panel:'Panel ciego',translate:'Traducción',draft:'Borrador',interview:'Entrevista',manuscrito:'Manuscrito',canon:'Canon',estilo:'Voz y estilo',referencia:'Referencia',plan:'Planificación','traducción':'Traducción',accepted:'Aprobada',rejected:'Rechazada',pending:'Pendiente',chat:'Conversación',diagnosis:'Diagnóstico',impact:'Impacto',proposal:'Propuesta',summary:'Resumen',connecting:'Conectando…',running:'La IA está trabajando…',cancelling:'Deteniendo…',completed:'Completado',interrupted:'Interrumpido',failed:'No completado'};
 let token = new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('sw-token') || '';
 if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
@@ -41,6 +42,7 @@ let state = null, current = null, dirty = false, view = 'edit', panel = 'convers
 let stateEpoch = 0;
 let noticeTimer, lastRuns = '', lastProposals = '', lastDecisions = '';
 const busy = () => state?.runs.findLast(r => ['connecting','running','cancelling'].includes(r.status));
+const currentRuns = () => state?.runs.slice(state.history_start||0)||[];
 const draftKey = () => `sw-draft-${state.id}-${current.id}`;
 
 // El orden del HTML no coincide con el orden de apertura de diálogos anidados.
@@ -84,7 +86,7 @@ async function openProject(id, startInterview=true) {
   await cancelVoice();
   const incoming=await api(`/api/projects/${id}`);
   if(incoming.archived)throw new Error('Este proyecto está archivado. Restauralo desde Proyectos archivados.');
-  state = incoming; resetVoiceProject(); $('prompt').value=sessionStorage.getItem('sw-message-'+id)||''; current = null; dirty=false;
+  state = incoming; if($('team-enabled'))$('team-enabled').checked=false; resetVoiceProject(); $('prompt').value=sessionStorage.getItem('sw-message-'+id)||''; current = null; dirty=false;
   if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}
   sessionStorage.setItem('sw-project',id);
   $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false; $('book-open').disabled = false; $('plan-open').disabled = false;
@@ -98,7 +100,7 @@ async function openProject(id, startInterview=true) {
   if(state.documents.length) {const last=sessionStorage.getItem(`sw-doc-${id}`);openDocument(state.documents.some(d=>d.id===last)?last:state.documents[0].id,true);}
   else clearDocument();
   showPanel('conversation');
-  if(startInterview && state.workflow==='guided' && !hasPurposeInterview()) {
+  if(startInterview && state.history_start===undefined && state.workflow==='guided' && !hasPurposeInterview()) {
     try {await beginInterview();} catch(error) {notice(error.message,true);}
   }
 }
@@ -255,6 +257,7 @@ function applyWorkflow() {
   applyPurpose();lastRuns='';
 }
 function setTaskMode() {
+  if(typeof renderTeam==='function')renderTeam();
   updateTaskHelp();
   const interview=$('mode').value==='interview';
   if(interview)$('skill').checked=true;
@@ -281,18 +284,20 @@ function renderAssistant() {
   renderAISettings(); renderProgress(); updateRealtime(); updateVoice();
   const active=busy(); $('cancel').hidden=!active; $('send').disabled=!!active||!!recording||transcribing;
   renderEngine();if(active)$('connection').textContent+=' · '+labels[active.status];
-  const interview=state.runs.findLast(r=>r.mode==='interview' && (r.purpose||'novel')===(state.purpose||'novel'));
+  renderConversations();
+  const interview=currentRuns().findLast(r=>r.mode==='interview' && (r.purpose||'novel')===(state.purpose||'novel'));
   $('interview-actions').hidden=state.workflow!=='guided' || !!active || (interview && !['failed','interrupted'].includes(interview.status));
   $('interview-start').textContent=interview?'Retomar entrevista':'Comenzar entrevista';
   $('interview-hint').textContent=interview?'La entrevista quedó incompleta. Podés retomarla con el historial guardado.':'Podés empezar sin documentos. El agente te ayudará a encontrar el punto de partida.';
-  const runsKey=JSON.stringify([state.runs,state.documents.map(d=>[d.hash,d.translation_status]),state.workflow]);
+  const runsKey=JSON.stringify([currentRuns(),state.history_start,state.documents.map(d=>[d.hash,d.translation_status]),state.workflow]);
   if(runsKey!==lastRuns){
     const restoreTranslationFocus=rememberTranslationFocus();
     const scrollPosition=$('runs').scrollTop;
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=state.runs.map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.provider&&r.provider!=='codex'?r.provider+' · experimental':'Codex')} · ${escapeHTML(r.reported_model||r.model)}${r.effort?' · '+escapeHTML(effortLabels[r.effort]||r.effort):''}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
-    if(!state.runs.length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
+    $('runs').innerHTML=currentRuns().map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.provider&&r.provider!=='codex'?r.provider+' · experimental':'Codex')} · ${escapeHTML(r.reported_model||r.model)}${r.effort?' · '+escapeHTML(effortLabels[r.effort]||r.effort):''}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${typeof teamHTML==='function'?teamHTML(r):''}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    if(!currentRuns().length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
+    if(!currentRuns().length && state.conversations?.length)$('runs').innerHTML='<div class="assistant-empty"><h3>Nueva conversación</h3><p>El chat anterior ya no forma parte del contexto.<br>Las fuentes seleccionadas y las decisiones del proyecto siguen disponibles.</p></div>';
     if(nearBottom)$('runs').scrollTop=$('runs').scrollHeight;else $('runs').scrollTop=scrollPosition;
     restoreTranslationFocus();updateLatestAnswer();
   }
@@ -375,11 +380,13 @@ function savePromptDraft(){if(!state)return;try{sessionStorage.setItem('sw-messa
 $('prompt').addEventListener('input',savePromptDraft);
 $('send').onclick=action(async()=>{
   if(dirty)throw new Error('Guardá el documento antes de enviarlo: El motor editorial recibe la versión guardada.');
-  const project=state.id, message=$('prompt').value, mode=$('mode').value, skill=$('skill').checked;
+  const project=state.id, message=$('prompt').value, mode=$('mode').value, skill=$('skill').checked, team=$('team-enabled').checked;
   if(!message.trim())return;
   if(!await engineReady() || state.id!==project)return;
-  await api('/api/run',{project,mode,prompt:message.trim(),skill});
+  if(mode==='panel'&&!team)throw Error('Activá Usar equipo para ejecutar el panel ciego.');
+  await api('/api/run',{project,mode,prompt:message.trim(),skill,team});
   if(state.id!==project)return;
+  $('team-enabled').checked=false;renderTeam();
   if($('prompt').value===message){$('prompt').value='';savePromptDraft();}
   showPanel('conversation');await poll();
 });
@@ -400,7 +407,27 @@ $('proposals').onclick=action(async e=>{
   renderAssistant();notice(accept?'Bloque aceptado y resaltado en el editor. La versión anterior se conserva.':'Propuesta rechazada.');
 });
 $('decision-form').onsubmit=action(async e=>{e.preventDefault();state=await api('/api/decision',{project:state.id,text:$('decision-text').value,status:$('decision-status').value});$('decision-text').value='';renderAssistant();notice('Decisión registrada.');});
-$('new-thread').onclick=action(async()=>{if(!confirm('¿Abrir una conversación nueva? Conservaremos las anteriores como historial y las decisiones registradas.'))return;state=await api('/api/thread/reset',{project:state.id});notice('El próximo mensaje abrirá una conversación nueva.');});
+$('new-thread').onclick=action(async()=>{
+  await cancelVoice();stopRealtime();
+  state=await api('/api/thread/reset',{project:state.id,draft:$('prompt').value});
+  $('prompt').value='';savePromptDraft();if($('team-enabled'))$('team-enabled').checked=false;
+  lastRuns='';renderAssistant();showPanel('conversation');$('prompt').focus();
+  notice('Chat vacío. Podés consultar los anteriores en la biblioteca.');
+});
+function renderConversations(){
+  const chats=state.conversations||[],key=JSON.stringify(chats);
+  $('previous-chats').hidden=!chats.length;$('new-thread').disabled=!!busy();
+  if($('chat-links').dataset.key===key)return;$('chat-links').dataset.key=key;
+  $('chat-links').innerHTML=chats.slice().reverse().map(c=>`<button class="quiet" data-chat="${escapeHTML(c.id)}">${escapeHTML(c.title)}<small>${new Date(c.date*1000).toLocaleString('es')}</small></button>`).join('');
+}
+$('chat-links').onclick=action(event=>{
+  const button=event.target.closest('[data-chat]');if(!button)return;
+  const chat=state.conversations.find(c=>c.id===button.dataset.chat);if(!chat)return;
+  $('chat-history-title').textContent=chat.title;
+  $('chat-history-content').innerHTML=state.runs.slice(chat.start,chat.end).map(r=>`<article class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><p>${escapeHTML(labels[r.mode]||r.mode)} · ${escapeHTML(labels[r.status]||r.status)}</p><div class="run-text">${escapeHTML(r.text||'Sin respuesta guardada.')}</div>${teamHTML(r)}${r.error?`<p class="run-error">${escapeHTML(r.error)}</p>`:''}</article>`).join('')+(chat.draft?`<article><h3>Mensaje que quedó sin enviar</h3><div class="run-text">${escapeHTML(chat.draft)}</div></article>`:'');
+  showDialog($('chat-history'));
+});
+$('chat-history-close').onclick=()=>$('chat-history').close();
 $('export').onclick=action(async()=>{if(!state)return;if(dirty)throw new Error('Guardá antes de exportar el proyecto o descargá el borrador como Markdown.');const blob=await api(`/api/projects/${state.id}/export`);await download(blob,'story-workbench.zip');});
 $('focus').onclick=()=>{const focused=document.body.classList.toggle('focus');$('focus').textContent=focused?'⛶ Salir de foco':'⛶ Modo foco';$('focus').setAttribute('aria-pressed',focused);if(state?.workflow==='guided')$('prompt').focus();else if(current)$('editor').focus();};
 $('inspire').onclick=()=>{if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}else $('background-file').click();};
@@ -423,7 +450,7 @@ document.addEventListener('click', event => {
   if (seen) { saveOutputPreference(seen.dataset.seen, {seen:true}); lastRuns=''; renderAssistant(); }
 });
 function renderProgress() {
-  const run = state.runs.at(-1), box = $('task-progress'); box.hidden = !run;
+  const run = currentRuns().at(-1), box = $('task-progress'); box.hidden = !run;
   if (!run) return;
   const steps = {connection:0, context:1, generation:2, validation:3, ready:4};
   const names = ['Conectando con el proveedor elegido', 'Preparando el contexto', 'Generando la respuesta', 'Comprobando y guardando el resultado', 'Listo para revisar'];
@@ -432,7 +459,7 @@ function renderProgress() {
   box.classList.toggle('just-completed',box.dataset.run===run.id && box.dataset.status!==run.status && run.status==='completed');
   box.dataset.run=run.id;box.dataset.status=run.status;
   if(!box.querySelector('progress'))box.innerHTML='<strong></strong><progress max="4" aria-label="Etapas completadas de la tarea"></progress><small></small>';
-  const title=`${labels[run.mode]} · ${stopped?labels[run.status]:names[stage]}`;
+  const title=`${labels[run.mode]} · ${stopped?labels[run.status]:run.team&&stage<4?(run.team_stage||names[stage]):names[stage]}`;
   const detail=`${stage} de 4 etapas completadas. ${stage===4?'El resultado requiere tu revisión.':'No es un porcentaje del libro ni una estimación de tiempo.'}`;
   if(box.firstElementChild.textContent!==title)box.firstElementChild.textContent=title;
   box.querySelector('progress').value=stage;
@@ -500,6 +527,7 @@ function renderAISettings() {
   model.title=$('ai-summary').textContent;effort.title='Razonamiento para el próximo mensaje; se guarda por proyecto.';
   model.disabled = !state || !models.length || !!busy(); effort.disabled = model.disabled || !selected;
   $('ai-refresh').disabled = !!busy() || ['checking','waiting'].includes(accountState.status);
+  if(typeof renderTeam==='function')renderTeam();
   $('ai-hint').textContent = accountState.models_error || (!models.length?'Conectá ChatGPT para ver sus modelos.':preferences.model&&!selected?'El modelo guardado ya no está disponible. Elegí otro.':'Se guarda por proyecto y se aplica al próximo mensaje. Un esfuerzo mayor puede tardar más.');
 }
 async function saveAISettings(changeModel) {

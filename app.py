@@ -94,7 +94,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = urlsplit(self.path).path
-            if path in ('/', '/appearance.js', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js', '/settings.js', '/setup.js', '/providers.js'):
+            if path in ('/', '/appearance.js', '/app.js', '/style.css', '/production.js', '/planning.js', '/voice.js', '/voice-capture.js', '/help.js', '/modes.js', '/realtime.js', '/gemini-voice.js', '/settings.js', '/setup.js', '/providers.js', '/team.js'):
                 check(self.headers.get('Host') == urlsplit(self.server.origin).netloc, 'Host no permitido.', 403)
                 file = WEB / ('index.html' if path == '/' else path[1:])
                 self.send(200, file.read_bytes(), mimetypes.guess_type(file)[0] + '; charset=utf-8')
@@ -265,6 +265,13 @@ class Handler(BaseHTTPRequestHandler):
                         data.update(thread=None,context_key=None)
                         store.persist(data)
                         result=store.snapshot(project)
+                    elif path == '/api/project/team':
+                        from workbench_team import team_preferences
+                        from workbench_account import resolve_ai
+                        check(not self.server.assistant.active, 'Esperá a que termine la tarea.',409)
+                        preferences=team_preferences(body.get('preferences'))
+                        resolve_ai(preferences,self.server.account.snapshot().get('models',[]))
+                        data['team_preferences']=preferences;store.persist(data);result=store.snapshot(project)
                     elif path == '/api/project/ai':
                         from workbench_account import ai_preferences, resolve_ai
                         preferences = ai_preferences(body.get('preferences'))
@@ -321,12 +328,11 @@ class Handler(BaseHTTPRequestHandler):
                         result = store.snapshot(project)
                     elif path == '/api/thread/reset':
                         check(not self.server.assistant.active, 'Esperá a que termine la tarea.', 409)
-                        data.update(thread=None, context_key=None, history_start=len(data['runs']))
-                        store.persist(data)
+                        store.reset_conversation(data,body.get('draft',''))
                         result = store.snapshot(project)
                     elif path == '/api/run':
                         result = self.server.assistant.start(project, body.get('mode'),
-                            text_value(body.get('prompt'), 10_000, False), body.get('skill', True))
+                            text_value(body.get('prompt'), 10_000, False), body.get('skill', True), body.get('team',False))
                     elif path == '/api/run/cancel':
                         self.server.assistant.stop(project, body.get('run'))
                         result = {'ok': True}

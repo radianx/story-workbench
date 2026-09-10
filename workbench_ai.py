@@ -14,6 +14,7 @@ from workbench_store import Problem, check, digest, uid
 from workbench_modes import GUIDES, TRANSLATION_INSTRUCTION, TRANSLATION_SCHEMA, translation_context, validate_translation
 
 MODES = {
+    'panel': 'Sintetizá el panel ciego sin reescribir: separá coincidencias, diferencias por perfil, desacuerdos útiles, evidencia concreta y conclusiones inciertas. No decidas por mayoría. Conservá la voz y decisiones del autor; proponé opciones para su aprobación. Aclará que son lectores simulados y qué material leyeron.',
     'translate': TRANSLATION_INSTRUCTION,
     'draft': 'Redactá únicamente el borrador solicitado, con el alcance, voz y decisiones aprobadas del autor. Usá las fuentes e historial disponibles. Si falta una decisión indispensable, hacé una pregunta concreta antes de redactar. No conviertas propuestas pendientes en canon. No escribas archivos: el autor decide si guarda el resultado.',
     'interview': 'Conducí la entrevista editorial inicial en español, una pregunta relevante por turno. Partí de la idea y respuestas ya aportadas; no reinicies ni repitas preguntas resueltas. No redactes el manuscrito ni decidas canon por el autor.',
@@ -86,7 +87,7 @@ class Assistant:
         self.cancel = threading.Event()
         self.thread = None
 
-    def start(self, project, mode, prompt, use_skill=True):
+    def start(self, project, mode, prompt, use_skill=True, team=False):
         with self.store.lock:
             check(self.active is None, 'Ya hay una tarea en curso. Detenela o esperá.', 409)
             check(mode in MODES, 'Modo inválido.')
@@ -96,10 +97,19 @@ class Assistant:
             check(not (mode=='draft' and data['purpose']=='translation'), 'Para traducir usá Traducir y consultar matices: conserva revisión y vínculo al original.')
             preferences = ai_preferences(data.get('ai_preferences', {}))
             engine = engine_preferences(data.get('engine', {}))
+            check(type(team) is bool, 'Selección de equipo inválida.')
+            check(mode!='panel' or team, 'El panel ciego requiere activar el equipo para este mensaje.')
+            if team:
+                from workbench_team import TEAM_MODES, team_preferences
+                check(engine['provider']=='codex' and mode in TEAM_MODES, 'El equipo requiere Codex y una tarea fuera de la entrevista.')
+                team_settings=team_preferences(data.get('team_preferences'))
             if engine['provider'] != 'codex':
                 check(engine['provider']=='local' or self.providers.status()[engine['provider']], 'Configurá la clave del proveedor editorial.')
             docs = [self.store.document(data, d['id']) for d in data['documents'] if d['selected']]
             check(docs or mode in ('interview', 'draft'), 'Seleccioná al menos una fuente.')
+            if mode=='panel':
+                check(any(d['role'] in ('manuscrito','traducción') for d in docs), 'Seleccioná manuscritos o traducciones para el panel ciego.')
+                check(len(team_settings['readers'])<=team_settings['max_agents'], 'El panel supera tu límite de colaboradores.')
             if mode == 'interview':
                 check(use_skill is True, 'La entrevista guiada requiere build-novel.')
             check(sum(len(d['content']) + len(d.get('synopsis', '')) + len(d.get('pov', '')) for d in docs) <= 60_000,
@@ -108,6 +118,7 @@ class Assistant:
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), engine=engine, provider=engine['provider'], sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash'], 'synopsis': d.get('synopsis', ''), 'pov': d.get('pov', '')} for d in docs],
                        source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill) and data['purpose']!='rpg', requested_ai=preferences, purpose=data['purpose'])
+            if team: run.update(team=team_settings, project_id=project)
             if translation:
                 run['translation_context']=translation
             data['runs'].append(run)
@@ -122,7 +133,7 @@ class Assistant:
         with self.store.lock:
             data = self.store.load(project)
             check(data['workflow'] == 'guided', 'Elegí el modo guiado para iniciar la entrevista.')
-            runs = [r for r in data['runs'] if r['mode'] == 'interview' and r.get('purpose','novel')==data['purpose']]
+            runs = [r for r in data['runs'][data.get('history_start',0):] if r['mode'] == 'interview' and r.get('purpose','novel')==data['purpose']]
             # Recargar o abrir otra pestaña no debe consumir otro turno de bienvenida.
             if runs and (not retry or runs[-1]['status'] not in ('failed', 'interrupted')):
                 return {'id': runs[-1]['id']}
@@ -212,7 +223,9 @@ class Assistant:
         # Perfil estricto: el agente solo ve su carpeta vacía y archivos mínimos del sistema.
         overrides = editor_overrides()
         async with Server(cwd, overrides, experimental=True) as server:
-            chosen = resolve_ai(run.get('requested_ai', {}), await list_models(server))
+            models=await list_models(server)
+            chosen = resolve_ai(run.get('requested_ai', {}), models)
+            if run.get('team'): resolve_ai(run['team'], models)
             self.update(project, run['id'], stage='context')
             if self.cancel.is_set():
                 self.update(project, run['id'], status='interrupted')
@@ -280,6 +293,11 @@ class Assistant:
             inputs = [{'type': 'text', 'text': text}]
             if skill:
                 inputs.append({'type': 'skill', 'name': 'build-novel', 'path': skill})
+            if run.get('team'):
+                from workbench_team import run_team
+                inputs=await run_team(self,server,thread_id,inputs,chosen,policy,overrides,run,docs,project_brief,decisions)
+                if self.cancel.is_set():
+                    self.update(project,run['id'],status='interrupted',stage='stopped');return
             params = {'threadId': thread_id, 'input': inputs, **chosen}
             if run['mode'] == 'proposal':
                 params['outputSchema'] = PROPOSAL_SCHEMA

@@ -80,6 +80,8 @@ class Store:
             for run in data['runs']:
                 if run['status'] in ('running', 'connecting', 'cancelling'):
                     run.update(status='interrupted', error='El servicio se reinició. Podés volver a pedir la tarea.')
+                    for worker in run.get('team_workers',[]):
+                        if worker['status'] in ('connecting','running'):worker['status']='interrupted'
                     changed = True
             if changed:
                 self.persist(data)
@@ -120,7 +122,22 @@ class Store:
         data.setdefault('workflow', 'writing')
         data.setdefault('purpose', 'novel')
         data.setdefault('initial_idea', '')
+        if 'conversations' not in data:
+            end=data.get('history_start',0)
+            data['conversations']=([dict(id='legacy',title='Conversaciones anteriores',start=0,end=end,date=data['updated'],draft='')] if end else [])
         return data
+
+    def reset_conversation(self, data, draft=''):
+        check(not any(r['status'] in ('connecting','running','cancelling') for r in data['runs']),
+              'Esperá a que termine la tarea.',409)
+        text_value(draft,10_000)
+        start,end=data.get('history_start',0),len(data['runs'])
+        if start<end or draft.strip():
+            title=data['runs'][start]['prompt'] if start<end else draft
+            data['conversations'].append(dict(id=uid(),title=' '.join(title.split())[:90],
+                start=start,end=end,date=time.time(),draft=draft))
+        data.update(thread=None,context_key=None,history_start=end)
+        self.persist(data)
 
     def persist(self, data):
         data['updated'] = time.time()

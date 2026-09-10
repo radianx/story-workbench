@@ -6,7 +6,7 @@ const helpTopics = [
     'Elegí Crear mi proyecto y Crear conversando. Una idea incompleta alcanza: el agente pregunta de a una. Si falta conectar ChatGPT, la app te muestra el acceso a tu cuenta.',
     'Respondé en el mensaje o usá Dictar respuesta. Enviar inicia el trabajo y consume tu cuota de Codex. Podés detener una tarea sin convertir su respuesta en material aprobado.',
     'Cuando quieras avanzar, cambiá Tipo de tarea a Redactar borrador. Guardar como borrador provisional crea un documento nuevo únicamente cuando lo elegís. Ver material abre el editor; Ocultar material devuelve espacio al chat.',
-    'Nueva conversación inicia otro hilo al enviar el próximo mensaje. Las conversaciones anteriores y las decisiones siguen guardadas. La forma de trabajo se puede cambiar desde Biblioteca.'
+    'Nueva conversación vacía el chat y reinicia su contexto. Las fuentes y decisiones siguen disponibles; consultá los chats anteriores en el desplegable debajo del botón. La forma de trabajo se cambia desde Configuración.'
   ]],
   ['sources','Fuentes, biblioteca y fichas',[
     'Archivar proyecto lo quita de Tu biblioteca conservando documentos, conversaciones e historial en su carpeta. Proyectos archivados, en la biblioteca, Inicio o Configuración, permite restaurarlo. Primero guardá los cambios y terminá cualquier tarea en curso.',
@@ -116,7 +116,7 @@ window.addEventListener('keydown',event=>{if(event.key==='F1'){event.preventDefa
 const tips={
   inspire:'Imagen de fondo del editor. Para claro/oscuro, usá Tema.',
   export:'ZIP de documentos y decisiones guardadas. Para el libro DOCX, usá Plan y avance.',
-  'new-thread':'El próximo mensaje abre otro hilo; conserva el historial anterior y las decisiones.',
+  'new-thread':'Vacía el chat y reinicia su contexto. Conserva fuentes y decisiones; los chats anteriores se consultan debajo del botón.',
   'new-doc':'Crear un documento de manuscrito vacío en este proyecto.',
   import:'Importar copias Markdown/TXT UTF-8, hasta 250 KB cada una.',
   'template-open':'Crear una ficha provisional; elegís después si compartirla con el asistente.',
@@ -130,7 +130,7 @@ const tips={
   send:'Enviar mensaje al asistente. También Ctrl+Enter desde el mensaje.'
 };
 for(const [id,text] of Object.entries(tips)){$(id).title=text;const description=document.createElement('span');description.id='tip-'+id;description.className='sr-only';description.textContent=text;document.body.append(description);$(id).setAttribute('aria-describedby',description.id);}
-const taskDescriptions={translate:'Consulta matices antes de traducir. Registrás el criterio y aprobás cada copia por separado.',interview:'Respondé una pregunta por vez. Las ideas siguen siendo provisionales.',draft:'Genera texto para revisar. Solo se guarda como manuscrito cuando elegís hacerlo.',diagnosis:'Señala problemas de las fuentes seleccionadas sin reescribir.',impact:'Explora consecuencias de un cambio hipotético sin aplicarlo.',proposal:'Prepara bloques antes/después para que decidas cuáles aceptar.',chat:'Conversá sobre las fuentes seleccionadas y las decisiones del proyecto.',summary:'Prepara un resumen provisional para retomar; verificá sus fuentes.'};
+const taskDescriptions={panel:'Lectores simulados e independientes opinan sobre los manuscritos o traducciones marcados. Activá Usar equipo; no reciben canon, sinopsis ni opiniones previas. No modifica el texto.',translate:'Consulta matices antes de traducir. Registrás el criterio y aprobás cada copia por separado.',interview:'Respondé una pregunta por vez. Las ideas siguen siendo provisionales.',draft:'Genera texto para revisar. Solo se guarda como manuscrito cuando elegís hacerlo.',diagnosis:'Señala problemas de las fuentes seleccionadas sin reescribir.',impact:'Explora consecuencias de un cambio hipotético sin aplicarlo.',proposal:'Prepara bloques antes/después para que decidas cuáles aceptar.',chat:'Conversá sobre las fuentes seleccionadas y las decisiones del proyecto.',summary:'Prepara un resumen provisional para retomar; verificá sus fuentes.'};
 function updateTaskHelp(){
   $('mode-hint').textContent=state?.purpose==='rpg'&&$('mode').value==='draft'?'Prepara material de rol provisional. El director decide qué conservar.':taskDescriptions[$('mode').value]||'';
   document.querySelector('.task-guidance [data-help]').dataset.help=$('mode').value==='translate'?'translation':state?.purpose==='rpg'?'rpg':['diagnosis','impact','proposal'].includes($('mode').value)?'review':'interview';
@@ -138,7 +138,7 @@ function updateTaskHelp(){
 updateTaskHelp();
 $('search-clear').onclick=()=>{$('search').value='';renderDocuments();$('search').focus();};
 $('notice-close').onclick=()=>{$('notice').hidden=true;};
-function updateLatestAnswer(){$('latest-answer').hidden=!state?.runs.length||$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;}
+function updateLatestAnswer(){$('latest-answer').hidden=!currentRuns().length||$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;}
 $('runs').addEventListener('scroll',updateLatestAnswer);$('latest-answer').onclick=()=>{$('runs').scrollTop=$('runs').scrollHeight;updateLatestAnswer();};
 $('library-toggle').onclick=()=>{const open=document.body.classList.toggle('library-open');$('library-toggle').setAttribute('aria-expanded',String(open));};
 const compactLayout=matchMedia('(max-width:600px)');

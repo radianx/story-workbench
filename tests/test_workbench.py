@@ -194,6 +194,39 @@ class HTTPTests(unittest.TestCase):
         data=json.loads(self.request('/api/projects')[1]);self.assertEqual(data['archived'],[])
         self.assertEqual(data['projects'][0]['id'],project)
 
+    def test_conversation_reset_preserves_archive_and_clears_all_contexts(self):
+        from workbench_ai import portable_history
+        from workbench_realtime import context
+        from test_desktop_features import MODELS
+        store=self.server.store;project=store.create('Chats ficticios',True)['id']
+        data=store.load(project)
+        data['runs']=[dict(id='old',mode='chat',purpose='novel',status='completed',prompt='Pregunta antigua',text='Respuesta antigua',sources=[])]
+        data.update(thread='old-thread',context_key='old-key');store.persist(data)
+        before={p:p.read_bytes() for p in store.root.rglob('*.md')}
+        self.server.assistant.active=(project,'test')
+        self.assertEqual(self.request('/api/thread/reset',dict(project=project))[0],409)
+        self.server.assistant.active=None
+        self.assertEqual(self.request('/api/thread/reset',dict(project=project,draft=42))[0],400)
+        status,body=self.request('/api/thread/reset',dict(project=project,draft='Texto sin enviar'))
+        self.assertEqual(status,200);data=json.loads(body)
+        self.assertIsNone(data['thread']);self.assertIsNone(data['context_key']);self.assertEqual(data['history_start'],1)
+        self.assertEqual(data['conversations'][0]['draft'],'Texto sin enviar')
+        self.assertEqual(data['conversations'][0]['end'],1)
+        self.assertEqual(data['runs'][0]['text'],'Respuesta antigua')
+        self.assertEqual(context(data)['recent_turns'],[])
+        self.assertNotIn('Respuesta antigua',portable_history(data,dict(id='new',purpose='novel'),data['documents']))
+        self.request('/api/thread/reset',dict(project=project))
+        self.assertEqual(len(store.load(project)['conversations']),1)
+        self.assertEqual(before,{p:p.read_bytes() for p in store.root.rglob('*.md')})
+        # El catálogo del usuario valida ambos selectores antes de guardar.
+        self.server.account.set(models=MODELS,status='connected')
+        for model,effort,status in [('modelo-b','low',200),('modelo-b','high',400),('missing','low',400)]:
+            self.assertEqual(self.request('/api/project/team',dict(project=project,preferences=dict(model=model,effort=effort,max_agents=2)))[0],status)
+        self.assertEqual(store.load(project)['team_preferences']['effort'],'low')
+        # Recupera el historial de versiones previas que solo tenían history_start.
+        data=store.load(project);del data['conversations'];store.persist(data)
+        self.assertEqual(store.load(project)['conversations'][0]['end'],1)
+
     def test_second_server_cannot_open_same_data(self):
         with self.assertRaises(BlockingIOError):
             AppServer(0,self.temp.name)

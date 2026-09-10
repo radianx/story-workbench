@@ -27,7 +27,7 @@ TOOLS=[
 
 def context(data):
     selected={d['id']:d['hash'] for d in data['documents'] if d['selected']}
-    compatible=[r for r in data['runs'] if r.get('purpose','novel')==data['purpose']
+    compatible=[r for r in data['runs'][data.get('history_start',0):] if r.get('purpose','novel')==data['purpose']
                 and all(selected.get(s['id'])==s['hash'] for s in r.get('sources',[]))]
     value=dict(engine=data.get('engine',{'provider':'codex'}),title=data['title'],purpose=data['purpose'],initial_idea=data['initial_idea'],
                library=[dict(id=d['id'],name=d['name'],selected=d['selected']) for d in data['documents']],

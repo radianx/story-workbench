@@ -21,7 +21,7 @@ function renderVoice(){
   $('dictate').innerHTML=listening?'■':'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg>';
   $('dictate').title=online?(listening?'Pausar escucha continua':'Activar escucha continua · mantené Espacio para hablar'):(recording?'Terminar dictado':'Dictar respuesta · mantené Espacio para hablar');$('dictate').setAttribute('aria-label',$('dictate').title);
   $('dictate').setAttribute('aria-pressed',String(listening));$('dictate-cancel').hidden=!recording;
-  $('read-last').disabled=(!voiceCapabilities.reading&&!onlineReadingAllowed())||!state?.runs.some(r=>r.status==='completed'&&r.text);
+  $('read-last').disabled=(!voiceCapabilities.reading&&!onlineReadingAllowed())||!currentRuns().some(r=>r.status==='completed'&&r.text);
   $('read-stop').hidden=!readingActive;
   if(state)$('send').disabled=!!busy()||!!recording||transcribing;
 }
@@ -193,19 +193,19 @@ async function startDictation(){
 }
 $('dictate').onclick=action(async()=>{if($('realtime-enabled').checked){if(!realtimeConfigured||!realtimeConsent){openVoiceSettings();return;}if(realtime)setVoiceListening(!realtime.listening,!realtime.listening);else await startRealtime();}else await startDictation();});
 $('dictate-cancel').onclick=action(async()=>{await cancelVoice();voiceStatus('Dictado descartado.');});
-$('read-last').onclick=action(()=>readText(state.runs.findLast(r=>r.status==='completed'&&r.text).text));
+$('read-last').onclick=action(()=>readText(currentRuns().findLast(r=>r.status==='completed'&&r.text).text));
 $('read-stop').onclick=()=>{stopReading();voiceStatus('Lectura detenida.');};
 $('auto-read').onchange=()=>{if(!$('auto-read').checked){stopReading();voiceStatus('Lectura automática desactivada.');}};
 $('runs').addEventListener('click',action(e=>{const button=e.target.closest('[data-read]');if(button)return readText(state.runs.find(r=>r.id===button.dataset.read).text);}));
 let lastVoiceRun=null;
 function updateVoice(){
-  renderVoice();const run=state?.runs.at(-1);
+  renderVoice();const run=currentRuns().at(-1);
   if(!run||run.id===lastVoiceRun||run.status!=='completed')return;
   if($('auto-read').checked&&(recording||transcribing))return;
   lastVoiceRun=run.id;
   if($('auto-read').checked)readText(run.text).catch(e=>voiceStatus(e.message));
 }
-function resetVoiceProject(){lastVoiceRun=state?.runs.at(-1)?.id||null;$('auto-read').checked=false;voiceStatus('Dictado español local; revisás el texto antes de enviarlo.');}
+function resetVoiceProject(){lastVoiceRun=currentRuns().at(-1)?.id||null;$('auto-read').checked=false;voiceStatus('Dictado español local; revisás el texto antes de enviarlo.');}
 window.addEventListener('beforeunload',()=>{cancelVoice();});
 api('/api/voice').then(value=>{voiceCapabilities=value;renderVoice();voiceStatus(value.dictation?'Dictado español local; revisás el texto antes de enviarlo.':'El dictado requiere el paquete de escritorio con voz.');if(!value.reading)voiceStatus($('voice-status').textContent+' No hay voz del sistema disponible.');}).catch(error=>voiceStatus(error.message));
 
