@@ -56,7 +56,8 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
             # PCM little-endian 24 kHz reproducible y barge-in sin esperar herramientas.
             page.evaluate('()=>geminiReceive({serverContent:{modelTurn:{parts:[{inlineData:{mimeType:"audio/pcm;rate=24000",data:btoa("\\0".repeat(48000))}}]},outputTranscription:{text:"Una pregunta ficticia."}}})')
             if buffered:
-                page.wait_for_function('()=>realtime.pcmBytes===48000 && !realtime.output.size')
+                # Empieza con PCM suficiente, antes de que Gemini termine el turno.
+                page.wait_for_function('()=>realtime.audio && realtime.output.size>0')
                 page.evaluate('()=>geminiReceive({serverContent:{turnComplete:true}})')
             page.wait_for_function('()=>realtime.output.size>0')
             page.evaluate("()=>{$('voice-volume').value='25';$('voice-volume').oninput();}")

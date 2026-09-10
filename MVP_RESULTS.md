@@ -1,3 +1,13 @@
+# Reproducción incremental · Tauri 0.8.7 — 2026-09-10
+
+- El usuario confirmó que 0.8.6 ya se escucha en la app. Para reducir su espera, Linux empieza con un bloque WAV corto y precarga los siguientes; ya no espera el turno completo. Conversación Gemini y lectura online comparten la cola, sin cambiar el formato de entrada del micrófono ni Web Audio en otros motores.
+- `node tests/pcm_playback_check.js` pasó: inicio por cantidad y por temporizador, precarga, secuencia de muestras WAV, volumen actualizado, cancelación de temporizador y cola, errores y límite de memoria.
+- `tests/webkit_audio_stream_check.py` ejecutó WebKitGTK real con 60 paquetes PCM ficticios, salida Pulse virtual propia y captura de esa salida. Con paquetes cada 60/100 ms, el primer inicio ocurrió a los 622/663 ms desde el primer paquete; se recuperaron 6,03/5,97 segundos de señal. A resolución de 10 ms, se detectaron cero pausas en el primer caso y una de 10 ms en el segundo. No usa micrófono, API ni audio de otras aplicaciones y elimina la salida temporal.
+- El automatizador espera a que la página termine de cargar, como ocurre antes de iniciar voz en la app. Una versión del ensayo que emitía durante el análisis inicial del HTML produjo avisos de reproducción tardíos; esos resultados no se usaron como medida de latencia del flujo normal.
+- Pasaron los cuatro recorridos de navegador: lectura y conversación Gemini, tanto con Web Audio como con la cola multimedia de Linux. Proveedores simulados; volumen, interrupción, detención y TTS de respaldo comprobados.
+- Instaladores 0.8.7 Linux .deb y Windows NSIS generados; 32/100 archivos verificados contra manifiestos y SHA256. La interfaz Windows real no se comprobó. El equipo conserva instalado 0.8.6; actualizar requiere el instalador y la autenticación administrativa habitual.
+- Estas medidas excluyen conexión y generación del primer audio del proveedor; no garantizan latencia ante cortes de red ni equivalen a una nueva escucha física por el usuario.
+
 # Salida de voz en Linux · Tauri 0.8.6 — 2026-09-10
 
 - Reproducido el fallo sin Gemini: tonos PCM enviados por Web Audio en WebKitGTK 2.52.6 perdían señal o llegaban alterados. Cambiar frecuencia, retrasar el cierre o habilitar el mezclador no estabilizó la salida. Los WAV por el reproductor multimedia sí dieron señal uniforme.

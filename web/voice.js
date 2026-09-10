@@ -138,7 +138,7 @@ $('voice-test').onclick=action(async()=>{
   let reader;
   try{
     reader=await createOnlineReader(provider,generation);
-    reader.onAudio=()=>{if(generation===readingGeneration)showVoiceTest(reader,reader.stats.peak>0?(bufferedVoicePlayback&&!reader.audio?'Audio de '+label+' recibido; esperando el final del turno…':'Audio de '+label+' recibido; reproduciendo…'):'Respuesta de '+label+' recibida; esperando audio con señal…');};
+    reader.onAudio=()=>{if(generation===readingGeneration)showVoiceTest(reader,reader.stats.peak>0?(bufferedVoicePlayback&&!reader.audio?'Audio de '+label+' recibido; preparando la reproducción…':'Audio de '+label+' recibido; reproduciendo…'):'Respuesta de '+label+' recibida; esperando audio con señal…');};
     showVoiceTest(reader,'Conectado con '+label+'. Esperando audio…');
     await reader.read('Esta es una prueba de voz de Story Workbench. La nave azul descansa junto al faro.');
     if(generation===readingGeneration)showVoiceTest(reader,'Prueba terminada con '+label+'. Si no escuchaste nada, revisá la salida de sonido de la app y del sistema.');

@@ -9,7 +9,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
     pause(){this.paused=true;}
     removeAttribute(){} load(){}
   }
-  const c=vm.createContext({navigator:{userAgent:'Linux AppleWebKit Safari'},Audio,Blob,atob,Uint8Array,ArrayBuffer,DataView,URL:{createObjectURL:blob=>{const url='blob:'+ ++id;urls.set(url,blob);return url;},revokeObjectURL:url=>urls.delete(url)}});
+  const c=vm.createContext({setTimeout,clearTimeout,navigator:{userAgent:'Linux AppleWebKit Safari'},Audio,Blob,atob,Uint8Array,ArrayBuffer,DataView,URL:{createObjectURL:blob=>{const url='blob:'+ ++id;urls.set(url,blob);return url;},revokeObjectURL:url=>urls.delete(url)}});
   vm.runInContext('let voiceVolume=.35;'+fs.readFileSync('web/gemini-voice.js','utf8'),c);
   const session=()=>({output:new Set(),stats:{chunks:0,seconds:0,peak:0,played:0}});
   const part=values=>({mimeType:'audio/pcm;rate=24000',data:Buffer.from(new Int16Array(values).buffer).toString('base64')});
@@ -32,5 +32,19 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
   assert.throws(()=>c.playGeminiAudio(s,{mimeType:'audio/pcm;rate=16000',data:'AA=='}));
   assert.throws(()=>c.playGeminiAudio(s,{mimeType:'audio/pcm',data:'AA=='}));
   s.queuedBytes=48000*90;assert.throws(()=>c.playGeminiAudio(s,part([1])));assert.equal(s.pcmBytes,0);
+  const streaming=session(),before=played.length;
+  c.playGeminiAudio(streaming,part(new Array(24000).fill(1000)));
+  assert.equal(played.length,before+1); // Sin turnComplete ni flush externo.
+  const current=streaming.audio;current.duration=1;current.currentTime=.2;
+  c.playGeminiAudio(streaming,part(new Array(6000).fill(2000)));
+  assert.equal(streaming.output.size,1);current.currentTime=.8;current.ontimeupdate();
+  const next=[...streaming.output][1];assert.ok(next.audio);assert.equal(played.length,before+1);
+  vm.runInContext('voiceVolume=.6',c);current.onended();
+  assert.equal(streaming.audio,next.audio);assert.equal(streaming.audio.volume,.6);
+  c.clearGeminiAudio(streaming);
+  const short=session();c.playGeminiAudio(short,part([1000]));
+  await new Promise(resolve=>setTimeout(resolve,650));assert.ok(short.audio);c.clearGeminiAudio(short);
+  const cancelled=session(),count=played.length;c.playGeminiAudio(cancelled,part([1000]));c.clearGeminiAudio(cancelled);
+  await new Promise(resolve=>setTimeout(resolve,650));assert.equal(played.length,count);assert.equal(urls.size,0);
   console.log('OK PCM: WAV exacto, volumen, orden, cancelación, errores y memoria acotada.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

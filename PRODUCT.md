@@ -104,3 +104,7 @@ Tipografía de la app elegible entre cinco familias web safe, en el mismo panel 
 ## Salida de voz 0.8.6
 
 En WebKit de Linux, Gemini y la lectura online reproducen cada turno como WAV en memoria para evitar la salida PCM intermitente observada con Web Audio. Espera el final de cada turno; mantiene volumen, detención, interrupciones y hasta 90 segundos pendientes. Los demás motores conservan streaming. Ver [comprobaciones de señal y límites](MVP_RESULTS.md) y [voz](REALTIME.md).
+
+## Reproducción incremental 0.8.7
+
+La salida multimedia de Linux comienza con los primeros bloques PCM y precarga los siguientes durante la reproducción. Reemplaza la espera del turno completo introducida en 0.8.6; comparte el cambio entre conversación Gemini y lectura online. Conserva el control de volumen, interrupción y límite de memoria. La conexión y el primer audio dependen del proveedor. Ver [mediciones ejecutadas](MVP_RESULTS.md).

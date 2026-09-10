@@ -4,8 +4,9 @@ function sendGemini(session,message){if(realtime===session&&session.socket?.read
 // WebKitGTK puede avanzar el reloj de Web Audio sin entregar PCM estable al dispositivo.
 // Reutilizar la salida multimedia de la lectura local; otros motores conservan streaming.
 const bufferedVoicePlayback=/Linux/.test(navigator.userAgent)&&/AppleWebKit/.test(navigator.userAgent)&&!/(Chrome|Chromium)/.test(navigator.userAgent);
-function clearGeminiAudio(session){for(const source of session.output||[])try{source.stop();}catch{}session.output?.clear();session.playAt=0;session.pcmParts=[];session.pcmBytes=0;session.queuedBytes=0;}
+function clearGeminiAudio(session){clearTimeout(session.pcmTimer);session.pcmTimer=null;for(const source of session.output||[])try{source.stop();}catch{}session.output?.clear();session.playAt=0;session.pcmParts=[];session.pcmBytes=0;session.queuedBytes=0;}
 function flushGeminiAudio(session){
+  clearTimeout(session.pcmTimer);session.pcmTimer=null;
   if(!session.pcmBytes)return;
   const size=session.pcmBytes,parts=session.pcmParts,header=new ArrayBuffer(44),view=new DataView(header);
   for(const [offset,text] of [[0,'RIFF'],[8,'WAVE'],[12,'fmt '],[36,'data']])for(let i=0;i<text.length;i++)view.setUint8(offset+i,text.charCodeAt(i));
@@ -14,17 +15,22 @@ function flushGeminiAudio(session){
   const job={url:URL.createObjectURL(new Blob([header,...parts],{type:'audio/wav'})),bytes:size,chunks:parts.length};
   session.pcmParts=[];session.pcmBytes=0;
   job.stop=()=>{
-    if(job.audio){job.audio.onended=job.audio.onerror=null;job.audio.pause();job.audio.removeAttribute('src');job.audio.load();if(session.audio===job.audio)session.audio=null;}
+    if(job.audio){job.audio.onended=job.audio.onerror=job.audio.ontimeupdate=null;job.audio.pause();job.audio.removeAttribute('src');job.audio.load();if(session.audio===job.audio)session.audio=null;}
     URL.revokeObjectURL(job.url);
   };
-  session.output.add(job);playBufferedVoice(session);
+  session.output.add(job);
+  // Preparar el siguiente bloque mientras suena el actual evita abrir su decodificador al terminar.
+  job.audio=new Audio(job.url);job.audio.preload='auto';
+  job.audio.onerror=()=>{if(session.output.has(job)){clearGeminiAudio(session);session.onPlaybackError?.(Error('No se pudo reproducir el audio del proveedor.'));}};
+  job.audio.load();playBufferedVoice(session);
 }
 function playBufferedVoice(session){
   if(session.audio||!session.output.size)return;
-  const job=session.output.values().next().value,audio=new Audio(job.url);session.audio=job.audio=audio;audio.volume=voiceVolume;
+  const job=session.output.values().next().value,audio=job.audio;session.audio=audio;audio.volume=voiceVolume;
   const failed=()=>{if(session.audio!==audio)return;clearGeminiAudio(session);session.onPlaybackError?.(Error('No se pudo reproducir el audio del proveedor.'));};
   audio.onerror=failed;
-  audio.onended=()=>{if(session.audio!==audio)return;job.stop();session.output.delete(job);session.queuedBytes-=job.bytes;if(session.stats)session.stats.played+=job.chunks;playBufferedVoice(session);};
+  audio.ontimeupdate=()=>{if(session.audio===audio&&session.output.size===1&&session.pcmBytes&&audio.duration-audio.currentTime<.3)flushGeminiAudio(session);};
+  audio.onended=()=>{if(session.audio!==audio)return;job.stop();session.output.delete(job);session.queuedBytes-=job.bytes;if(session.stats)session.stats.played+=job.chunks;if(!session.output.size)flushGeminiAudio(session);playBufferedVoice(session);};
   audio.onplaying=()=>{if(session.audio===audio)session.onAudio?.();};
   audio.play().catch(failed);
 }
@@ -41,9 +47,12 @@ function playGeminiAudio(session,inline){
   for(let i=0;i<samples;i++)peak=Math.max(peak,Math.abs(view.getInt16(i*2,true)/32768));
   if(session.stats){session.stats.chunks++;session.stats.seconds+=samples/24000;session.stats.peak=Math.max(session.stats.peak,peak);}
   if(bufferedVoicePlayback){
-    // ponytail: un WAV por turno evita cortes entre palabras; hasta 90 s en memoria, sin archivos.
+    // Inicio con hasta 1 s; después bloques de 2 s precargados. Todo en memoria y acotado.
     if((session.queuedBytes||0)+bytes.length>48000*90)throw Error('La respuesta de voz supera el límite de reproducción.');
     (session.pcmParts??=[]).push(bytes);session.pcmBytes=(session.pcmBytes||0)+bytes.length;session.queuedBytes=(session.queuedBytes||0)+bytes.length;
+    if(session.pcmBytes>=48000*(session.audio?2:1))flushGeminiAudio(session);
+    else if(session.audio)session.audio.ontimeupdate?.();
+    else if(!session.audio&&!session.pcmTimer)session.pcmTimer=setTimeout(()=>{try{flushGeminiAudio(session);}catch(error){clearGeminiAudio(session);session.onPlaybackError?.(error);}},600);
     session.onAudio?.();return peak>0;
   }
   const context=session.audioContext;
@@ -69,7 +78,7 @@ async function geminiEvent(session,event){
   const content=data.serverContent;
   if(content?.interrupted){clearGeminiAudio(session);$('realtime-caption').textContent='';}
   for(const part of content?.modelTurn?.parts||[])if(part.inlineData)playGeminiAudio(session,part.inlineData);
-  if(content?.turnComplete)flushGeminiAudio(session);
+  if(content?.turnComplete||data.toolCall)flushGeminiAudio(session);
   if(content?.outputTranscription?.text)$('realtime-caption').textContent=($('realtime-caption').textContent+content.outputTranscription.text).slice(-8000);
   for(const id of data.toolCallCancellation?.ids||[])session.cancelled.add(id);
   // Las interrupciones de audio no esperan a una tarea HTTP pendiente.
