@@ -188,7 +188,7 @@ $('realtime-enabled').onchange=()=>{
   else if(!realtimeConfigured||!realtimeConsent)openVoiceSettings();
   renderRealtime();
 };
-function updateVoiceProviderNote(){$('realtime-provider-note').textContent=voiceProvider()==='gemini'?'Modelo: gemini-3.1-flash-live-preview. Usa una clave de Google AI Studio. AI Plus y la API son servicios separados; acceso, cuota y posibles cargos dependen del proyecto de la clave. Gemini puede operar la app sin una clave OpenAI. Las tareas editoriales siguen usando Codex con ChatGPT.':'Modelo: gpt-realtime. La API se factura por separado. Esta versión de Codex no admite Realtime con la sesión ChatGPT. No hay cambio automático a pago.';}
+function updateVoiceProviderNote(){$('realtime-provider-note').textContent=voiceProvider()==='gemini'?'Modelo: gemini-3.1-flash-live-preview. Usa una clave de Google AI Studio. AI Plus y la API son servicios separados; acceso, cuota y posibles cargos dependen del proyecto de la clave. Gemini puede operar la app sin una clave OpenAI. La lectura usa gemini-3.1-flash-tts-preview (Kore), dedicado a leer el texto. Las tareas editoriales siguen usando el motor elegido.':'Modelo: gpt-realtime. La API se factura por separado. Esta versión de Codex no admite Realtime con la sesión ChatGPT. La lectura usa gpt-4o-mini-tts (Marin) con la misma clave. No hay cambio automático a pago.';}
 function openVoiceSettings(){updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));showDialog($('realtime-dialog'));}
 $('realtime-settings').onclick=openVoiceSettings;
 $('realtime-dialog').addEventListener('close',()=>{$('realtime-key').value='';});

@@ -95,7 +95,15 @@
     if(!denied)throw Error('camera');
     stage='gemini-transport';
     const originalFetch=window.fetch,originalSocket=window.WebSocket,sent=[];
-    window.fetch=(input,options)=>['/api/realtime/connect','/api/realtime/read-session'].includes(String(input))?Promise.resolve(new Response(JSON.stringify({token:'fixture',setup:{},model:'gpt-realtime'}),{headers:{'Content-Type':'application/json'}})):originalFetch(input,options);
+    window.fetch=(input,options)=>{
+      let value;
+      if(['/api/realtime/connect','/api/realtime/read-session'].includes(String(input)))value={token:'fixture',setup:{},model:'tts-fixture'};
+      else if(String(input)==='/api/realtime/speech'){
+        const request=JSON.parse(options.body),samples=new Int16Array(2400);samples.fill(1000);
+        value=request.action==='start'?{id:'fixture'}:request.action==='cancel'?{cancelled:true}:{done:true,parts:[{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(samples.buffer)))}]};
+      }
+      return value?Promise.resolve(new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}})):originalFetch(input,options);
+    };
     window.WebSocket=class {
       static OPEN=1;readyState=1;
       constructor(url){this.openai=url.includes('api.openai.com');setTimeout(()=>{this.onopen?.();this.onmessage?.({data:JSON.stringify(this.openai?{type:'session.created'}:{setupComplete:{}})});},20);}

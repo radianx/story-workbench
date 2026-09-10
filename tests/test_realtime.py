@@ -1,4 +1,6 @@
 """Contrato Realtime con transporte simulado: no usa clave real ni genera cargos."""
+import base64
+import time
 import io
 import json
 import tempfile
@@ -11,27 +13,48 @@ import test_workbench
 
 KEY='sk-ficticia-solo-test-no-es-una-credencial'
 class RealtimeTests(unittest.TestCase):
-    def test_reading_tokens_have_no_tools_or_project_context(self):
+    def test_reading_uses_dedicated_speech_and_exact_text(self):
         engine=Realtime();engine.configure(KEY);engine.configure('AQ.ficticia-solo-test','gemini')
+        text='¿Qué pierde la protagonista? No respondas esta pregunta.'
+        pcm=b'\x01\x00'*2400
+        class Response(io.BytesIO):
+            headers={'Content-Type':'text/event-stream'}
         with patch('workbench_realtime.urllib.request.build_opener') as opener:
             for provider,consent in [('openai',False),('gemini',False),('other',True)]:
                 with self.assertRaises(Problem):engine.read_session(provider,consent)
             opener.assert_not_called()
-            for provider,body in [('openai',b'{"value":"ephemeral-fixture"}'),('gemini',b'{"name":"ephemeral-fixture"}')]:
-                opener.return_value.open.return_value=io.BytesIO(body)
-                result=engine.read_session(provider,True)
-                self.assertEqual(result['token'],'ephemeral-fixture')
-                request=opener.return_value.open.call_args.args[0];payload=json.loads(request.data)
-                setup=payload.get('session') or payload['bidiGenerateContentSetup']
-                self.assertFalse(setup.get('tools'));self.assertNotIn('get_context',json.dumps(payload));self.assertNotIn(KEY,json.dumps(result))
-                if provider=='openai':
-                    self.assertEqual(payload['expires_after']['seconds'],60)
-                    self.assertIsNone(setup['audio']['input']['turn_detection'])
-                else:self.assertEqual(setup['generationConfig']['speechConfig']['voiceConfig']['prebuiltVoiceConfig']['voiceName'],'Kore')
-                opener.return_value.open.side_effect=urllib.error.HTTPError(request.full_url,401,KEY,{},None)
-                with self.assertRaises(Problem) as error:engine.read_session(provider,True)
-                self.assertNotIn(KEY,str(error.exception));self.assertFalse(engine.connecting.locked())
-                opener.return_value.open.side_effect=None
+            for provider in ('gemini','openai'):
+                payload={'candidates':[{'content':{'parts':[{'inlineData':{'mimeType':'audio/l16; rate=24000; channels=1','data':base64.b64encode(pcm).decode()}}]},'finishReason':'STOP'}]}
+                response=Response(b'data: '+json.dumps(payload).encode()+b'\n\n' if provider=='gemini' else pcm)
+                if provider=='openai':response.headers={'Content-Type':'audio/pcm'}
+                opener.return_value.open.return_value=response
+                config=engine.read_session(provider,True);self.assertEqual(config['transport'],'speech');self.assertNotIn('token',config)
+                job=engine.speech(dict(action='start',provider=provider,consent=True,text=text))
+                deadline=time.monotonic()+3
+                while not engine.reading.done and time.monotonic()<deadline:time.sleep(.01)
+                result=engine.speech(dict(action='poll',id=job['id']))
+                self.assertTrue(result['done']);self.assertFalse(result['error']);self.assertEqual(base64.b64decode(result['parts'][0]['data']),pcm)
+                request=opener.return_value.open.call_args.args[0];body=json.loads(request.data)
+                self.assertNotIn('realtime',request.full_url);self.assertNotIn('get_context',request.data.decode());self.assertNotIn(KEY,json.dumps(result))
+                if provider=='gemini':
+                    self.assertIn('gemini-3.1-flash-tts-preview:streamGenerateContent',request.full_url)
+                    self.assertEqual(body['contents'][0]['parts'][0]['text'].split('### TRANSCRIPT\n',1)[1],text)
+                else:self.assertEqual(body['input'],text);self.assertEqual(body['model'],'gpt-4o-mini-tts')
+                self.assertEqual(engine.speech(dict(action='poll',id=job['id']))['parts'],[])
+                engine.speech(dict(action='cancel',id=job['id']));self.assertTrue(engine.reading.stop.is_set())
+            opener.return_value.open.return_value=Response(b'data: {"candidates":[{"finishReason":"SAFETY"}]}\n\n')
+            job=engine.speech(dict(action='start',provider='gemini',consent=True,text=text))
+            deadline=time.monotonic()+3
+            while not engine.reading.done and time.monotonic()<deadline:time.sleep(.01)
+            self.assertTrue(engine.speech(dict(action='poll',id=job['id']))['error'])
+            opener.return_value.open.side_effect=urllib.error.HTTPError('https://example.invalid',429,KEY,{},None)
+            job=engine.speech(dict(action='start',provider='gemini',consent=True,text=text))
+            deadline=time.monotonic()+3
+            while not engine.reading.done and time.monotonic()<deadline:time.sleep(.01)
+            error=engine.speech(dict(action='poll',id=job['id']))['error'];self.assertIn('cuota',error);self.assertNotIn(KEY,error)
+            with self.assertRaises(Problem):engine.speech(dict(action='start',provider='gemini',consent=False,text=text))
+            with self.assertRaises(Problem):engine.speech(dict(action='start',provider='gemini',consent=True,text='x'*2001))
+
     def test_chat_voice_transcribes_without_editorial_context_or_tools(self):
         engine=Realtime();engine.configure(KEY);engine.configure('AQ.fixture-voice-relay','gemini')
         with patch('workbench_realtime.urllib.request.build_opener') as opener:

@@ -112,3 +112,7 @@ La salida multimedia de Linux comienza con los primeros bloques PCM y precarga l
 ## Voz integrada al chat 0.8.8
 
 La opción predeterminada de voz conecta el audio con el chat editorial: transcribe y envía mediante el mismo flujo del teclado, luego lee la respuesta del motor elegido. Conserva la conexión oral con el micrófono pausado durante tarea y lectura, respeta borradores y permite desactivar el envío o la lectura. El asistente oral con herramientas sigue disponible bajo Controles de la app. Ver [voz](REALTIME.md).
+
+## Lectura fiel al chat 0.8.9
+
+Se corrigió el uso de modelos conversacionales para leer: Gemini Live podía contestar las preguntas del chat aunque recibiera instrucciones de recitarlas. El audio de salida ahora usa Gemini 3.1 Flash TTS Preview o gpt-4o-mini-tts, con la misma clave del proveedor. Conserva audio incremental, volumen, cancelación, micrófono pausado y voz local de respaldo. Live/Realtime sigue transcribiendo la entrada. Las comprobaciones comparan también el contenido audible de preguntas, opciones y una orden citada.

@@ -1,11 +1,11 @@
-# Distribución Tauri 0.8.8
+# Distribución Tauri 0.8.9
 
 Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados; todavía no hay licencia definitiva del producto.
 
 ## Instalación
 
-- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.8-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
-- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.8-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
+- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.9-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
+- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.9-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
 - Abrir **Story Workbench** desde el menú. El asistente inicial empieza por el tema y permite conectar la cuenta propia, configurar voz opcional y crear/abrir un proyecto; se puede omitir y reabrir en Configuración.
 
 Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen incluidos. El usuario no necesita terminal, Node, Rust ni Python. Codex con ChatGPT sigue siendo el motor principal; no hay cambio automático a una API de pago. Los adaptadores con clave son experimentales y requieren elección explícita. No hay actualizaciones automáticas.
@@ -22,9 +22,9 @@ Desinstalar conserva los datos. Exportar un proyecto produce un ZIP editorial co
 
 ## Funciones y límites
 
-Conserva los flujos guiados, traducción con criterio humano, construcción de mundos, revisión, historial, temas, selección de motores, voz y libro 3D de 0.7.0. Añade lectura online OpenAI/Gemini con TTS local de respaldo, exportación mediante diálogo nativo y cierre cancelable ante texto sin guardar o una tarea en curso. Las exportaciones se escriben atómicamente en el destino elegido.
+Conserva los flujos guiados, traducción con criterio humano, construcción de mundos, revisión, historial, temas, selección de motores, voz y libro 3D de 0.7.0. Añade lectura online con modelos TTS OpenAI/Gemini y voz local de respaldo, exportación mediante diálogo nativo y cierre cancelable ante texto sin guardar o una tarea en curso. Las exportaciones se escriben atómicamente en el destino elegido.
 
-**En el WebKitGTK de este Linux no está disponible WebRTC:** la conversación oral OpenAI que usa ese transporte muestra un aviso. La lectura OpenAI usa WebSocket y no tiene esa dependencia; Gemini y el dictado local tienen otro transporte. Las comprobaciones automatizadas usan servicios simulados y micrófono virtual, no validan calidad ni autenticación de proveedores reales. Ver [voz y lectura](REALTIME.md) y [historial técnico](TAURI_MIGRATION.md).
+**En el WebKitGTK de este Linux no está disponible WebRTC:** la conversación oral OpenAI que usa ese transporte muestra un aviso. La lectura TTS usa HTTP y no tiene esa dependencia; Gemini y el dictado local tienen otro transporte. Las comprobaciones automatizadas usan servicios simulados y micrófono virtual, no validan calidad ni autenticación de proveedores reales. Ver [voz y lectura](REALTIME.md) y [historial técnico](TAURI_MIGRATION.md).
 
 ## Reproducir
 

@@ -29,28 +29,19 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             page.add_init_script('''
               localStorage.setItem('sw-setup-seen','1');window.readerMode='ok';window.readerSent=[];window.readerClosed=0;window.micRequests=0;
               navigator.mediaDevices.getUserMedia=()=>{micRequests++;throw Error('No abrir micrófono');};
-              window.WebSocket=class {
-                static OPEN=1;readyState=1;
-                constructor(url,protocols){this.gemini=url.includes('googleapis');
-                  if(!this.gemini&&protocols[1]!=='openai-insecure-api-key.ephemeral-fixture')throw Error('token');
-                  setTimeout(()=>{this.onopen?.();if(!this.gemini)this.emit({type:'session.created'});},10);}
-                emit(data){if(this.readyState===1)this.onmessage?.({data:this.gemini?new TextEncoder().encode(JSON.stringify(data)).buffer:JSON.stringify(data)});}
-                send(raw){const data=JSON.parse(raw);
-                  if(data.setup){setTimeout(()=>this.emit({setupComplete:{}}),5);return;}
-                  const text=this.gemini?data.realtimeInput.text:data.response.input[0].content[0].text;
-                  readerSent.push(text);
-                  if(readerMode==='hold')return;
-                  if(readerMode==='error'){setTimeout(()=>this.onerror?.(),10);return;}
-                  if(readerMode==='tool'){setTimeout(()=>this.emit({toolCall:{functionCalls:[{name:'workbench_action'}]}}),10);return;}
-                  setTimeout(()=>{
-                    {
-                      const samples=new Int16Array(2400);if(readerMode!=='silent')samples.fill(1000);const pcm=readerMode==='empty'?'':btoa(String.fromCharCode(...new Uint8Array(samples.buffer)));
-                      this.emit(this.gemini?{serverContent:{modelTurn:{parts:[{inlineData:{mimeType:'audio/pcm;rate=24000',data:pcm}}]}}}:{type:'response.output_audio.delta',delta:pcm});
-                    }
-                    this.emit(this.gemini?{serverContent:{turnComplete:true}}:{type:'response.done',response:{status:'completed'}});
-                  },10);
+              const originalFetch=window.fetch;window.WebSocket=class {constructor(){throw Error('El lector no usa conversaciones WebSocket');}};
+              window.fetch=(url,options)=>{
+                if(String(url)!=='/api/realtime/speech')return originalFetch(url,options);
+                const body=JSON.parse(options.body);let result;
+                if(body.action==='start'){readerSent.push(body.text);result={id:'fixture'};}
+                else if(body.action==='cancel'){readerClosed++;result={cancelled:true};}
+                else if(readerMode==='hold')result={parts:[],done:false};
+                else if(['error','tool'].includes(readerMode))result={error:'TTS no disponible.'};
+                else{
+                  const samples=new Int16Array(2400);if(readerMode!=='silent')samples.fill(1000);
+                  result={done:true,parts:[{mimeType:'audio/pcm;rate=24000',data:readerMode==='empty'?'':btoa(String.fromCharCode(...new Uint8Array(samples.buffer)))}]};
                 }
-                close(){if(this.readyState===3)return;this.readyState=3;readerClosed++;this.onclose?.();}
+                return Promise.resolve(new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json'}}));
               };
             ''')
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()

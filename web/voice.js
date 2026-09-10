@@ -38,13 +38,13 @@ async function readText(text){
   try {
     if(onlineReadingAllowed()){
       voiceStatus('Preparando lectura online · micrófono cerrado…');
-      try{reader=await createOnlineReader(voiceProvider(),generation);reader.onAudio=()=>{if(generation===readingGeneration&&reader.audio&&!reader.audio.paused)voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));};}catch{fallback=true;}
+      try{reader=await createOnlineReader(voiceProvider(),generation);reader.onAudio=()=>{if(generation===readingGeneration&&reader.audio&&!reader.audio.paused)voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini TTS':'OpenAI TTS')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));};}catch{fallback=true;}
     }
     for(const chunk of chunks){
       if(generation!==readingGeneration)return;
       if(reader){
-        voiceStatus('Esperando audio de '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));
-        try{await reader.read(chunk);continue;}catch(error){reader.close();reader=null;fallback=true;if(error.message==='No llegó audio.')fallbackReason='No llegó audio del proveedor.';}
+        voiceStatus('Esperando audio de '+(reader.provider==='gemini'?'Gemini TTS':'OpenAI TTS')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));
+        try{await reader.read(chunk);continue;}catch(error){reader.close();reader=null;fallback=true;fallbackReason=error.message==='No llegó audio.'?'No llegó audio del proveedor.':error.message;}
         if(generation!==readingGeneration)return;
       }
       const blob=await api('/api/voice/read',{text:chunk});
@@ -57,68 +57,48 @@ async function readText(text){
     voiceStatus(fallback?'Lectura terminada con voz local de respaldo. '+fallbackReason:'Lectura terminada.');
   } finally {if(generation===readingGeneration){stopReading();renderVoice();}}
 }
-// Sesión de lectura sin micrófono, herramientas, fuentes ni historial editorial.
+// TTS dedicado: recibe el texto del chat, sin turno conversacional, micrófono ni herramientas.
 async function createOnlineReader(provider,generation){
-  const session={provider,audioContext:bufferedVoicePlayback?null:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null,stats:{chunks:0,seconds:0,peak:0,played:0,transcript:''}};
+  const session={provider,audioContext:bufferedVoicePlayback?null:new AudioContext(),output:new Set(),closed:false,pending:null,stats:{chunks:0,seconds:0,peak:0,played:0,transcript:''}};
   onlineReading=session;
   const cancelled=()=>session.closed||generation!==readingGeneration;
-  session.close=(error=Error('Lectura cerrada.'))=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(error);session.pending?.reject(error);session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext&&session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
-  const fail=error=>session.close(error instanceof Error?error:Error('Se interrumpió la conexión de voz.'));
-  session.onPlaybackError=fail;
-  const ready=new Promise((resolve,reject)=>{session.resolveReady=resolve;session.rejectReady=reject;});
-  session.connectTimer=setTimeout(fail,30000);
+  const cancelJob=id=>api('/api/realtime/speech',{action:'cancel',id}).catch(()=>{});
+  let rejectReady;
+  const ready=new Promise((_,reject)=>{rejectReady=reject;});
+  session.close=(error=Error('Lectura cerrada.'))=>{
+    if(session.closed)return;session.closed=true;clearTimeout(session.connectTimer);rejectReady(error);clearGeminiAudio(session);
+    if(session.job)cancelJob(session.job);
+    if(session.audioContext&&session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});
+  };
+  session.onPlaybackError=error=>{session.error=error;session.close(error);};
+  session.connectTimer=setTimeout(()=>session.close(Error('La preparación de voz tardó demasiado.')),30000);
   try{
-    // Incluye la activación de audio en el plazo y permite cancelarla si el motor la bloquea.
-    await Promise.race([session.audioContext?.resume()||Promise.resolve(),ready]);
-    if(cancelled())throw Error('Lectura cancelada.');
-    const connection=await api('/api/realtime/read-session',{provider,consent:true});
-    if(cancelled())throw Error('Lectura cancelada.');
-    session.socket=provider==='gemini'
-      ?new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token='+encodeURIComponent(connection.token))
-      :new WebSocket('wss://api.openai.com/v1/realtime?model='+encodeURIComponent(connection.model),['realtime','openai-insecure-api-key.'+connection.token]);
-    session.socket.binaryType='arraybuffer';
-    session.limit=setTimeout(fail,600000);
-    session.socket.onerror=()=>fail(Error('No se pudo mantener la conexión de voz.'));
-    session.socket.onclose=event=>fail(Error(`El proveedor cerró la sesión de voz${Number.isInteger(event?.code)?' (código '+event.code+')':''}.`));
-    session.socket.onopen=()=>{if(provider==='gemini')session.socket.send(JSON.stringify({setup:connection.setup}));};
-    session.queue=Promise.resolve();
-    session.socket.onmessage=event=>{session.queue=session.queue.then(async()=>{
-      if(cancelled())return;
-      const raw=typeof event.data==='string'?event.data:new TextDecoder().decode(event.data);
-      if(cancelled())return;
-      if(raw.length>2000000)throw Error('Respuesta demasiado grande.');
-      const data=JSON.parse(raw);
-      if(data.error||data.type==='error'||data.toolCall||data.type==='response.function_call_arguments.done')throw Error('Respuesta de lectura inválida.');
-      if(data.setupComplete||data.type==='session.created'){clearTimeout(session.connectTimer);session.resolveReady();return;}
-      const pending=session.pending;if(!pending)return;
-      if(data.serverContent?.outputTranscription?.text){session.stats.transcript=(session.stats.transcript+data.serverContent.outputTranscription.text).slice(-2000);session.onAudio?.();}
-      const audio=provider==='gemini'?(data.serverContent?.modelTurn?.parts||[]).filter(p=>p.inlineData).map(p=>p.inlineData):data.type==='response.output_audio.delta'?[{mimeType:'audio/pcm;rate=24000',data:data.delta}]:[];
-      for(const part of audio)if(playGeminiAudio(session,part)){
-        pending.received=true;clearTimeout(pending.firstAudio);
-        voiceStatus((bufferedVoicePlayback?'Recibiendo audio de ':'Leyendo con ')+(provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));
-      }
-      if(data.serverContent?.interrupted)throw Error('Lectura interrumpida.');
-      if(data.type==='response.done'){
-        if(data.response?.status!=='completed')throw Error('Lectura incompleta.');
-        pending.done=true;
-      }
-      if(data.serverContent?.turnComplete)pending.done=true;
-      if(pending.done&&!pending.received)throw Error('No llegó audio.');
-      if(pending.done)flushGeminiAudio(session);
-    }).catch(fail);};
-    await ready;
-    if(cancelled())throw Error('Lectura cancelada.');
-    session.read=text=>new Promise((resolve,reject)=>{
-      if(cancelled()){reject(Error('Lectura cerrada.'));return;}
-      session.pending={resolve,reject,received:false,done:false};
-      session.pending.firstAudio=setTimeout(()=>fail(Error('No llegó audio.')),15000);
-      const timeout=setTimeout(fail,90000);
-      session.drain=setInterval(()=>{const p=session.pending;if(p?.done&&!session.output.size){clearTimeout(timeout);clearInterval(session.drain);session.pending=null;p.resolve();}},40);
-      // Al cerrar se cancela también la espera del fragmento actual.
-      session.pending.reject=error=>{clearTimeout(session.pending?.firstAudio);clearTimeout(timeout);clearInterval(session.drain);reject(error);};
-      const message=provider==='gemini'?{realtimeInput:{text}}:{type:'response.create',response:{conversation:'none',output_modalities:['audio'],tools:[],tool_choice:'none',input:[{type:'message',role:'user',content:[{type:'input_text',text}]}]}};
-      try{session.socket.send(JSON.stringify(message));}catch{fail();}
-    });
+    await Promise.race([(async()=>{await session.audioContext?.resume();if(cancelled())return;return api('/api/realtime/read-session',{provider,consent:true});})(),ready]);
+    clearTimeout(session.connectTimer);if(cancelled())throw Error('Lectura cancelada.');
+    session.read=async text=>{
+      if(cancelled())throw Error('Lectura cerrada.');
+      session.pending={};let received=false,done=false;
+      const start=Date.now();
+      try{
+        const job=await api('/api/realtime/speech',{action:'start',provider,text,consent:true});
+        if(cancelled()){cancelJob(job.id);throw Error('Lectura cancelada.');}
+        session.job=job.id;
+        while(!cancelled()){
+          if(!done){
+            const update=await api('/api/realtime/speech',{action:'poll',id:job.id});
+            if(cancelled())break;
+            if(update.error||update.cancelled)throw Error(update.error||'La lectura fue cancelada.');
+            for(const part of update.parts||[])if(playGeminiAudio(session,part))received=true;
+            done=update.done;
+            if(done){flushGeminiAudio(session);if(!received)throw Error('No llegó audio.');}
+          }
+          if(done&&!session.output.size){session.job=null;return;}
+          if((!received&&Date.now()-start>15000)||Date.now()-start>90000)throw Error('No llegó audio.');
+          await new Promise(resolve=>setTimeout(resolve,100));
+        }
+        throw session.error||Error('Lectura cancelada.');
+      }finally{session.pending=null;}
+    };
     return session;
   }catch(error){session.close();throw error;}
 }
@@ -128,7 +108,7 @@ function showVoiceTest(reader,message){
   $('voice-test-details').textContent=stats?`Audio recibido: ${stats.chunks} fragmentos · ${stats.seconds.toFixed(1)} s · señal máxima ${(stats.peak*100).toFixed(1)}% · procesados por el reproductor: ${stats.played}. Motor de audio: ${reader.audioContext?.state||'WAV compatible'}. Volumen: ${Math.round(voiceVolume*100)}%.${stats.transcript?' Texto devuelto: '+stats.transcript:''}`:'';
 }
 $('voice-test').onclick=action(async()=>{
-  const provider=voiceProvider(),label=provider==='gemini'?'Gemini Live':'OpenAI Realtime';
+  const provider=voiceProvider(),label=provider==='gemini'?'Gemini TTS':'OpenAI TTS';
   showVoiceTest(null,'');
   if(!realtimeConfigured||!realtimeConsent){showVoiceTest(null,'Guardá la clave y los permisos del proveedor en Asistente de voz online antes de probar.');return;}
   if(!voiceVolume){showVoiceTest(null,'El volumen está en 0%. Subilo antes de probar la voz.');return;}

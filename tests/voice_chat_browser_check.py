@@ -25,6 +25,16 @@ with tempfile.TemporaryDirectory(prefix='sw-voice-chat-') as directory:
             page=browser.new_page(permissions=['microphone']);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.add_init_script('''
 localStorage.setItem('sw-setup-seen','1');window.sockets=[];window.readTexts=[];
+const originalFetch=window.fetch;window.ttsDone=false;
+window.fetch=(url,options)=>{
+ if(String(url)!=='/api/realtime/speech')return originalFetch(url,options);
+ const body=JSON.parse(options.body);let value={parts:[],done:false};
+ if(body.action==='start'){readTexts.push(body.text);ttsDone=false;value={id:'fixture'};}
+ if(body.action==='cancel')value={cancelled:true};
+ if(body.action==='poll'&&ttsDone){const pcm=new Int16Array(2400);pcm.fill(1000);value={done:true,parts:[{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(pcm.buffer)))}]};}
+ return Promise.resolve(new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}}));
+};
+
 window.WebSocket=class {
  static OPEN=1;readyState=1;bufferedAmount=0;
  constructor(url){sockets.push(this);setTimeout(()=>this.onopen?.(),0);}
@@ -64,11 +74,7 @@ window.WebSocket=class {
             # El final natural de una lectura también recupera la escucha continua.
             page.evaluate("()=>{readText('Respuesta ficticia para terminar de leer.').catch(e=>{throw e;});}")
             page.wait_for_function('()=>readTexts.length===2')
-            page.evaluate('''()=>{
-              const pcm=new Int16Array(2400);pcm.fill(1000);
-              readerSocket.emit({serverContent:{modelTurn:{parts:[{inlineData:{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(pcm.buffer)))}}]}}});
-              readerSocket.emit({serverContent:{turnComplete:true}});
-            }''')
+            page.evaluate('()=>ttsDone=true')
             page.wait_for_function('()=>!readingActive && realtime.stream.getAudioTracks()[0].enabled')
             # Un borrador escrito se conserva y no se envía automáticamente.
             page.locator('#prompt').fill('Borrador previo.')

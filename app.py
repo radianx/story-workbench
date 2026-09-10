@@ -59,6 +59,7 @@ class AppServer(ThreadingHTTPServer):
             raise
 
     def server_close(self):
+        if self.realtime.reading:self.realtime.reading.cancel()
         super().server_close()
         if self.instance_fd is not None:
             os.close(self.instance_fd)
@@ -181,6 +182,9 @@ class Handler(BaseHTTPRequestHandler):
                 result=(self.server.realtime.connect_gemini(snapshot,body.get('consent'),body.get('actions',False),**options) if provider=='gemini'
                         else self.server.realtime.connect(snapshot,body.get('sdp'),body.get('consent'),body.get('actions',False),**options))
                 self.send(200,result)
+                return
+            if path == '/api/realtime/speech':
+                self.send(200,self.server.realtime.speech(body))
                 return
             if path == '/api/realtime/read-session':
                 self.send(200,self.server.realtime.read_session(body.get('provider'),body.get('consent')))
