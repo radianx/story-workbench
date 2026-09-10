@@ -40,7 +40,8 @@ if (token) sessionStorage.setItem('sw-token', token);
 history.replaceState(null, '', '/');
 let state = null, current = null, dirty = false, view = 'edit', panel = 'conversation', polling = false, backgroundURL = null;
 let stateEpoch = 0;
-let noticeTimer, lastRuns = '', lastProposals = '', lastDecisions = '';
+let lastRuns = '', lastProposals = '', lastDecisions = '';
+const notices=[];
 const busy = () => state?.runs.findLast(r => ['connecting','running','cancelling'].includes(r.status));
 const currentRuns = () => state?.runs.slice(state.history_start||0)||[];
 const draftKey = () => `sw-draft-${state.id}-${current.id}`;
@@ -48,14 +49,34 @@ const draftKey = () => `sw-draft-${state.id}-${current.id}`;
 // El orden del HTML no coincide con el orden de apertura de diálogos anidados.
 let dialogStack=[];
 function topDialog(){dialogStack=dialogStack.filter(dialog=>dialog.open);return dialogStack.at(-1);}
-function placeNotice(){const dialog=topDialog();if(dialog)dialog.prepend($('notice'));else document.body.append($('notice'));}
+function placeNotice(){
+  const dialog=topDialog();
+  if(dialog)dialog.prepend($('notice'));
+  else if(!state)$('welcome').prepend($('notice'));
+  else{$('notice').hidden=true;document.body.append($('notice'));}
+}
 function showDialog(dialog){dialog.showModal();dialogStack=dialogStack.filter(item=>item!==dialog);dialogStack.push(dialog);placeNotice();}
+function renderNotices(markRead=false){
+  if(markRead)for(const entry of notices)entry.unread=false;
+  const unread=notices.filter(entry=>entry.unread).length;
+  $('notices-count').textContent=unread;$('notices-count').hidden=!unread;
+  document.querySelector('[data-panel="notices"]').setAttribute('aria-label',unread?`Avisos · ${unread} sin leer`:'Avisos');
+  $('notices-clear').disabled=!notices.length;
+  $('notices-list').innerHTML=notices.slice().reverse().map(entry=>`<article class="notice-entry ${entry.error?'notice-error':''}"><div><strong>${entry.error?'Error':'Aviso'}</strong><time>${new Date(entry.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</time>${entry.count>1?`<span>×${entry.count}</span>`:''}</div><p>${escapeHTML(entry.text)}</p>${entry.project?`<small>${escapeHTML(entry.project)}</small>`:''}</article>`).join('')||'<p class="assistant-empty">No hay avisos en esta sesión.</p>';
+}
 function notice(text, error=false) {
+  const previous=notices.at(-1),project=state?.title||'';
+  if(previous&&previous.text===text&&previous.error===error&&previous.project===project){previous.count++;previous.date=Date.now();previous.unread=true;}
+  else notices.push({text,error,project,date:Date.now(),count:1,unread:true});
+  // ponytail: últimos 100 avisos en memoria de esta ventana; sin historial en disco.
+  if(notices.length>100)notices.shift();
+  renderNotices(panel==='notices'&&!$('workspace').hidden&&!topDialog());
+  $('notices-live').setAttribute('aria-live',error?'assertive':'polite');
+  $('notices-live').textContent=state&&!topDialog()?(error?'Error: ':'')+text:'';
   if(!error && !$('notice').hidden && $('notice').classList.contains('error'))return;
   placeNotice();
-  $('notice-text').textContent = text; $('notice').setAttribute('role',error?'alert':'status'); $('notice').setAttribute('aria-live',error?'assertive':'polite'); $('notice').classList.toggle('error',error); $('notice').hidden = false;
+  $('notice-text').textContent = text; $('notice').setAttribute('role',error?'alert':'status'); $('notice').setAttribute('aria-live',error?'assertive':'polite'); $('notice').classList.toggle('error',error); $('notice').hidden = !!state&&!topDialog();
   if(error && topDialog())$('notice').scrollIntoView({block:'nearest'});
-  clearTimeout(noticeTimer); if(!error)noticeTimer = setTimeout(() => $('notice').hidden = true, 4500);
 }
 async function api(path, data) {
   if(data)stateEpoch++;
@@ -301,7 +322,8 @@ function renderAssistant() {
   if(decisionsKey!==lastDecisions){lastDecisions=decisionsKey;$('decisions').innerHTML=state.decisions.slice().reverse().map(d=>`<div class="decision"><span class="tag">${labels[d.status]}</span><p>${escapeHTML(d.text)}</p><small>${new Date(d.date*1000).toLocaleString('es')}</small></div>`).join('') || '<p class="assistant-empty">Todavía no registraste decisiones.</p>';}
 }
 function showPanel(name) {
-  panel=name; for(const n of ['conversation','proposals','decisions']) $(`${n}-panel`).hidden=n!==name;
+  panel=name; for(const n of ['conversation','proposals','decisions','notices']) $(`${n}-panel`).hidden=n!==name;
+  if(name==='notices')renderNotices(true);
   document.querySelectorAll('[data-panel]').forEach(b=>{b.classList.toggle('active',b.dataset.panel===name);b.setAttribute('aria-selected',b.dataset.panel===name);});
 }
 async function poll() {
@@ -345,6 +367,7 @@ $('role').onchange=action(async e=>{if(!current)return;state=await api('/api/doc
 $('reload').onclick=action(async()=>{if(dirty && !confirm('¿Descartar el borrador y cargar la versión guardada?'))return;sessionStorage.removeItem(draftKey());state=await api(`/api/projects/${state.id}`);openDocument(current.id,true);});
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;renderView();});
 document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
+$('notices-clear').onclick=()=>{notices.length=0;renderNotices();};
 document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>{if(!current)return;view='edit';renderView();const e=$('editor'),start=e.selectionStart,end=e.selectionEnd,selected=e.value.slice(start,end),mark=b.dataset.format==='bold'?'**':b.dataset.format==='italic'?'*':'## ';e.focus();e.setSelectionRange(start,end);
   // insertText conserva la pila nativa de deshacer en Chromium; setRangeText la saltea.
   const replacement=mark+selected+(b.dataset.format==='heading'?'':mark);

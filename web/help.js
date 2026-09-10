@@ -92,6 +92,7 @@ const helpTopics = [
   ['shortcuts','Atajos y navegación',[
     'F1: abrir ayuda. Escape: cerrar el diálogo actual; si hay cambios pendientes, respetá su aviso. Tab y Shift+Tab: recorrer controles. Enter o Espacio: activar un botón o desplegar una explicación.',
     'Enter: enviar desde el mensaje. Shift+Enter: salto de línea. Ctrl+Enter también envía. Ctrl+S: guardar el documento. Ctrl+Z: deshacer. Ctrl+Shift+Z: rehacer. Ctrl+Shift+F: entrar o salir de foco. En macOS se usa Cmd en lugar de Ctrl.',
+    'Avisos, junto a Propuestas y Decisiones, reúne guardados, errores y resultados de esta ventana. El contador indica los nuevos y se limpia al abrir la pestaña. Limpiar avisos vacía esa lista; no borra archivos. Los errores de un formulario también aparecen dentro de él.',
     'Las explicaciones esenciales también están en esta ayuda y junto a sus controles. Los textos al pasar el puntero son recordatorios opcionales.'
   ]]
 ];

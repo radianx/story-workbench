@@ -36,7 +36,8 @@ const label=document.createElement('label');label.htmlFor='prompt';label.classNa
 $('prompt').rows=2;
 const entry=document.createElement('div');entry.className='composer-entry';$('prompt').before(entry);
 const entryActions=document.createElement('div');entryActions.className='composer-entry-actions';
-entry.append($('prompt'),entryActions);entryActions.append(microphoneControls,$('cancel'),$('send'));
+const sendControls=document.createElement('div');sendControls.className='send-controls';sendControls.append($('send'),autoRead);
+entry.append($('prompt'),entryActions);entryActions.append(microphoneControls,$('cancel'),sendControls);
 function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();renderEngine();showDialog($('settings-dialog'));refreshWorkspace().catch(error=>notice(error.message,true));}
 $('settings-open').onclick=openSettings;
 $('settings-close').onclick=()=>$('settings-dialog').close();

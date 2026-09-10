@@ -77,7 +77,7 @@ with tempfile.TemporaryDirectory(prefix='sw-themes-archive-') as directory:
             original=page.locator('#editor').input_value();page.locator('#editor').fill(original+'\nUna prueba.');page.locator('#archive-project').click()
             page.wait_for_function("()=>$('notice-text').textContent.includes('Guardá los cambios')")
             assert server.store.list_projects()[0]['id']==project
-            page.locator('#notice-close').click();page.locator('#save').click();page.wait_for_function('()=>!dirty')
+            page.locator('[data-panel=notices]').click();assert 'Guardá los cambios' in page.locator('#notices-list').inner_text();page.locator('[data-panel=conversation]').click();page.locator('#save').click();page.wait_for_function('()=>!dirty')
             files={f.relative_to(server.store.root):f.read_bytes() for f in server.store.root.rglob('*') if f.is_file() and f.name!='project.json'}
             page.locator('#prompt').fill('Mensaje sin enviar')
             page.locator('#archive-project').focus();page.keyboard.press('Enter');page.locator('#welcome').wait_for()

@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='sw-motion-') as directory:
             assert page.locator('#save').evaluate("e=>getComputedStyle(e,'::after').animationName")=='workbench-wait'
             page.evaluate('finishAction()');page.wait_for_function('()=>!document.querySelector("#save").hasAttribute("aria-busy")')
             page.evaluate("()=>{document.querySelector('#save').onclick=action(async()=>{throw new Error('Fallo ficticio')});document.querySelector('#save').click()}")
-            page.get_by_text('Fallo ficticio',exact=True).wait_for();assert page.locator('#save').get_attribute('aria-busy') is None;page.locator('#notice-close').click()
+            page.locator('[data-panel=notices]').click();page.locator('#notices-list').get_by_text('Fallo ficticio',exact=True).wait_for();assert page.locator('#save').get_attribute('aria-busy') is None;page.locator('[data-panel=conversation]').click()
             # Repetir un formulario ocupado tampoco permite la navegación nativa.
             page.evaluate("()=>{window.formCalls=0;const form=document.querySelector('#decision-form'),button=form.querySelector('button');form.onsubmit=action(e=>{e.preventDefault();formCalls++;return new Promise(resolve=>window.finishForm=resolve)});window.submitOnce=()=>form.dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:button}));}")
             assert page.evaluate('submitOnce()') is False

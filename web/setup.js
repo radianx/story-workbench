@@ -35,7 +35,7 @@ $('setup-workspace').onclick=()=>{$('setup-dialog').close();openSettings();$('wo
 $('setup-resume').onclick=action(async()=>{const id=$('setup-project').value;if(!id)return;rememberSetup();$('setup-dialog').close();await openProject(id);});
 
 // Destinos explícitos compartidos por teclado y voz; nunca aprobaciones ni clicks arbitrarios.
-const navigationLabels={back:'Cerrar sección abierta',conversation:'Conversación',proposals:'Propuestas',decisions:'Decisiones',library:'Biblioteca',material:'Material',settings:'Configuración',model:'Modelo y esfuerzo',voice:'Configuración de voz',account:'Cuenta ChatGPT',setup:'Asistente inicial',help:'Ayuda',book:'Libro 3D',plan:'Plan y avance',translation:'Traducción'};
+const navigationLabels={back:'Cerrar sección abierta',conversation:'Conversación',proposals:'Propuestas',decisions:'Decisiones',notices:'Avisos',library:'Biblioteca',material:'Material',settings:'Configuración',model:'Modelo y esfuerzo',voice:'Configuración de voz',account:'Cuenta ChatGPT',setup:'Asistente inicial',help:'Ayuda',book:'Libro 3D',plan:'Plan y avance',translation:'Traducción'};
 async function navigateWorkbench(target){
   if(!Object.hasOwn(navigationLabels,target))throw new Error('Sección no permitida.');
   const modal=topDialog();
@@ -59,7 +59,7 @@ async function navigateWorkbench(target){
   else{
     if(!state)throw new Error('Abrí un proyecto primero.');
     if(document.body.classList.contains('focus'))$('focus').click();
-    if(['conversation','proposals','decisions'].includes(target)){
+    if(['conversation','proposals','decisions','notices'].includes(target)){
       showPanel(target);const panel=$(target+'-panel');panel.tabIndex=-1;panel.focus();if(target==='conversation')$('prompt').focus();
     }else if(target==='library'){
       document.body.classList.add('library-open');$('library-toggle').setAttribute('aria-expanded','true');$('search').focus();

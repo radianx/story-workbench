@@ -1,3 +1,10 @@
+# Avisos y controles de envío · Tauri 0.8.11 — 2026-09-10
+
+- Enviar ampliado a un mínimo de 132 × 52 px, símbolo ↵ decorativo y casilla Leer respuestas debajo. Conserva Enter/Shift+Enter y el micrófono junto al campo.
+- Avisos sustituye los mensajes flotantes durante el trabajo: contador de nuevos, marcado al consultar, limpieza, hora y proyecto, repeticiones consecutivas agrupadas. Hasta 100 entradas en memoria de la ventana; no se guardan en disco. Los formularios y el inicio sin proyecto conservan feedback dentro de su contenido.
+- Pasaron los recorridos UX, setup, microinteracciones y temas/archivo con ficción. Se comprobaron disposición/tamaño de Enviar, atajos, scroll, contador, agrupación, límite de 100, texto HTML inerte, navegación compartida con voz, limpieza sin escrituras y errores visibles en diálogos anidados tanto en escritorio como en ventana compacta. Sin llamadas IA ni micrófono físico.
+- Instaladores Tauri 0.8.11 Linux .deb y Windows NSIS generados. Verificados 32/103 archivos de runtime, fuentes Windows y SHA256 de ambos paquetes. No se probó interfaz Windows real ni se actualizó la instalación del usuario.
+
 # Chat, formato y teclado · Tauri 0.8.10 — 2026-09-10
 
 - Enter envía desde el mensaje y Shift+Enter inserta un salto de línea. Conserva Ctrl/Cmd+Enter y reutiliza el botón Enviar, incluidos sus bloqueos. La repetición de tecla y la confirmación de composición IME no envían mensajes.

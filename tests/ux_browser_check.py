@@ -87,12 +87,32 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('#new-doc').click(); page.locator('#new-name').fill('No crear')
             page.keyboard.press('Escape'); page.wait_for_timeout(100)
             assert len(server.store.snapshot(project)['documents'])==5
-            # Los errores siguen legibles hasta cerrar; un éxito posterior no los pisa.
+            # Avisos persistentes en su pestaña, sin superponer mensajes al chat.
+            page.locator('[data-panel=notices]').click();page.locator('#notices-clear').click()
+            page.locator('[data-panel=conversation]').click()
             page.evaluate("notice('Error ficticio persistente',true);notice('Éxito posterior')")
-            page.wait_for_timeout(12500)
-            assert page.locator('#notice').is_visible()
-            assert page.locator('#notice-text').inner_text()=='Error ficticio persistente'
-            page.locator('#notice-close').click(); assert not page.locator('#notice').is_visible()
+            assert not page.locator('#notice').is_visible()
+            assert page.locator('#notices-count').inner_text()=='2'
+            assert page.locator('#conversation-panel').is_visible()
+            page.locator('[data-panel=notices]').click()
+            assert not page.locator('#notices-count').is_visible()
+            assert page.locator('#notices-list .notice-error').inner_text().find('Error ficticio persistente')>=0
+            assert page.locator('#notices-list').inner_text().find('Éxito posterior')>=0
+            page.evaluate("notice('<script>window.injected=true</script>',true)")
+            assert not page.locator('#notices-list script').count() and not page.evaluate('window.injected')
+            assert not page.locator('#notices-count').is_visible()
+            page.locator('[data-panel=conversation]').click()
+            page.evaluate("notice('Repetido');notice('Repetido')")
+            assert page.locator('#notices-count').inner_text()=='1'
+            page.evaluate("navigateWorkbench('notices')")
+            assert '×2' in page.locator('#notices-list').inner_text()
+            page.locator('#notices-clear').click();assert page.locator('#notices-list .notice-entry').count()==0
+            before=len(writes)
+            page.evaluate("for(let i=0;i<105;i++)notice('Aviso de límite '+i)")
+            assert page.locator('#notices-list .notice-entry').count()==100 and len(writes)==before
+            assert page.locator('#notices-list .notice-entry').last.locator('p').inner_text()=='Aviso de límite 5'
+            page.locator('#notices-clear').click()
+            page.locator('[data-panel=conversation]').click()
             # Hilo ficticio ya iniciado: cambiar a guiado no inicia una entrevista real.
             run = dict(id='ux-run', mode='interview', prompt='Una historia ficticia', status='completed',
                        text='¿Qué querés explorar?\n'*160, sources=[], date=0)
@@ -103,7 +123,9 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.wait_for_function("() => document.body.classList.contains('guided')")
             # Acciones junto al texto; los selectores comparten una fila inferior.
             rects=page.evaluate("() => ['prompt','send','dictate','auto-read','mode','ai-model','ai-effort'].map(id=>{const r=$(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom};})")
-            assert all(r['top']<rects[0]['bottom'] and r['bottom']>rects[0]['top'] for r in rects[1:4]),rects
+            assert all(r['top']<rects[0]['bottom'] and r['bottom']>rects[0]['top'] for r in rects[1:3]),rects
+            assert rects[3]['top']>=rects[1]['bottom'] and rects[1]['bottom']-rects[1]['top']>=52,rects
+            assert page.locator('#send').inner_text()=='Enviar ↵'
             assert max(r['bottom'] for r in rects[4:])-min(r['bottom'] for r in rects[4:])<3,rects
             page.screenshot(path='/tmp/sw-composer-wide.png',full_page=True)
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')

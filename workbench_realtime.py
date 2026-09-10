@@ -23,7 +23,7 @@ TOOLS=[
     dict(type='function',name='workbench_action',description='Operar controles de la app a petición del autor. No aprueba, sobrescribe ni elimina documentos. Las decisiones preparadas requieren Registro manual.',
          parameters=dict(type='object',properties={
              'action':dict(type='string',enum=list(ACTIONS)),
-             'target':dict(type='string',description='ID de documento, tema system/light/dark o sección conversation/proposals/decisions/help/translation/plan/book/settings/model/voice/account/setup/library/material/back.'),
+             'target':dict(type='string',description='ID de documento, tema system/light/dark o sección conversation/proposals/decisions/notices/help/translation/plan/book/settings/model/voice/account/setup/library/material/back.'),
              'mode':dict(type='string',enum=['',*TASKS]),
              'text':dict(type='string',description='Petición completa o decisión provisional; vacío si no hace falta.')},
              required=['action','target','mode','text'],additionalProperties=False))]

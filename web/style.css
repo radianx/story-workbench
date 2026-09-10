@@ -235,8 +235,22 @@ dialog #notice{position:sticky;top:0;bottom:auto;left:auto;transform:none;width:
 .markdown-table:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .composer-entry{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
 .composer-entry #prompt{flex:1 1 240px;min-width:0;width:0;margin:0}
-.composer-entry-actions{display:flex;align-items:center;gap:8px;flex:none}
-.composer-entry-actions .auto-read-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer}
+.composer-entry-actions{display:flex;align-items:flex-start;gap:8px;flex:none}
+.composer-entry-actions .microphone-controls{padding-top:6px}
+.send-controls{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:132px}
+.send-controls #send{width:100%;min-height:52px;padding:12px 20px;font-size:15px;font-weight:600}
+.send-controls #send span{font-size:20px;margin-left:8px}
+.assistant-tabs{overflow-x:auto}
+.assistant-tabs button{white-space:nowrap;flex-shrink:0}
+#notices-count{display:inline-block;min-width:18px;padding:1px 5px;border-radius:10px;background:var(--green);color:var(--paper);font-size:10px}
+.notice-entry{border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:12px;background:var(--paper);overflow-wrap:anywhere}
+.notice-entry>div{display:flex;align-items:center;gap:8px;font-size:12px}
+.notice-entry time{margin-left:auto;color:var(--muted)}
+.notice-entry p{white-space:pre-wrap;font-size:13px;line-height:1.6;margin:8px 0}
+.notice-entry small{color:var(--muted)}
+.notice-error{border-left:4px solid var(--error,#b85142)}
+#welcome>#notice{position:static;transform:none;max-width:100%;margin:0 0 20px}
+.composer-entry-actions .auto-read-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;margin:0}
 .composer-bottom{flex-wrap:nowrap;align-items:end;overflow-x:auto;max-width:100%;padding-bottom:3px}
 .composer-bottom>button{flex:none;white-space:nowrap}
 .composer-bottom .composer-options{flex:1 0 auto;flex-wrap:nowrap;min-width:0;max-width:none;align-items:end}

@@ -120,3 +120,7 @@ Se corrigió el uso de modelos conversacionales para leer: Gemini Live podía co
 ## Chat 0.8.10
 
 Enter envía y Shift+Enter inserta un salto de línea. Enviar, el micrófono y Leer respuestas acompañan al campo de texto; tarea/modelo/esfuerzo usan una fila inferior desplazable en espacios estrechos. El chat baja al final ante mensajes nuevos y texto entrante del agente. Las respuestas, su historial y los aportes del equipo muestran Markdown: encabezados, énfasis, listas, citas, código, enlaces y tablas con desplazamiento horizontal. La vista previa comparte el parser; el texto guardado conserva su formato original. HTML se muestra como texto y las imágenes no se descargan automáticamente.
+
+## Avisos y envío 0.8.11
+
+Enviar es más grande y muestra ↵; Leer respuestas queda debajo. La pestaña Avisos reúne hasta 100 notificaciones de esta ventana, agrupa repeticiones consecutivas y marca como leídos al abrirla, sin tapar ni cambiar el chat. Incluye Limpiar avisos y acceso mediante la navegación de teclado/voz. No guarda notificaciones en disco. Los formularios conservan sus mensajes dentro del diálogo y el inicio sin proyecto los muestra en su contenido.
