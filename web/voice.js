@@ -37,7 +37,7 @@ async function readText(text){
   try {
     if(onlineReadingAllowed()){
       voiceStatus('Preparando lectura online · micrófono cerrado…');
-      try{reader=await createOnlineReader(voiceProvider(),generation);}catch{fallback=true;}
+      try{reader=await createOnlineReader(voiceProvider(),generation);reader.onAudio=()=>{if(generation===readingGeneration&&reader.audio&&!reader.audio.paused)voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');};}catch{fallback=true;}
     }
     for(const chunk of chunks){
       if(generation!==readingGeneration)return;
@@ -58,16 +58,17 @@ async function readText(text){
 }
 // Sesión de lectura sin micrófono, herramientas, fuentes ni historial editorial.
 async function createOnlineReader(provider,generation){
-  const session={provider,audioContext:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null,stats:{chunks:0,seconds:0,peak:0,played:0,transcript:''}};
+  const session={provider,audioContext:bufferedVoicePlayback?null:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null,stats:{chunks:0,seconds:0,peak:0,played:0,transcript:''}};
   onlineReading=session;
   const cancelled=()=>session.closed||generation!==readingGeneration;
-  session.close=(error=Error('Lectura cerrada.'))=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(error);session.pending?.reject(error);session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
+  session.close=(error=Error('Lectura cerrada.'))=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(error);session.pending?.reject(error);session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext&&session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
   const fail=error=>session.close(error instanceof Error?error:Error('Se interrumpió la conexión de voz.'));
+  session.onPlaybackError=fail;
   const ready=new Promise((resolve,reject)=>{session.resolveReady=resolve;session.rejectReady=reject;});
   session.connectTimer=setTimeout(fail,30000);
   try{
     // Incluye la activación de audio en el plazo y permite cancelarla si el motor la bloquea.
-    await Promise.race([session.audioContext.resume(),ready]);
+    await Promise.race([session.audioContext?.resume()||Promise.resolve(),ready]);
     if(cancelled())throw Error('Lectura cancelada.');
     const connection=await api('/api/realtime/read-session',{provider,consent:true});
     if(cancelled())throw Error('Lectura cancelada.');
@@ -93,7 +94,7 @@ async function createOnlineReader(provider,generation){
       const audio=provider==='gemini'?(data.serverContent?.modelTurn?.parts||[]).filter(p=>p.inlineData).map(p=>p.inlineData):data.type==='response.output_audio.delta'?[{mimeType:'audio/pcm;rate=24000',data:data.delta}]:[];
       for(const part of audio)if(playGeminiAudio(session,part)){
         pending.received=true;clearTimeout(pending.firstAudio);
-        voiceStatus('Leyendo con '+(provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
+        voiceStatus((bufferedVoicePlayback?'Recibiendo audio de ':'Leyendo con ')+(provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
       }
       if(data.serverContent?.interrupted)throw Error('Lectura interrumpida.');
       if(data.type==='response.done'){
@@ -102,6 +103,7 @@ async function createOnlineReader(provider,generation){
       }
       if(data.serverContent?.turnComplete)pending.done=true;
       if(pending.done&&!pending.received)throw Error('No llegó audio.');
+      if(pending.done)flushGeminiAudio(session);
     }).catch(fail);};
     await ready;
     if(cancelled())throw Error('Lectura cancelada.');
@@ -122,7 +124,7 @@ async function createOnlineReader(provider,generation){
 function showVoiceTest(reader,message){
   const stats=reader?.stats;
   $('voice-test-status').textContent=message;
-  $('voice-test-details').textContent=stats?`Audio recibido: ${stats.chunks} fragmentos · ${stats.seconds.toFixed(1)} s · señal máxima ${(stats.peak*100).toFixed(1)}% · procesados por el reproductor: ${stats.played}. Motor de audio: ${reader.audioContext.state}. Volumen: ${Math.round(voiceVolume*100)}%.${stats.transcript?' Texto devuelto: '+stats.transcript:''}`:'';
+  $('voice-test-details').textContent=stats?`Audio recibido: ${stats.chunks} fragmentos · ${stats.seconds.toFixed(1)} s · señal máxima ${(stats.peak*100).toFixed(1)}% · procesados por el reproductor: ${stats.played}. Motor de audio: ${reader.audioContext?.state||'WAV compatible'}. Volumen: ${Math.round(voiceVolume*100)}%.${stats.transcript?' Texto devuelto: '+stats.transcript:''}`:'';
 }
 $('voice-test').onclick=action(async()=>{
   const provider=voiceProvider(),label=provider==='gemini'?'Gemini Live':'OpenAI Realtime';
@@ -136,7 +138,7 @@ $('voice-test').onclick=action(async()=>{
   let reader;
   try{
     reader=await createOnlineReader(provider,generation);
-    reader.onAudio=()=>{if(generation===readingGeneration)showVoiceTest(reader,reader.stats.peak>0?'Audio de '+label+' recibido; reproduciendo…':'Respuesta de '+label+' recibida; esperando audio con señal…');};
+    reader.onAudio=()=>{if(generation===readingGeneration)showVoiceTest(reader,reader.stats.peak>0?(bufferedVoicePlayback&&!reader.audio?'Audio de '+label+' recibido; esperando el final del turno…':'Audio de '+label+' recibido; reproduciendo…'):'Respuesta de '+label+' recibida; esperando audio con señal…');};
     showVoiceTest(reader,'Conectado con '+label+'. Esperando audio…');
     await reader.read('Esta es una prueba de voz de Story Workbench. La nave azul descansa junto al faro.');
     if(generation===readingGeneration)showVoiceTest(reader,'Prueba terminada con '+label+'. Si no escuchaste nada, revisá la salida de sonido de la app y del sistema.');

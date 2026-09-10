@@ -1,3 +1,14 @@
+# Salida de voz en Linux · Tauri 0.8.6 — 2026-09-10
+
+- Reproducido el fallo sin Gemini: tonos PCM enviados por Web Audio en WebKitGTK 2.52.6 perdían señal o llegaban alterados. Cambiar frecuencia, retrasar el cierre o habilitar el mezclador no estabilizó la salida. Los WAV por el reproductor multimedia sí dieron señal uniforme.
+- WebKit de Linux reúne la respuesta PCM por turno y reproduce un WAV en memoria, compartido por Gemini conversacional y la lectura Gemini/OpenAI. Conserva volumen, cola, cancelación y errores; espera el final del turno y limita a 90 segundos el audio pendiente. No modifica el formato del micrófono ni cambia el streaming de otros motores.
+- Pasaron 44 pruebas de backend, cinco recorridos de navegador (lectura y conversación Gemini en ambas rutas, más voz local), y la comprobación Node de cabecera/contenido WAV, orden, volumen, cancelación, error y límite de memoria.
+- `tests/webkit_audio_output_check.py` midió cuatro tonos completos de tres segundos, sin huecos y con RMS estable, dirigidos a HAYLOU S35 ANC; dos con el reloj de entrada de 16 kHz activo, sin micrófono. La captura se limita al flujo de la prueba.
+- Tres pruebas reales desde Configuración de la app extraída, con la clave ya guardada y una frase ficticia: respuestas de 5,9 / 5,8 / 6,5 segundos, con señal de voz medida en la salida Bluetooth. En la tercera, el pico capturado fue 26895/32768. No se usó TTS de respaldo ni se abrió el micrófono. Esto verifica entrega al sistema de audio; la escucha física sostenida por el usuario queda por confirmar.
+- Se restableció al 100% el flujo de reproducción atenuado por el volumen recordado del sistema. Las pruebas nativas comparten los roles de audio de la sesión: un identificador de aplicación separado no aísla ese volumen en este PipeWire. No se dejó aplicado ese intento de aislamiento ni se cambió el perfil Bluetooth.
+- El paquete final pasó dos arranques Tauri con perfil y claves ficticios. Se corrigió una carrera del automatizador: espera `DOMContentLoaded` antes de utilizar los scripts diferidos. Verificados instaladores Linux .deb y Windows NSIS, 32/100 archivos de runtime e integridad SHA256. No se validó interfaz Windows real.
+- La versión extraída quedó abierta para prueba local. La instalación del .deb requiere contraseña de administrador; no se reemplazó el paquete instalado. Sin cambios en manuscritos ni credenciales en el repositorio.
+
 # Equipo editorial, chats y apariencia · Tauri 0.8.5 — 2026-09-10
 
 - Pasaron 44 pruebas de backend y 4 de Rust. Equipo limitado a tres colaboradores con modelo/esfuerzo explícitos, validación antes de inferencia, reparto con fuentes permitidas, rechazo de modelo inesperado antes de enviar una tarea, cancelación conjunta y recuperación del estado de tareas interrumpidas al reiniciar. El panel excluye del contexto de cada lector sinopsis, canon, intención, conversaciones y opiniones ajenas; comparación de Markdown antes/después sin cambios.

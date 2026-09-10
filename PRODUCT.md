@@ -99,3 +99,8 @@ Nueva conversación vacía el chat actual y reinicia el historial que reciben Co
 Ver material usa la paleta activa en sus controles, bordes y pie, también para temas personalizados. El selector de tema ocupa todo el ancho disponible en Apariencia e inicio.
 
 Tipografía de la app elegible entre cinco familias web safe, en el mismo panel de apariencia y en el inicio: Sistema/sans-serif, Arial/Liberation Sans, Georgia/serif, Times New Roman/Liberation Serif y Courier New/Liberation Mono. Se recuerda por usuario, se aplica antes del primer pintado y no descarga fuentes ni modifica los manuscritos.
+
+
+## Salida de voz 0.8.6
+
+En WebKit de Linux, Gemini y la lectura online reproducen cada turno como WAV en memoria para evitar la salida PCM intermitente observada con Web Audio. Espera el final de cada turno; mantiene volumen, detención, interrupciones y hasta 90 segundos pendientes. Los demás motores conservan streaming. Ver [comprobaciones de señal y límites](MVP_RESULTS.md) y [voz](REALTIME.md).

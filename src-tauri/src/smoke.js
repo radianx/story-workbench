@@ -4,6 +4,7 @@
   let stage='startup';
   const finish=ok=>fetch('/__smoke',{method:'POST',headers,body:ok?'ok':stage});
   try{
+    if(document.readyState==='loading')await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
     for(let n=0;n<100&&typeof openSetup!=='function';n++)await new Promise(r=>setTimeout(r,100));
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
     if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35'||document.documentElement.dataset.darkPalette!=='custom'||document.querySelector('#background-opacity').value!=='42'||document.documentElement.dataset.font!=='mono')throw Error('persisted-preferences');}
@@ -111,7 +112,8 @@
       await startRealtime();await new Promise(r=>setTimeout(r,800));
       if(!realtime?.ready||!sent.some(message=>message.realtimeInput?.audio))throw Error('gemini-pcm');
       playGeminiAudio(realtime,{mimeType:'audio/pcm;rate=24000',data:btoa(String.fromCharCode(...new Uint8Array(2400)))});
-      if(Math.abs(realtime.volumeNode.gain.value-.35)>.00001)throw Error('voice-volume');
+      flushGeminiAudio(realtime);
+      if(Math.abs((realtime.audio?.volume??realtime.volumeNode?.gain.value)-.35)>.00001)throw Error('voice-volume');
       await new Promise(r=>setTimeout(r,150));
       const geminiTracks=realtime.stream.getTracks();stopRealtime();
       if(geminiTracks.some(t=>t.readyState!=='ended'))throw Error('gemini-release');

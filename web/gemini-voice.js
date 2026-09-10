@@ -1,7 +1,33 @@
 'use strict';
 // Gemini Live usa PCM/WebSocket; comparte permisos y acciones con la voz WebRTC.
 function sendGemini(session,message){if(realtime===session&&session.socket?.readyState===WebSocket.OPEN)session.socket.send(JSON.stringify(message));}
-function clearGeminiAudio(session){for(const source of session.output||[])try{source.stop();}catch{}session.output?.clear();session.playAt=0;}
+// WebKitGTK puede avanzar el reloj de Web Audio sin entregar PCM estable al dispositivo.
+// Reutilizar la salida multimedia de la lectura local; otros motores conservan streaming.
+const bufferedVoicePlayback=/Linux/.test(navigator.userAgent)&&/AppleWebKit/.test(navigator.userAgent)&&!/(Chrome|Chromium)/.test(navigator.userAgent);
+function clearGeminiAudio(session){for(const source of session.output||[])try{source.stop();}catch{}session.output?.clear();session.playAt=0;session.pcmParts=[];session.pcmBytes=0;session.queuedBytes=0;}
+function flushGeminiAudio(session){
+  if(!session.pcmBytes)return;
+  const size=session.pcmBytes,parts=session.pcmParts,header=new ArrayBuffer(44),view=new DataView(header);
+  for(const [offset,text] of [[0,'RIFF'],[8,'WAVE'],[12,'fmt '],[36,'data']])for(let i=0;i<text.length;i++)view.setUint8(offset+i,text.charCodeAt(i));
+  view.setUint32(4,36+size,true);view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
+  view.setUint32(24,24000,true);view.setUint32(28,48000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);view.setUint32(40,size,true);
+  const job={url:URL.createObjectURL(new Blob([header,...parts],{type:'audio/wav'})),bytes:size,chunks:parts.length};
+  session.pcmParts=[];session.pcmBytes=0;
+  job.stop=()=>{
+    if(job.audio){job.audio.onended=job.audio.onerror=null;job.audio.pause();job.audio.removeAttribute('src');job.audio.load();if(session.audio===job.audio)session.audio=null;}
+    URL.revokeObjectURL(job.url);
+  };
+  session.output.add(job);playBufferedVoice(session);
+}
+function playBufferedVoice(session){
+  if(session.audio||!session.output.size)return;
+  const job=session.output.values().next().value,audio=new Audio(job.url);session.audio=job.audio=audio;audio.volume=voiceVolume;
+  const failed=()=>{if(session.audio!==audio)return;clearGeminiAudio(session);session.onPlaybackError?.(Error('No se pudo reproducir el audio del proveedor.'));};
+  audio.onerror=failed;
+  audio.onended=()=>{if(session.audio!==audio)return;job.stop();session.output.delete(job);session.queuedBytes-=job.bytes;if(session.stats)session.stats.played+=job.chunks;playBufferedVoice(session);};
+  audio.onplaying=()=>{if(session.audio===audio)session.onAudio?.();};
+  audio.play().catch(failed);
+}
 function closeGeminiVoice(session){
   session.socket?.close();clearGeminiAudio(session);session.inputNode?.disconnect();session.inputSource?.disconnect();
   if(session.audioContext&&session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});
@@ -11,12 +37,19 @@ function playGeminiAudio(session,inline){
   const binary=atob(inline.data);if(binary.length%2)throw new Error('Audio incompleto.');
   const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0)),view=new DataView(bytes.buffer),samples=bytes.length/2;
   if(!samples)return;
+  let peak=0;
+  for(let i=0;i<samples;i++)peak=Math.max(peak,Math.abs(view.getInt16(i*2,true)/32768));
+  if(session.stats){session.stats.chunks++;session.stats.seconds+=samples/24000;session.stats.peak=Math.max(session.stats.peak,peak);}
+  if(bufferedVoicePlayback){
+    // ponytail: un WAV por turno evita cortes entre palabras; hasta 90 s en memoria, sin archivos.
+    if((session.queuedBytes||0)+bytes.length>48000*90)throw Error('La respuesta de voz supera el límite de reproducción.');
+    (session.pcmParts??=[]).push(bytes);session.pcmBytes=(session.pcmBytes||0)+bytes.length;session.queuedBytes=(session.queuedBytes||0)+bytes.length;
+    session.onAudio?.();return peak>0;
+  }
   const context=session.audioContext;
   if((session.playAt||0)-context.currentTime>30)throw new Error('La reproducción no puede seguir el ritmo del audio.');
   const buffer=context.createBuffer(1,samples,24000),channel=buffer.getChannelData(0);
-  let peak=0;
-  for(let i=0;i<samples;i++){channel[i]=view.getInt16(i*2,true)/32768;peak=Math.max(peak,Math.abs(channel[i]));}
-  if(session.stats){session.stats.chunks++;session.stats.seconds+=buffer.duration;session.stats.peak=Math.max(session.stats.peak,peak);}
+  for(let i=0;i<samples;i++)channel[i]=view.getInt16(i*2,true)/32768;
   if(!session.volumeNode){session.volumeNode=context.createGain();session.volumeNode.gain.value=voiceVolume;session.volumeNode.connect(context.destination);}
   const source=context.createBufferSource();source.buffer=buffer;source.connect(session.volumeNode);session.output.add(source);
   source.onended=()=>{session.output.delete(source);source.disconnect();if(session.stats&&!session.closed)session.stats.played++;};
@@ -36,6 +69,7 @@ async function geminiEvent(session,event){
   const content=data.serverContent;
   if(content?.interrupted){clearGeminiAudio(session);$('realtime-caption').textContent='';}
   for(const part of content?.modelTurn?.parts||[])if(part.inlineData)playGeminiAudio(session,part.inlineData);
+  if(content?.turnComplete)flushGeminiAudio(session);
   if(content?.outputTranscription?.text)$('realtime-caption').textContent=($('realtime-caption').textContent+content.outputTranscription.text).slice(-8000);
   for(const id of data.toolCallCancellation?.ids||[])session.cancelled.add(id);
   // Las interrupciones de audio no esperan a una tarea HTTP pendiente.
@@ -53,6 +87,7 @@ async function geminiEvent(session,event){
 }
 async function startGeminiVoice(session){
   session.output=new Set();session.cancelled=new Set();
+  session.onPlaybackError=error=>{if(realtime===session)stopRealtime(error.message);};
   session.audioContext=new AudioContext({sampleRate:16000});
   if(session.audioContext.sampleRate!==16000)throw new Error('Este dispositivo no permite el formato de voz.');
   await session.audioContext.audioWorklet.addModule('/voice-capture.js');

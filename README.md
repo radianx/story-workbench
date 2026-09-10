@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.5**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.6**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 

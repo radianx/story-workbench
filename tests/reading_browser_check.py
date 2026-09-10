@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from app import AppServer
 from playwright.sync_api import sync_playwright
+buffered='--webkit-playback' in sys.argv
 
 with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
     server=AppServer(0,directory);server.account.set(status='signed_out')
@@ -23,7 +24,8 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
     try:
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox','--autoplay-policy=no-user-gesture-required'])
-            page=browser.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            options={'user_agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 Safari/605.1.15'} if buffered else {}
+            page=browser.new_page(**options);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
             page.add_init_script('''
               localStorage.setItem('sw-setup-seen','1');window.readerMode='ok';window.readerSent=[];window.readerClosed=0;window.micRequests=0;
               navigator.mediaDevices.getUserMedia=()=>{micRequests++;throw Error('No abrir micrófono');};
@@ -59,7 +61,7 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             page.locator('#settings-close').click()
             page.evaluate("""()=>{
               window.gains=[];window.localVolumes=[];
-              const play=playGeminiAudio;playGeminiAudio=(s,a)=>{const audible=play(s,a);gains.push(s.volumeNode?.gain.value);return audible;};
+              const play=playGeminiAudio;playGeminiAudio=(s,a)=>{const audible=play(s,a);if(s.volumeNode)gains.push(s.volumeNode.gain.value);return audible;};
               const localPlay=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){localVolumes.push(this.volume);return localPlay.call(this);};
             }""")
             page.evaluate("()=>readText('Lectura local inicial.')")
@@ -72,6 +74,8 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
                 assert page.evaluate("readerSent.join('')")==value and sessions[-1]==provider
                 assert len(local)==1 and page.evaluate('!readingActive && onlineReading===null && micRequests===0')
             assert all(abs(gain-.36)<.00001 for gain in page.evaluate('gains'))
+            assert page.evaluate('bufferedVoicePlayback')==buffered
+            assert all(abs(volume-.36)<.00001 for volume in page.evaluate('localVolumes'))
             for failure in ('error','empty','silent','tool','hold'):
                 page.evaluate('mode=>readerMode=mode',failure)
                 value='Respaldo local por '+failure
@@ -85,11 +89,12 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             page.locator('#read-stop').click();page.evaluate('()=>readingPromise')
             assert len(local)==before and page.evaluate('!readingActive && onlineReading===null')
             # La cancelación también libera una activación de audio suspendida por el motor.
-            count=len(sessions)
-            page.evaluate("()=>{window.originalResume=AudioContext.prototype.resume;AudioContext.prototype.resume=()=>new Promise(()=>{});window.readingPromise=readText('Audio bloqueado.');}")
-            page.locator('#read-stop').click();page.evaluate('()=>readingPromise')
-            assert len(sessions)==count and len(local)==before
-            page.evaluate('()=>{AudioContext.prototype.resume=originalResume;}')
+            if not buffered:
+                count=len(sessions)
+                page.evaluate("()=>{window.originalResume=AudioContext.prototype.resume;AudioContext.prototype.resume=()=>new Promise(()=>{});window.readingPromise=readText('Audio bloqueado.');}")
+                page.locator('#read-stop').click();page.evaluate('()=>readingPromise')
+                assert len(sessions)==count and len(local)==before
+                page.evaluate('()=>{AudioContext.prototype.resume=originalResume;}')
             # Cancelar mientras llega el token no abre luego un socket ni activa el respaldo.
             pending=[]
             page.route('**/api/realtime/read-session',lambda route:pending.append(route))

@@ -6,6 +6,7 @@ import threading
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from app import AppServer
 from playwright.sync_api import sync_playwright
+buffered='--webkit-playback' in sys.argv
 
 with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
     server=AppServer(0,directory);server.account.set(status='signed_out')
@@ -19,7 +20,8 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
     try:
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox','--use-fake-device-for-media-stream'])
-            page=browser.new_page(permissions=['microphone']);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            options={'user_agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 Safari/605.1.15'} if buffered else {}
+            page=browser.new_page(permissions=['microphone'],**options);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.add_init_script('''window.geminiSent=[];window.WebSocket=class {
                 static OPEN=1;
                 constructor(url){this.url=url;this.readyState=1;this.bufferedAmount=0;window.geminiSocket=this;setTimeout(()=>this.onopen(),0)}
@@ -53,13 +55,17 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
             page.locator('#dictate').click();assert len(connections)==1
             # PCM little-endian 24 kHz reproducible y barge-in sin esperar herramientas.
             page.evaluate('()=>geminiReceive({serverContent:{modelTurn:{parts:[{inlineData:{mimeType:"audio/pcm;rate=24000",data:btoa("\\0".repeat(48000))}}]},outputTranscription:{text:"Una pregunta ficticia."}}})')
+            if buffered:
+                page.wait_for_function('()=>realtime.pcmBytes===48000 && !realtime.output.size')
+                page.evaluate('()=>geminiReceive({serverContent:{turnComplete:true}})')
             page.wait_for_function('()=>realtime.output.size>0')
             page.evaluate("()=>{$('voice-volume').value='25';$('voice-volume').oninput();}")
-            assert page.evaluate('realtime.volumeNode.gain.value')==.25
+            assert page.evaluate('realtime.audio?.volume??realtime.volumeNode.gain.value')==.25
             page.evaluate("()=>{$('voice-volume').value='0';$('voice-volume').oninput();}")
-            assert page.evaluate('realtime.volumeNode.gain.value')==0
+            assert page.evaluate('realtime.audio?.volume??realtime.volumeNode.gain.value')==0
             page.evaluate('()=>geminiReceive({serverContent:{interrupted:true}})')
             page.wait_for_function('()=>realtime.output.size===0')
+            assert page.evaluate('!realtime.pcmBytes && !realtime.audio')
             # Cancelar una acción antes de ejecutarla no cambia la UI.
             page.evaluate('()=>{geminiReceive({toolCallCancellation:{ids:["cancelled"]}});geminiReceive({toolCall:{functionCalls:[{id:"cancelled",name:"workbench_action",args:{action:"set_theme",target:"light",mode:"",text:""}}]}})}')
             page.wait_for_timeout(100);assert page.locator('#theme').input_value()=='dark'

@@ -19,6 +19,8 @@ La conversación oral y sus subtítulos son temporales, no un historial editoria
 
 ## Lectura de respuestas
 
+En WebKit de Linux, la salida PCM del proveedor se reúne por turno y se reproduce como WAV en memoria. Corrige la salida intermitente observada con Web Audio y auriculares Bluetooth; no guarda grabaciones. La lectura espera el audio completo de cada fragmento y la conversación Gemini espera el final del turno antes de hablar. Se mantienen volumen, detención e interrupciones; el máximo pendiente es 90 segundos de audio. Los demás motores conservan la reproducción incremental. Recibir fragmentos o terminar el reloj del reproductor, por sí solo, no demuestra que el sonido haya llegado al dispositivo.
+
 Configuración → Voz y lectura → **Leer respuestas con** permite usar el proveedor de voz autorizado (predeterminado) o elegir **Siempre voz local**. El control **Volumen de voz** ajusta de 0 a 100% el asistente online y la lectura, sin cambiar el micrófono. Se recuerda en el equipo. La preferencia del lector también se recuerda; recordar una clave no reactiva el consentimiento. Escuchar y la lectura automática de respuestas nuevas comparten este comportamiento.
 
 La casilla **Leer respuestas**, junto al micrófono del chat, activa la lectura de las nuevas respuestas editoriales. Desmarcarla detiene la lectura actual. No reproduce el historial al activarla y se desactiva al cambiar de proyecto. También funciona cuando termina una tarea iniciada por voz: cierra la conversación oral para narrar sin eco; pulsá el micrófono para retomarla.
