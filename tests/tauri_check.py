@@ -5,9 +5,11 @@ ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--binary',type=Path,default=ROOT/'src-tauri/target/debug/story-workbench')
 parser.add_argument('--dialog-tool',type=Path,help='xdotool para comprobar Guardar/Cancelar en el diálogo GTK real')
+parser.add_argument('--formats-only',action='store_true',help='Comprueba UI, módulos y PDF sin tocar micrófono, salida de audio ni llavero.')
 args=parser.parse_args();command=args.binary.resolve()
 with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
     env={**os.environ,'STORY_TEST_DATA':directory,'STORY_TAURI_SMOKE':'1','XDG_DATA_HOME':str(Path(directory)/'gtk-data')}
+    if args.formats_only:env['STORY_TAURI_FORMATS_ONLY']='1'
     stopped=threading.Event();dialog_errors=[];dialog_count=[];folder_count=[]
     original=Path(directory)/'original';original.mkdir();(original/'cuento.md').write_text('Ficción de carpeta.')
     def dialogs():
@@ -71,4 +73,4 @@ with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
         subprocess.run([str(command)],env={**env,'STORY_TAURI_CLEANUP':'1'},check=True,timeout=30)
     assert (Path(directory)/'projects').is_dir()
     assert not (Path(directory)/'codex/auth.json').exists()
-print('OK Tauri: sidecar, interfaz WebKit, proyecto ficticio, editor, navegación, tema entre reinicios, libro y exportación HTTP. Claves ficticias guardadas/recuperadas/borradas en llavero nativo, audio virtual, cámara denegada, lectura local, transporte Gemini y lectura OpenAI/Gemini simulados. WebRTC se informa por separado.')
+print('OK Tauri: dos arranques, editor, preferencias persistidas, módulos ES, importación y PDF; sin pruebas de audio/llavero.' if args.formats_only else 'OK Tauri: sidecar, interfaz WebKit, proyecto ficticio, editor, navegación, tema entre reinicios, libro y exportación HTTP. Claves ficticias guardadas/recuperadas/borradas en llavero nativo, audio virtual, cámara denegada, lectura local, transporte Gemini y lectura OpenAI/Gemini simulados. WebRTC se informa por separado.')

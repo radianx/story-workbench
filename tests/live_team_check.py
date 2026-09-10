@@ -2,9 +2,9 @@
 import sys,tempfile,time
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from workbench_store import Store
-from workbench_ai import Assistant
-from workbench_team import team_preferences
+from src.workbench_store import Store
+from src.workbench_ai import Assistant
+from src.workbench_team import team_preferences
 with tempfile.TemporaryDirectory(prefix='sw-live-team-') as directory:
     store=Store(directory);project=store.create('Ficción de lectores',True)['id'];assistant=Assistant(store)
     data=store.load(project);data['ai_preferences']={'model':'gpt-5.6-sol','effort':'low'}

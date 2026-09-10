@@ -2,8 +2,8 @@
 import asyncio
 import json
 from scripts.codex_smoke import Server
-from workbench_account import ai_preferences
-from workbench_store import Problem, check
+from src.workbench_account import ai_preferences
+from src.workbench_store import Problem, check
 
 TEAM_MODES = ('diagnosis', 'impact', 'draft', 'proposal', 'summary', 'translate', 'panel')
 
@@ -75,8 +75,8 @@ async def run_team(assistant, server, thread, inputs, chosen, policy, overrides,
     # El catálogo ya fue validado antes de gastar el primer turno del principal.
     worker_ai = {k: preferences[k] for k in ('model', 'effort')}
     project, run_id = run['project_id'], run['id']
-    from workbench_ai import EDITOR_INSTRUCTIONS, MODES
-    from workbench_modes import GUIDES
+    from src.workbench_ai import EDITOR_INSTRUCTIONS, MODES
+    from src.workbench_modes import GUIDES
 
     async def pipeline():
         assistant.update(project, run_id, stage='team_plan', status='running', team_stage='Repartiendo tareas')

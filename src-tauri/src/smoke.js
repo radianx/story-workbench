@@ -22,7 +22,7 @@
     const response=await fetch('/api/projects',{method:'POST',headers,body:JSON.stringify({title:'Ficción Tauri',demo:true})});
     if(!response.ok)throw Error('create');const project=await response.json();await openProject(project.id);
     if(!document.querySelector('#editor').value.includes('llave azul'))throw Error('editor');
-    if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls #theme').length!==1)throw Error('composer-theme');
+    if(!document.querySelector('.send-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls #theme').length!==1)throw Error('composer-theme');
     await navigateWorkbench('settings');document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
     stage='custom-theme';customizeCurrentTheme();
     if(!customTheme('dark')||!/^#[0-9a-f]{6}$/i.test(customTheme('dark').colors.green))throw Error('custom-theme');
@@ -55,6 +55,19 @@
       if(snapshot.documents.length!==1||snapshot.documents[0].selected)throw Error('folder-copy');
       if((await api('/api/desktop/folder',{})).path!==null)throw Error('folder-cancel');
     }
+    stage='formats-modules';
+    for(let n=0;n<100&&!$('images-open').onclick;n++)await new Promise(r=>setTimeout(r,50));
+    if(!$('images-open').onclick)throw Error('image-module-init');
+    const {importBookFile}=await import(new URL('/formats.js',location.href).href);
+    const importedFile=await importBookFile(new File(['Texto ficticio UTF-8.'],'ficcion.txt'),api);
+    if(importedFile.documents[0].content!=='Texto ficticio UTF-8.')throw Error('file-import');
+    const pdf=await fetch('/api/projects/'+project.id+'/book.pdf',{headers});
+    if(!pdf.ok||!new TextDecoder().decode((await pdf.arrayBuffer()).slice(0,5)).startsWith('%PDF-'))throw Error('pdf');
+    await navigateWorkbench('settings');
+    for(let n=0;n<100&&$('image-settings-provider').disabled;n++)await new Promise(r=>setTimeout(r,50));
+    if(!$('settings-images').textContent.includes('experimental')||$('image-settings-provider').disabled)throw Error('image-settings');
+    await navigateWorkbench('back');
+    if(__FORMATS_ONLY__){localStorage.setItem('tauri-smoke','1');await finish(true);return;}
     stage='vault';
     const call=async(path,body)=>{const r=await fetch(path,{headers,method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});if(!r.ok)throw Error('http');return r.json();};
     const second=!!localStorage.getItem('tauri-smoke');

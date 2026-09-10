@@ -1,9 +1,9 @@
 """Opt-in: tres turnos reales con cuota ChatGPT y ficción efímera; nunca usa Realtime/API."""
 import tempfile
 from live_mvp import wait
-from workbench_ai import Assistant
-from workbench_store import Store
-from workbench_modes import configure_translation, answer_translation, accept_translation
+from src.workbench_ai import Assistant
+from src.workbench_store import Store
+from src.workbench_modes import configure_translation, answer_translation, accept_translation
 
 with tempfile.TemporaryDirectory(prefix='sw-live-modes-') as directory:
     store=Store(directory);project=store.create('Matiz ficticio',workflow='guided',purpose='translation',documents=[dict(name='Original ficticio',content='—Te quiero —dijo Mara al despedirse de Ivo.')],translation=dict(source=0,source_language='es-AR',target_language='en-US'))['id']

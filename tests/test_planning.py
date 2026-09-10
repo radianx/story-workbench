@@ -5,9 +5,9 @@ import unittest
 import zipfile
 from unittest.mock import patch
 from xml.etree import ElementTree as ET
-from workbench_store import Store, Problem
-from workbench_export import export_book
-from workbench_ai import Assistant
+from src.workbench_store import Store, Problem
+from src.workbench_export import export_book
+from src.workbench_ai import Assistant
 import test_workbench
 
 
@@ -60,7 +60,7 @@ class Planning(unittest.TestCase):
             private=store.add_document(project,'Ficha no seleccionada','plan','Secreto',selected=False)
             data=store.load(project);store.planning(data,first['id'],dict(synopsis='Biblioteca en el mar',pov='Mara',stage='drafting',hash=first['hash']))
             assistant=Assistant(store)
-            with patch('workbench_ai.threading.Thread.start'):
+            with patch('src.workbench_ai.threading.Thread.start'):
                 assistant.start(project,'draft','Una escena')
                 run=store.load(project)['runs'][-1]
                 self.assertNotIn(private['id'],run['source_texts'])

@@ -275,3 +275,19 @@ No se instaló sobre la app del usuario ni se tocaron sus manuscritos. Los paque
 - El backend Windows empaquetado pasó dos arranques/HTTP/cierre bajo Wine. `installer_check.py` verificó 32 archivos Linux, 97 Windows y SHA256 de ambos instaladores. Windows nativo sigue pendiente; paquetes sin firma ni publicación.
 - `Story-Workbench-0.8.2-linux-amd64.deb`: 192983650 bytes; SHA256 `e2b37ca16fdebfe41a7e356047fbc8e1f6d90461bf05d00b4d6ebea221cfe81d`.
 - `Story-Workbench-0.8.2-win-x64.exe`: 208555387 bytes; SHA256 `510254dfc3a0a81c3e16053732326199d33d97f58f6ad6fbc7488bdc76a4c7e2`.
+
+## Preparación de 0.9.0 — 2026-09-10
+
+Backend trasladado a `src/` y arranque `python3 -m src.app`; operaciones editoriales y exportación ZIP separadas del handler HTTP. Migración de JSON versionada, sin escritura al leer proyectos antiguos. El compositor y sus controles permanentes se declaran en HTML; importación e imágenes usan módulos ES con un punto de inicialización explícito.
+
+Comprobaciones ejecutadas: 56 pruebas Python del conjunto, incluidas tablas/notas DOCX y conservación de archivos si la persistencia falla después del reemplazo; 4 pruebas del protocolo stdio; 4 pruebas Rust; sintaxis JavaScript y cola PCM. Recorridos de navegador: editor, UX, modos, Markdown, configuración, inicio, motores, temas/archivo, equipo/chats, voz del chat, lectura, Gemini, Realtime, movimiento, formatos/imágenes y puente de escritorio. Todos pasaron tras corregir las referencias antiguas a avisos duplicados y conservar el rol de referencia para importaciones Markdown/TXT de la biblioteca.
+
+EPUB comprobado en orden de spine, DOCX con copia de texto, rechazo de contenedores inválidos y entidades XML, división UTF-8 sin pérdida, importación atómica y fuentes sin seleccionar. PDF abierto con Poppler: texto completo, paginación y tamaño 6 × 9; rechazo explícito de caracteres sin glifo. Imágenes OpenAI/Gemini comprobadas con transporte simulado: aprobación, bytes originales, ZIP, descarga, portada 3D, persistencia y ausencia de claves en proyectos. Configuración experimental con proveedor preferido y clave mediante el almacén ya existente. No se ejecutaron llamadas API de imágenes facturables.
+
+El workflow corrige `runner.temp` fuera de su contexto mediante `RUNNER_TEMP` en un paso y pasó `actionlint`. La ejecución remota de esta revisión no se ha verificado.
+
+Tauri Linux/WebKit: dos arranques reales con `--formats-only` pasaron tras usar una URL absoluta para la importación dinámica del módulo de formatos. Verificados editor, preferencias persistidas, inicialización de módulos ES, importación y PDF. Este recorrido no prueba micrófono, salida de audio ni llavero.
+
+Paquetes 0.9.0: Linux `.deb` y Windows NSIS construidos localmente. Backend Linux extraído comprobado contra los módulos web actuales, creación de proyecto, PDF/fuentes e importación DOCX. Runtime Windows bajo Wine: PDF/fuentes, DOCX, Pillow nativo, Vosk con silencio, guardado/historial/bloqueo, handshake HTTP y cierre por stdin en dos arranques. El primer intento de Wine usó un handle de entrada inválido del harness; se verificó usando pipes explícitos. Windows nativo y llamadas reales de imágenes siguen sin verificar.
+
+Manifiestos y SHA256 verificados sobre las extracciones finales: 33 archivos de runtime Linux y 458 Windows, igualdad de fuentes incluidas y ausencia de directorios de cuentas/proyectos. `dist/installers/` permanece excluido de Git; incluye ambos paquetes, hashes por versión y notas para la subida manual.

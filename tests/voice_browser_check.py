@@ -6,8 +6,8 @@ import tempfile
 import threading
 import wave
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
-from workbench_voice import decode_pcm
+from src.app import AppServer
+from src.workbench_voice import decode_pcm
 from playwright.sync_api import sync_playwright
 
 with tempfile.TemporaryDirectory(prefix='sw-voice-browser-') as temp:

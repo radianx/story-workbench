@@ -20,7 +20,7 @@ for target,base in [('linux',args.linux_root/'usr/lib/Story Workbench'),('win',a
     assert (runtime/('codex/bin/codex.exe' if target=='win' else 'codex/bin/codex')).is_file()
     assert (runtime/'voice/model/am/final.mdl').is_file()
     if target=='win':
-        assert (runtime/'server/workbench_team.py').is_file()
+        assert (runtime/'server/src/workbench_team.py').is_file()
         assert (runtime/'server/web/team.js').is_file()
         for name in ('story-server.exe','story-workbench.exe'):
             imports=subprocess.check_output(['objdump','-p',str(base/name)],text=True)
@@ -29,7 +29,8 @@ for target,base in [('linux',args.linux_root/'usr/lib/Story Workbench'),('win',a
         assert (base/'story-server.exe').read_bytes()[:2]==b'MZ'
         assert (base/'story-workbench.exe').read_bytes()[:2]==b'MZ'
         assert (base/'$TEMP/MicrosoftEdgeWebview2Setup.exe').is_file()
-        for file in (runtime/'server').glob('*.py'):assert file.read_bytes()==(ROOT/file.name).read_bytes(),file.name
+        assert {p.name for p in (runtime/'server/src').glob('*.py')} == {p.name for p in (ROOT/'src').glob('*.py')}
+        for file in (runtime/'server/src').glob('*.py'):assert file.read_bytes()==(ROOT/'src'/file.name).read_bytes(),file.name
         for file in (runtime/'server/web').rglob('*'):
             if file.is_file():assert file.read_bytes()==(ROOT/'web'/file.relative_to(runtime/'server/web')).read_bytes(),file.name
     else:

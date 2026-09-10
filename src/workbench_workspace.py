@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
-from workbench_store import MAX_TEXT, Problem, atomic, check, is_link, text_value
+from src.workbench_store import MAX_TEXT, Problem, atomic, check, is_link, text_value
 
 EXTENSIONS = ('.md', '.markdown', '.txt')
 SKIP = {'node_modules', 'target', 'dist', '__pycache__', 'venv'}

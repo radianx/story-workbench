@@ -1,0 +1,4 @@
+# Exportación PDF local; incluidas en los instaladores.
+reportlab==5.0.1
+pillow==12.3.0
+charset-normalizer==3.5.1

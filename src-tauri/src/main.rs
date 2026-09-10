@@ -35,7 +35,7 @@ fn error_response(status: u16, text: &str) -> Response<Vec<u8>> {
 }
 fn proxy(backend: &Backend, vault: &Mutex<Option<Vault>>, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let Ok(url)=tauri::Url::parse(&request.uri().to_string()) else { return error_response(403,"Origen inválido.") };
-    if !local_url(&url) || !["GET","POST"].contains(&request.method().as_str()) || request.body().len()>2_000_000 {
+    if !local_url(&url) || !["GET","POST"].contains(&request.method().as_str()) || request.body().len()>request_limit(url.path()) {
         return error_response(403,"Solicitud no permitida.")
     }
     let storage=["/api/voice-storage","/api/engine-storage"].contains(&url.path());
@@ -91,10 +91,13 @@ fn forward(backend: &Backend, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     })();
     result.unwrap_or_else(|_|error_response(502,"No se pudo completar la petición al servicio local."))
 }
+fn request_limit(path: &str) -> usize {
+    if ["/api/import/file", "/api/projects", "/api/document/import"].contains(&path) {40_000_000} else {2_000_000}
+}
 fn export_name(url: &tauri::Url) -> Option<String> {
     let name=url.query_pairs().find(|(key,_)|key=="name")?.1.into_owned();
     if name.is_empty() || name.len()>240 || name.chars().any(|c|c.is_control() || "/\\:<>\"|?*".contains(c)) ||
-        !["md","docx","zip","json"].iter().any(|ext|name.ends_with(&format!(".{ext}"))) {return None}
+        !["md","docx","pdf","png","jpg","zip","json"].iter().any(|ext|name.ends_with(&format!(".{ext}"))) {return None}
     Some(name)
 }
 fn save_export(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -198,7 +201,7 @@ fn main() {
                 }}
             });
             let opener=app.handle().clone();
-            let smoke_script=if smoke {include_str!("smoke.js").replace("__TOKEN__",&backend.token).replace("__EXPORT_TEST__",if std::env::var("STORY_TAURI_EXPORT_TEST").as_deref()==Ok("1"){"true"}else{"false"})}else{String::new()};
+            let smoke_script=if smoke {include_str!("smoke.js").replace("__TOKEN__",&backend.token).replace("__FORMATS_ONLY__",if std::env::var("STORY_TAURI_FORMATS_ONLY").as_deref()==Ok("1"){"true"}else{"false"}).replace("__EXPORT_TEST__",if std::env::var("STORY_TAURI_EXPORT_TEST").as_deref()==Ok("1"){"true"}else{"false"})}else{String::new()};
             let ui_url=format!("workbench://app/#token={}",backend.token);
             // WebKit fija algunas capacidades al crear el documento: configurar antes de navegar.
             let initial=if cfg!(target_os="linux") {WebviewUrl::External("about:blank".parse()?)}else{WebviewUrl::CustomProtocol(ui_url.parse()?)};
@@ -247,6 +250,11 @@ mod tests {
     use super::*;
     #[test] fn export_boundary_and_atomic_replace() {
         for name in ["../secret.md","a%2Fsecret.zip","a%5Cb.md","bad.exe","a%00.md"] {assert!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).is_none());}
+        assert_eq!(request_limit("/api/import/file"), 40_000_000);
+        assert_eq!(request_limit("/api/engine/key"), 2_000_000);
+        for name in ["libro.pdf", "imagen.png", "imagen.jpg"] {
+            assert_eq!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).as_deref(),Some(name));
+        }
         assert_eq!(export_name(&"workbench://app/api/desktop/save?name=libro.docx".parse().unwrap()).as_deref(),Some("libro.docx"));
         assert_eq!(export_name(&"workbench://app/api/desktop/save?name=story-workbench-theme.json".parse().unwrap()).as_deref(),Some("story-workbench-theme.json"));
         let dir=tempfile::tempdir().unwrap();let path=dir.path().join("libro.md");

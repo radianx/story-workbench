@@ -2,13 +2,13 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.12**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.9.0**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Contribuir
 
 La [guía de contribución](CONTRIBUTING.md) incluye un arranque sin cuenta ni claves, mapa del código, pruebas y primeros aportes posibles. Se aceptan reportes y propuestas en español o inglés; hay plantillas de issues y pull requests. Para vulnerabilidades, ver [SECURITY.md](SECURITY.md). El código propio se distribuye bajo la [licencia MIT](LICENSE); las dependencias conservan sus propias licencias.
 
-El workflow `Checks` está preparado para comprobar Python, JavaScript y tres recorridos de navegador con ficción y proveedores simulados. Su ejecución en GitHub queda por verificar al publicar el repositorio; no necesita secretos ni publica instaladores.
+El workflow `Checks` está preparado para comprobar Python, JavaScript y cuatro recorridos de navegador con ficción y proveedores simulados. El uso inválido de `runner.temp` en el entorno del job se corrigió mediante un paso que prepara `CODEX_HOME`; el workflow pasó `actionlint`, pero su nueva ejecución en GitHub queda por verificar; no necesita secretos ni publica instaladores.
 
 ## Instalar la app de escritorio
 
@@ -24,17 +24,21 @@ Usa Tauri e incluye Python y Codex: el usuario no necesita terminal ni instalarl
 
 ## Iniciar desde el código
 
-Requiere Python 3.11+ y Codex CLI con sesión ChatGPT para el asistente. La biblioteca y el editor funcionan sin conectar Codex. El servidor usa biblioteca estándar de Python. El dictado necesita los recursos nativos de voz preparados al construir el escritorio; en Linux, la lectura usa espeak-ng (el .deb lo instala como dependencia).
+Requiere Python 3.11+ y Codex CLI con sesión ChatGPT para el asistente. La biblioteca y el editor funcionan sin conectar Codex. El servidor usa biblioteca estándar de Python; PDF e imágenes requieren las dependencias fijadas en `requirements.txt` (incluidas en los instaladores). El dictado necesita los recursos nativos de voz preparados al construir el escritorio; en Linux, la lectura usa espeak-ng (el .deb lo instala como dependencia).
 
 ```sh
-python3 app.py
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m src.app
 ```
+
+En Windows: `.venv\Scripts\python.exe` en lugar de `.venv/bin/python`. El código Python de la aplicación vive en `src/`; los datos siguen en `private/workbench/`.
 
 Para preparar el dictado al ejecutar desde código: `python3 desktop/prepare_voice.py --target linux` (descarga recursos públicos). La instalación `.deb` ya incluye el modelo y resuelve la dependencia de lectura del sistema.
 
-Abrí **el enlace completo que imprime la terminal**: incluye una clave temporal de acceso local en el fragmento. Solo escucha en `127.0.0.1:8765`. Detener con Ctrl+C. Después de reiniciar, abrí el nuevo enlace; los proyectos y las conversaciones siguen guardados. Para otro puerto: `python3 app.py --port 8766`.
+Abrí **el enlace completo que imprime la terminal**: incluye una clave temporal de acceso local en el fragmento. Solo escucha en `127.0.0.1:8765`. Detener con Ctrl+C. Después de reiniciar, abrí el nuevo enlace; los proyectos y las conversaciones siguen guardados. Para otro puerto: `python3 -m src.app --port 8766`.
 
-Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto: el asistente pide un nombre y el objetivo. Para historias y rol conserva el punto de partida; para traducción requiere una obra existente y los idiomas de origen/destino, con detección local corregible. «Escribir por mi cuenta» abre un manuscrito en blanco. «Crear conversando», opción predeterminada, pone el chat en el centro, permite abrir el material con «Ver material» e inicia una entrevista editorial (usa build-novel si está instalada), una pregunta por vez, incluso sin documentos. También podés importar copias de archivos Markdown/TXT UTF-8. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
+Elegí «Explorar un proyecto ficticio» para empezar con cuatro fuentes que contienen una contradicción conocida. O creá un proyecto: el asistente pide un nombre y el objetivo. Para historias y rol conserva el punto de partida; para traducción requiere una obra existente y los idiomas de origen/destino, con detección local corregible. «Escribir por mi cuenta» abre un manuscrito en blanco. «Crear conversando», opción predeterminada, pone el chat en el centro, permite abrir el material con «Ver material» e inicia una entrevista editorial (usa build-novel si está instalada), una pregunta por vez, incluso sin documentos. También podés importar copias de Markdown/TXT UTF-8, EPUB sin DRM y DOCX (hasta 15 MB por archivo). La importación conserva texto y orden de lectura; divide unidades de más de 250 KB y requiere revisar el resultado. No importa imágenes, comentarios ni maquetación. Los originales quedan en su lugar; la app no acepta rutas de libros ni los reorganiza.
 
 Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar hasta 100 Markdown/TXT de una carpeta, incluidos sus subdirectorios. Conserva las rutas relativas en los nombres; `manuscript`/`manuscrito` se reconocen como manuscrito y el resto como referencia. No importa imágenes, PDF, DOCX, archivos ocultos o enlaces, ni interpreta automáticamente canon, decisiones o conversaciones de otro sistema. Las copias quedan sin seleccionar para IA salvo la primera unidad de una traducción.
 
@@ -55,7 +59,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Botón Probar voz del proveedor con diagnóstico de audio y sin respaldo local durante la prueba. Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI TTS o Gemini TTS cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas debajo de Enviar para lectura automática de respuestas nuevas. No abre el micrófono. |
 | Voz online opcional | Voz del chat con OpenAI Realtime o Gemini Live: transcripción al mismo chat y lectura de su respuesta; micrófono pausado durante tarea y lectura. Controles de la app queda como modo separado para navegar y preparar tareas. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
-| Traducción | Inicio con original obligatorio e idiomas elegibles/detectables; unidades de hasta 12.000 caracteres sin omitir texto. Entrevista de intención, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
+| Traducción | Inicio con original obligatorio e idiomas elegibles/detectables; unidades de hasta 12.000 caracteres sin omitir texto. Entrevista de intención, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX/PDF de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |
 | Equipo editorial | Optativo por mensaje con Codex: modelo/esfuerzo separados, máximo 1–3 colaboradores, reparto y síntesis del principal, panel ciego y aviso de consumo. Aportes colapsables; cancelación conjunta. Experimental. |
 | Conversaciones | Nueva conversación vacía el chat y su contexto; anteriores consultables en un desplegable de la biblioteca. Conserva fuentes, decisiones, propuestas y mensajes sin enviar. |
@@ -64,12 +68,15 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Seguimiento | Baja al final cuando aparece un mensaje o llega texto nuevo del agente; permite volver a la última respuesta después de desplazarte manualmente. Avisos de la sesión, orientación de traducción/rol y progreso de la tarea en su propia pestaña, con contador y limpieza de notificaciones; los errores de formularios permanecen dentro de ellos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
 | Motores alternativos | OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local compatible, experimentales; proveedor por proyecto, claves aisladas y respuestas sujetas a las mismas aprobaciones. |
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
+| Imágenes · experimental | Configuración → Generación de imágenes prepara proveedor preferido y clave API; OpenAI y Gemini son adaptadores experimentales con coste API separado. Desde Imágenes: descripción explícita, vista previa, descarte, guardado humano, descarga original PNG/JPEG y aplicación opcional a la portada 3D. No envía manuscritos ni conversaciones automáticamente. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
 | Tipografía | Cinco familias locales: Sistema, Arial/Liberation Sans, Georgia, Times New Roman/Liberation Serif y Courier New/Liberation Mono. Vista inmediata, persistencia por usuario y aplicación antes del primer pintado; sin fuentes remotas. |
 | Apariencia | Neón y Vice City claros/oscuros, editor de colores y temas JSON compartibles ([formato](THEMES.md)). Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar el modo y ambas paletas para el usuario local, también al reiniciar la app; se restauran antes de mostrar la interfaz. |
 | Ambiente | Opacidad ajustable y persistente de 0 a 100%. Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
-| Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. Desde Plan y avance: libro completo en orden a Markdown y DOCX básico de lectura. |
+| Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. Desde Plan y avance: libro completo en orden a Markdown, DOCX y PDF de lectura paginado (tamaño guardado o 6 × 9 pulgadas). El ZIP incluye las imágenes generadas que se hayan guardado; tiene un límite de 32 MB en escritorio. |
+
+El PDF es una edición de lectura, no un archivo certificado para imprenta: incluye títulos, párrafos, negritas y paginación, sin reproducir toda la maquetación de EPUB/DOCX. La fuente incluida no cubre todos los idiomas ni símbolos; si faltan caracteres, la app avisa y permite usar DOCX con otra fuente. No se eliminan caracteres en silencio.
 
 La opción build-novel usa la instalación local descubierta por Codex. Se verificó su presencia, pero no se encontró una licencia de redistribución; no se incluye en los instaladores. Cuando no está instalada, se usa la guía editorial integrada de la app. El registro de cada respuesta indica cuál se usó. Diagnosticar nunca autoriza reescribir.
 
@@ -88,9 +95,11 @@ Pendientes: edición directa de carpetas externas, importar EPUB/DOCX, exportaci
 
 ## Comprobar
 
+Prepará `.venv` con `requirements.txt`. Las pruebas de PDF usan `pdftotext` y `pdfinfo` de **poppler-utils** (`sudo apt-get install poppler-utils` en Ubuntu). Para los recorridos de navegador, instalá Playwright 1.60.0 en ese entorno y Google Chrome; ver [contribución](CONTRIBUTING.md).
+
 ```sh
 python3 -m unittest discover -s scripts
-python3 -m unittest discover -s tests
+.venv/bin/python -m unittest discover -s tests
 node --check web/app.js
 ```
 
@@ -98,28 +107,28 @@ Las pruebas HTTP necesitan permisos para abrir sockets de loopback. Node se usa 
 
 ```sh
 # Navegador: Playwright y Chrome, solo como herramientas de prueba.
-python3 tests/browser_check.py
-python3 tests/voice_browser_check.py
-python3 tests/ux_browser_check.py
-python3 tests/modes_browser_check.py
-python3 tests/realtime_browser_check.py
-python3 tests/gemini_browser_check.py
-python3 tests/settings_browser_check.py
-python3 tests/themes_archive_browser_check.py
-python3 tests/team_chats_browser_check.py
-python3 tests/motion_browser_check.py
-python3 tests/setup_browser_check.py
-python3 tests/providers_browser_check.py
+.venv/bin/python tests/browser_check.py
+.venv/bin/python tests/voice_browser_check.py
+.venv/bin/python tests/ux_browser_check.py
+.venv/bin/python tests/modes_browser_check.py
+.venv/bin/python tests/realtime_browser_check.py
+.venv/bin/python tests/gemini_browser_check.py
+.venv/bin/python tests/settings_browser_check.py
+.venv/bin/python tests/themes_archive_browser_check.py
+.venv/bin/python tests/team_chats_browser_check.py
+.venv/bin/python tests/motion_browser_check.py
+.venv/bin/python tests/setup_browser_check.py
+.venv/bin/python tests/providers_browser_check.py
 node tests/pcm_playback_check.js
 # Motores locales reales; requiere recursos de voz y voz del sistema.
-python3 tests/live_voice_check.py
+.venv/bin/python tests/live_voice_check.py
 # Prueba real con cuota ChatGPT y corpus ficticio temporal.
-python3 tests/live_mvp.py
+.venv/bin/python tests/live_mvp.py
 # Solo la entrevista real: dos turnos con ficción, sin documentos.
-python3 tests/live_mvp.py --interview-only
+.venv/bin/python tests/live_mvp.py --interview-only
 # Modelos y esfuerzos reales; consume cuota ChatGPT con ficción temporal.
-python3 tests/live_model_check.py
-python3 tests/live_modes_check.py
+.venv/bin/python tests/live_model_check.py
+.venv/bin/python tests/live_modes_check.py
 ```
 
 Ver [resultados del MVP](MVP_RESULTS.md), [prueba inicial del motor](SMOKE_RESULTS.md), [producto](PRODUCT.md), [criterios de implementación](IMPLEMENTATION.md) , [comparación inicial](RESEARCH.md) y [propuesta de mejora aplicada](PRODUCT_IMPROVEMENTS.md).
@@ -133,3 +142,14 @@ La 0.7.0 restaura la apariencia antes del primer pintado, comprueba su persisten
 La 0.7.0 añade asistente inicial omisible y reabrible, navegación con Ctrl/Cmd+K y por voz a más secciones, cálculo físico de lomo y [seis motores experimentales](PROVIDERS.md). La voz requiere conexión previa; credenciales, consentimiento y aprobaciones editoriales conservan controles manuales.
 
 Tauri es la única vía de desarrollo y distribución desde 0.8.0. Electron queda retirado; sus resultados anteriores se conservan como historial. Ver [distribución](DESKTOP.md) y [migración y límites de audio](TAURI_MIGRATION.md).
+
+## Estructura para contribuir
+
+- `src/`: servidor HTTP, operaciones editoriales, almacenamiento y adaptadores. Arranque con `python3 -m src.app`.
+- `web/`: interfaz sin compilación; la estructura permanente del chat y sus controles está en `index.html`. `bootstrap.js` inicializa los nuevos módulos, `images.js` conserva su estado privado y `formats.js` comparte la importación entre wizard y biblioteca. Los controladores anteriores siguen migrándose gradualmente; no se afirma que todo el frontend sea ya modular.
+- `desktop/` y `src-tauri/`: preparación pública de runtimes, integración nativa e instaladores.
+- `tests/`: pruebas simuladas de compatibilidad, archivos, seguridad, voz y recorridos de UI.
+
+`project.json` ahora tiene `schema_version`. Los proyectos antiguos se convierten en memoria al leer y se guardan en el formato actual con la próxima modificación; una versión futura desconocida se rechaza sin sobrescribirla. Las aprobaciones, documentos e historiales se conservan. Ver [implementación](IMPLEMENTATION.md) y [contribución](CONTRIBUTING.md).
+
+Las APIs de imágenes siguen los contratos oficiales de [OpenAI Image API](https://developers.openai.com/api/docs/guides/image-generation) y [Gemini](https://ai.google.dev/gemini-api/docs/generate-content/image-generation). Se comprobaron mediante respuestas simuladas; autenticación, disponibilidad y calidad de esas generaciones no se validaron con llamadas facturables. La generación con la cuenta Codex no está conectada a esta pantalla experimental.

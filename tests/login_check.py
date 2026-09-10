@@ -3,7 +3,7 @@ import asyncio, os, tempfile, sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scripts.codex_smoke import Server
-from workbench_account import auth_url
+from src.workbench_account import auth_url
 async def main():
     with tempfile.TemporaryDirectory(prefix='sw-auth-check-') as directory:
         os.environ['CODEX_HOME']=directory

@@ -128,3 +128,9 @@ Enviar es más grande y muestra ↵; Leer respuestas queda debajo. La pestaña A
 ## Tarjetas en Avisos 0.8.12
 
 Avisos contiene también la orientación de traducción o rol y el progreso de la tarea actual. Conserva sus acciones y actualiza las etapas aunque se esté leyendo la conversación; estas tarjetas no se borran al limpiar las notificaciones. El chat queda libre de esas tarjetas.
+
+## Corte 0.9.0
+
+Importación de obras EPUB sin DRM y DOCX como copias de texto, en el wizard y la biblioteca. Exportación PDF de lectura con páginas y dimensiones configuradas. Imágenes mediante APIs OpenAI/Gemini experimentales: configuración propia visible, consentimiento por generación, vista previa, guardado explícito y descarga del original; reutilización opcional como portada 3D. Codex con ChatGPT sigue siendo el motor editorial principal. No se ha conectado la generación de imágenes de Codex a este flujo.
+
+Backend reorganizado en `src/`, operaciones separadas de HTTP, metadatos versionados y primeros módulos ES del frontend. Ninguno de estos cambios modifica repositorios de obras originales.

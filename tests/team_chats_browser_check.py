@@ -3,7 +3,7 @@ import sys,tempfile,threading
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from test_team import FakeServer
 from test_desktop_features import MODELS
 from playwright.sync_api import sync_playwright
@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='sw-team-chats-') as directory:
     project=server.store.create('Lectores de prueba',True)['id']
     threading.Thread(target=server.serve_forever,daemon=True).start()
     try:
-        with sync_playwright() as p,patch('workbench_ai.Server',FakeServer),patch('workbench_team.Server',FakeServer):
+        with sync_playwright() as p,patch('src.workbench_ai.Server',FakeServer),patch('src.workbench_team.Server',FakeServer):
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")

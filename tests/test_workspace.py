@@ -4,10 +4,10 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from workbench_store import Store, Problem
-from workbench_workspace import Workspace, import_preview, import_documents
-from workbench_modes import detect_language
-from app import AppServer
+from src.workbench_store import Store, Problem
+from src.workbench_workspace import Workspace, import_preview, import_documents
+from src.workbench_modes import detect_language
+from src.app import AppServer
 import test_workbench
 
 

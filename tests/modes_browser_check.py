@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import threading
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
-from workbench_modes import validate_translation
+from src.app import AppServer
+from src.workbench_modes import validate_translation
 from test_modes import QUESTION,DRAFT
 from test_desktop_features import MODELS
 from playwright.sync_api import sync_playwright

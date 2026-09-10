@@ -1,7 +1,7 @@
 """Maqueta visual local; medidas declaradas por el autor, no plantilla de imprenta."""
 import base64
 import math
-from workbench_store import check, text_value
+from src.workbench_store import check, text_value
 
 
 def validate_production(value):

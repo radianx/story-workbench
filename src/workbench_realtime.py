@@ -7,8 +7,8 @@ import threading
 import urllib.error
 import urllib.request
 import uuid
-from workbench_store import Problem, check, text_value
-from workbench_modes import GUIDES
+from src.workbench_store import Problem, check, text_value
+from src.workbench_modes import GUIDES
 
 MODEL='gpt-realtime'
 GEMINI_MODEL='gemini-3.1-flash-live-preview'

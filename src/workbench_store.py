@@ -50,7 +50,7 @@ def atomic(path, text):
     check(not is_link(path), 'No se permiten enlaces simbólicos.')
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix='.save-')
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8', newline='') as f:
+        with os.fdopen(fd, 'wb' if isinstance(text, bytes) else 'w', **({} if isinstance(text, bytes) else {'encoding': 'utf-8', 'newline': ''})) as f:
             f.write(text)
             f.flush()
             os.fsync(f.fileno())
@@ -119,12 +119,8 @@ class Store:
         path = self.path(project, 'project.json')
         check(path.is_file(), 'Proyecto no encontrado.', 404)
         data = json.loads(path.read_text(encoding='utf-8'))
-        data.setdefault('workflow', 'writing')
-        data.setdefault('purpose', 'novel')
-        data.setdefault('initial_idea', '')
-        if 'conversations' not in data:
-            end=data.get('history_start',0)
-            data['conversations']=([dict(id='legacy',title='Conversaciones anteriores',start=0,end=end,date=data['updated'],draft='')] if end else [])
+        from src.workbench_migrations import migrate_project
+        data = migrate_project(data)
         return data
 
     def reset_conversation(self, data, draft=''):
@@ -140,11 +136,13 @@ class Store:
         self.persist(data)
 
     def persist(self, data):
+        from src.workbench_migrations import migrate_project
+        data.update(migrate_project(data))
         data['updated'] = time.time()
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
     def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel', documents=None, translation=None):
-        from workbench_modes import PURPOSES, translation_languages, translation_units, configure_translation
+        from src.workbench_modes import PURPOSES, translation_languages, translation_units, configure_translation
         check(purpose in PURPOSES, 'Objetivo de proyecto inválido.')
         check(not demo or purpose=='novel', 'El ejemplo es un proyecto de historia.')
         text_value(title, 160, False)
@@ -212,7 +210,7 @@ class Store:
         if result.get('stage') == 'reviewed' and result.get('review_hash') != result['hash']:
             result['stage'] = 'revise'
         if result.get('translation'):
-            from workbench_modes import translation_status
+            from src.workbench_modes import translation_status
             result['translation_status']=translation_status(self,data,result)
         return result
 
@@ -223,6 +221,34 @@ class Store:
         for run in data['runs']:
             run.pop('source_texts', None)
         return data
+
+    def add_documents(self, data, documents):
+        check(isinstance(documents, list) and documents and len(data['documents']) + len(documents) <= 100,
+              'La biblioteca admite hasta 100 documentos por proyecto.')
+        prepared = []
+        for item in documents:
+            check(isinstance(item, dict), 'Documento inválido.')
+            name = text_value(item.get('name'), 200, False)
+            content = text_value(item.get('content'), empty=False)
+            role = item.get('role', 'referencia')
+            check(role in ROLES and role != 'traducción', 'Rol de original inválido.')
+            prepared.append((dict(id=uid(), name=name, role=role, selected=False, history=[]), content))
+        written = []
+        previous = list(data['documents'])
+        try:
+            for document, content in prepared:
+                path = self.path(data['id'], 'documents', document['id'] + '.md')
+                atomic(path, content)
+                written.append(path)
+                data['documents'].append(document)
+            self.persist(data)
+        except Exception:
+            committed = {d['id'] for d in self.load(data['id'])['documents']}
+            data['documents'] = previous
+            for path in written:
+                if path.stem not in committed:
+                    path.unlink(missing_ok=True)
+            raise
 
     def add_document(self, project, name, role, content, selected=True, source_run=None, translation=None):
         text_value(name, 200, False)

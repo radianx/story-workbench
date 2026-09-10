@@ -6,7 +6,7 @@ import tempfile
 import threading
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from test_desktop_features import MODELS
 from playwright.sync_api import sync_playwright
 
@@ -129,7 +129,7 @@ def main():
                 # Plan: orden real, meta, revisión vinculada a la versión y exportación del libro.
                 page.locator('#plan-open').click()
                 page.locator('#word-goal').fill('80000');page.locator('#goal-form button').click()
-                page.get_by_text('Meta guardada.',exact=True).wait_for()
+                page.locator('#plan-dialog').get_by_text('Meta guardada.',exact=True).wait_for()
                 card=page.locator('.plan-card').first
                 card.locator('[name=synopsis]').fill('Inés escucha una voz imposible.')
                 card.locator('[name=pov]').fill('Inés')

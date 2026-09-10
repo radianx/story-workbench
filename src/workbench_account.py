@@ -5,7 +5,7 @@ import threading
 from urllib.parse import urlsplit
 
 from scripts.codex_smoke import Server, chatgpt_only
-from workbench_store import check, is_link
+from src.workbench_store import check, is_link
 
 
 def auth_url(value):

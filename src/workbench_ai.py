@@ -8,10 +8,10 @@ import threading
 import time
 
 from scripts.codex_smoke import Server, SmokeError
-from workbench_providers import Providers, engine_preferences
-from workbench_account import ai_preferences, list_models, resolve_ai
-from workbench_store import Problem, check, digest, uid
-from workbench_modes import GUIDES, TRANSLATION_INSTRUCTION, TRANSLATION_SCHEMA, translation_context, validate_translation
+from src.workbench_providers import Providers, engine_preferences
+from src.workbench_account import ai_preferences, list_models, resolve_ai
+from src.workbench_store import Problem, check, digest, uid
+from src.workbench_modes import GUIDES, TRANSLATION_INSTRUCTION, TRANSLATION_SCHEMA, translation_context, validate_translation
 
 MODES = {
     'panel': 'Sintetizá el panel ciego sin reescribir: separá coincidencias, diferencias por perfil, desacuerdos útiles, evidencia concreta y conclusiones inciertas. No decidas por mayoría. Conservá la voz y decisiones del autor; proponé opciones para su aprobación. Aclará que son lectores simulados y qué material leyeron.',
@@ -100,7 +100,7 @@ class Assistant:
             check(type(team) is bool, 'Selección de equipo inválida.')
             check(mode!='panel' or team, 'El panel ciego requiere activar el equipo para este mensaje.')
             if team:
-                from workbench_team import TEAM_MODES, team_preferences
+                from src.workbench_team import TEAM_MODES, team_preferences
                 check(engine['provider']=='codex' and mode in TEAM_MODES, 'El equipo requiere Codex y una tarea fuera de la entrevista.')
                 team_settings=team_preferences(data.get('team_preferences'))
             if engine['provider'] != 'codex':
@@ -294,7 +294,7 @@ class Assistant:
             if skill:
                 inputs.append({'type': 'skill', 'name': 'build-novel', 'path': skill})
             if run.get('team'):
-                from workbench_team import run_team
+                from src.workbench_team import run_team
                 inputs=await run_team(self,server,thread_id,inputs,chosen,policy,overrides,run,docs,project_brief,decisions)
                 if self.cancel.is_set():
                     self.update(project,run['id'],status='interrupted',stage='stopped');return

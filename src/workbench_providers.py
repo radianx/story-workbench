@@ -5,7 +5,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
-from workbench_store import check, Problem
+from src.workbench_store import check, Problem
 
 PROVIDERS = {'openai':'OpenAI API', 'gemini':'Google Gemini', 'anthropic':'Anthropic',
              'deepseek':'DeepSeek', 'kimi':'Kimi', 'local':'Servidor local'}

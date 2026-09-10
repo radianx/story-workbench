@@ -2,9 +2,9 @@ import json
 import tempfile
 import unittest
 from unittest.mock import patch
-from workbench_store import Store, Problem
-from workbench_ai import Assistant
-import workbench_modes as modes
+from src.workbench_store import Store, Problem
+from src.workbench_ai import Assistant
+import src.workbench_modes as modes
 import test_workbench
 
 QUESTION=dict(message='Falta decidir el vínculo.',question='¿Afecto amistoso o romántico?',quote='Te quiero',draft='',
@@ -21,7 +21,7 @@ class Modes(unittest.TestCase):
         self.assistant=Assistant(self.store)
 
     def result(self,value):
-        with patch('workbench_ai.threading.Thread.start'):
+        with patch('src.workbench_ai.threading.Thread.start'):
             result=self.assistant.start(self.project,'translate','Traducción ficticia',False)
         data=self.store.load(self.project);run=next(r for r in data['runs'] if r['id']==result['id'])
         run.update(status='completed',text=value['message'],translation_result=modes.validate_translation(value,run['translation_context']))
@@ -77,14 +77,14 @@ class Modes(unittest.TestCase):
         data=self.store.create('Mesa ficticia',workflow='guided',purpose='rpg');project=data['id']
         self.assertEqual(data['documents'],[])
         assistant=Assistant(self.store)
-        with patch('workbench_ai.threading.Thread.start'):
+        with patch('src.workbench_ai.threading.Thread.start'):
             assistant.start_interview(project)
         run=self.store.load(project)['runs'][0]
         self.assertEqual(run['purpose'],'rpg');self.assertFalse(run['skill'])
         data=self.store.load(project);data['runs'].append(dict(id='world1',mode='draft',purpose='rpg',status='completed',text='# Un puerto flotante\n\nReglas caseras provisionales.'));self.store.persist(data)
         doc=self.store.save_draft(data,'world1');self.assertEqual(doc['role'],'plan');self.assertFalse(doc['selected'])
         self.assertEqual(self.store.save_draft(self.store.load(project),'world1')['id'],doc['id'])
-        data=self.store.load(project);data.pop('purpose');self.store.persist(data)
+        data=self.store.load(project);data.pop('schema_version');data.pop('purpose');self.store.persist(data)
         self.assertEqual(self.store.load(project)['purpose'],'novel')
         with self.assertRaises(Problem):self.store.create('Inválido',purpose='combat')
 

@@ -7,8 +7,8 @@ import tempfile
 import unittest
 import urllib.error
 from unittest.mock import patch
-from workbench_store import Store, Problem
-from workbench_realtime import Realtime, NoRedirects, context
+from src.workbench_store import Store, Problem
+from src.workbench_realtime import Realtime, NoRedirects, context
 import test_workbench
 
 KEY='sk-ficticia-solo-test-no-es-una-credencial'
@@ -19,7 +19,7 @@ class RealtimeTests(unittest.TestCase):
         pcm=b'\x01\x00'*2400
         class Response(io.BytesIO):
             headers={'Content-Type':'text/event-stream'}
-        with patch('workbench_realtime.urllib.request.build_opener') as opener:
+        with patch('src.workbench_realtime.urllib.request.build_opener') as opener:
             for provider,consent in [('openai',False),('gemini',False),('other',True)]:
                 with self.assertRaises(Problem):engine.read_session(provider,consent)
             opener.assert_not_called()
@@ -57,7 +57,7 @@ class RealtimeTests(unittest.TestCase):
 
     def test_chat_voice_transcribes_without_editorial_context_or_tools(self):
         engine=Realtime();engine.configure(KEY);engine.configure('AQ.fixture-voice-relay','gemini')
-        with patch('workbench_realtime.urllib.request.build_opener') as opener:
+        with patch('src.workbench_realtime.urllib.request.build_opener') as opener:
             opener.return_value.open.return_value=io.BytesIO(b'{"name":"temporary"}')
             setup=engine.connect_gemini(None,True,True,relay=True)['setup']
             self.assertIn('inputAudioTranscription',setup);self.assertNotIn('tools',setup)
@@ -73,7 +73,7 @@ class RealtimeTests(unittest.TestCase):
             store=Store(directory);project=store.create('Voz ficticia',True)['id']
             hidden=store.add_document(project,'Referencia sin seleccionar','referencia','NO-ENVIAR',selected=False)
             data=store.snapshot(project);engine=Realtime()
-            with patch('workbench_realtime.urllib.request.build_opener') as opener:
+            with patch('src.workbench_realtime.urllib.request.build_opener') as opener:
                 for consent,actions in [(False,True),(True,'yes'),(True,True)]:
                     with self.assertRaises(Problem):engine.connect(data,'v=0\r\n',consent,actions)
                 opener.assert_not_called()
@@ -117,7 +117,7 @@ class RealtimeHTTP(unittest.TestCase):
         code,body=self.request('/api/realtime/key',{'key':KEY});self.assertEqual(code,200);self.assertNotIn(KEY.encode(),body)
         project=self.server.store.create('Prueba local')['id']
         self.assertEqual(self.request('/api/projects/'+project+'/voice-context')[0],200)
-        with patch('workbench_realtime.urllib.request.build_opener') as opener:
+        with patch('src.workbench_realtime.urllib.request.build_opener') as opener:
             self.assertEqual(self.request('/api/realtime/connect',dict(project=project,sdp='v=0',consent=False,actions=True))[0],400)
             opener.assert_not_called()
             self.assertEqual(self.request('/api/realtime/read-session',dict(provider='openai',consent=True),headers={'Authorization':'bad'})[0],401)
@@ -135,7 +135,7 @@ class GeminiTests(unittest.TestCase):
             for key in ['AQ.con espacio ficticio','AQ.con\nficticio','sk-ficticia-solo-test']:
                 with self.assertRaises(Problem):engine.configure(key,'gemini')
             self.assertFalse(engine.status()['configured']);self.assertTrue(engine.status()['providers']['gemini'])
-            with patch('workbench_realtime.urllib.request.build_opener') as opener:
+            with patch('src.workbench_realtime.urllib.request.build_opener') as opener:
                 with self.assertRaises(Problem):engine.connect_gemini(store.snapshot(project),False,True)
                 opener.assert_not_called()
                 opener.return_value.open.return_value=io.BytesIO(b'{"name":"auth_tokens/temporal-ficticio"}')

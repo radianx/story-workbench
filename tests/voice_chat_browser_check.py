@@ -2,7 +2,7 @@
 import json,sys,tempfile,threading
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from test_desktop_features import MODELS
 from playwright.sync_api import sync_playwright
 

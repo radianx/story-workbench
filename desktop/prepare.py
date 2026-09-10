@@ -37,9 +37,10 @@ def main():
         if not sys.platform.startswith('linux'):
             raise SystemExit('Construir el runtime Linux en Linux.')
         python = ROOT / '.venv' / 'bin' / 'python'
+        subprocess.run([str(python), '-m', 'pip', 'install', '-r', str(ROOT/'requirements.txt')], check=True)
         subprocess.run([str(python), '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile',
-            '--name', 'story-server-x86_64-unknown-linux-gnu', '--distpath', str(ROOT / 'src-tauri/binaries'), '--workpath', str(DIST / 'pybuild'),
-            '--specpath', str(DIST), '--add-data', f'{ROOT / "web"}:web', str(ROOT / 'app.py')], check=True, cwd=ROOT)
+            '--collect-data', 'reportlab', '--copy-metadata', 'reportlab', '--copy-metadata', 'pillow', '--copy-metadata', 'charset-normalizer', '--name', 'story-server-x86_64-unknown-linux-gnu', '--distpath', str(ROOT / 'src-tauri/binaries'), '--workpath', str(DIST / 'pybuild'),
+            '--specpath', str(DIST), '--add-data', f'{ROOT / "web"}:web', '--paths', str(ROOT), str(ROOT / 'src/app.py')], check=True, cwd=ROOT)
         vendor = ROOT / 'node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl'
         shutil.copytree(vendor, runtime / 'codex')
         shutil.copy(Path(sysconfig.get_path('stdlib')) / 'LICENSE.txt', runtime / 'PYTHON-LICENSE.txt')
@@ -57,11 +58,13 @@ def main():
         (runtime / 'python' / 'python314._pth').write_text('python314.zip\n.\n../server\n', encoding='utf-8')
         server = runtime / 'server'
         server.mkdir()
-        for name in ('app.py','workbench_ai.py','workbench_providers.py','workbench_account.py','workbench_store.py','workbench_production.py','workbench_export.py','workbench_voice.py','workbench_modes.py','workbench_realtime.py','workbench_workspace.py', 'workbench_team.py'):
-            shutil.copy(ROOT / name, server / name)
+        (server / 'src').mkdir()
+        for source in sorted((ROOT / 'src').glob('*.py')):
+            shutil.copy(source, server / 'src' / source.name)
         (server / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/codex_smoke.py', server / 'scripts/codex_smoke.py')
         shutil.copytree(ROOT / 'web', server / 'web')
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--target', str(server), '--platform', 'win_amd64', '--python-version', '3.14', '--implementation', 'cp', '--only-binary=:all:', '--no-compile', '-r', str(ROOT/'requirements.txt')], check=True)
         # npm integrity pins the official, platform-specific Codex archive.
         meta = json.loads(get(f'https://registry.npmjs.org/@openai%2fcodex/{CODEX_VERSION}-win32-x64'))
         codex_archive = downloads / f'codex-{CODEX_VERSION}-win-x64.tgz'

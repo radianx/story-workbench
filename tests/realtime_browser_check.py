@@ -5,7 +5,7 @@ import sys
 import tempfile
 import threading
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from test_desktop_features import MODELS
 from playwright.sync_api import sync_playwright
 
@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
             page.evaluate("()=>{$('voice-volume').value='45';$('voice-volume').oninput();}")
             page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
             page.locator('#realtime-key').fill('sk-ficticia-solo-test')
-            page.locator('#realtime-save').click();page.get_by_text('Confirmá el envío al proveedor y las condiciones de la API antes de habilitarlo.',exact=True).wait_for()
+            page.locator('#realtime-save').click();page.locator('#realtime-dialog').get_by_text('Confirmá el envío al proveedor y las condiciones de la API antes de habilitarlo.',exact=True).wait_for()
             assert not connections and not server.realtime.status()['configured']
             page.locator('#notice-close').click();page.locator('#realtime-consent').check();page.locator('#realtime-save').click()
             assert page.locator('#realtime-key').input_value()==''

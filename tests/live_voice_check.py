@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import wave
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from workbench_voice import Speech
+from src.workbench_voice import Speech
 
 speech=Speech()
 audio=speech.synthesize('Hola. Quiero escribir una historia sobre una biblioteca en un barco.')

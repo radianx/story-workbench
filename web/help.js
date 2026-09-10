@@ -12,7 +12,7 @@ const helpTopics = [
     'Archivar proyecto lo quita de Tu biblioteca conservando documentos, conversaciones e historial en su carpeta. Proyectos archivados, en la biblioteca, Inicio o Configuración, permite restaurarlo. Primero guardá los cambios y terminá cualquier tarea en curso.',
     'Las casillas junto a los documentos eligen qué texto recibe el asistente. Abrir un documento para leerlo no lo selecciona para IA. Para hablar de una fuente, marcala y guardá sus cambios primero.',
     'Cambiar la selección abre un hilo nuevo en el próximo envío para retirar el contexto anterior. La idea inicial y las decisiones del proyecto también se envían. Máximo: 60.000 caracteres de fuentes y sus fichas del plan; no se recortan en silencio.',
-    'Importar copias admite Markdown y TXT en UTF-8, hasta 250 KB por archivo. Los originales permanecen en su lugar. Los archivos importados quedan seleccionados; revisá las casillas antes de enviar.',
+    'Importar copias admite Markdown/TXT UTF-8, EPUB sin DRM y DOCX, hasta 15 MB por archivo. Convierte texto en unidades de hasta 250 KB, sin imágenes ni diseño original. Las copias quedan sin seleccionar para IA; revisá su contenido antes de enviarlo.',
     'Importar carpeta, desde Inicio o Configuración, muestra los Markdown/TXT y permite elegir cuáles copiar en un proyecto nuevo. Conserva sus rutas relativas en los nombres; reconoce manuscript/manuscrito como material del libro, y deja el resto como referencias. Las copias de carpeta no se seleccionan para IA salvo la primera unidad de traducción. Imágenes, PDF, DOCX, archivos ocultos y enlaces quedan fuera.',
     'Configuración → Carpeta de trabajo permite elegir una carpeta vacía o un espacio de la app, o crear una subcarpeta. El cambio se recuerda y se usa al reiniciar; no traslada proyectos existentes ni cuentas. Para recuperar otra biblioteca, volvé a elegir su ubicación. Para una carpeta de manuscritos, usá Importar carpeta.',
     'Ficha de historia crea una plantilla de personaje, mundo, voz o arco. Empieza como documento provisional sin seleccionar para IA. Completala y seleccioná su casilla cuando quieras compartirla.',
@@ -63,7 +63,7 @@ const helpTopics = [
     'El mensaje aún no enviado y su tipo de tarea se conservan por proyecto durante la sesión de esta ventana. Abrir Ayuda no borra el mensaje ni el borrador del editor. Cerrarlos sin haberlos guardado o enviado no es una copia de seguridad permanente.'
   ]],
   ['export','Exportar el libro o el proyecto',[
-    'Descargar Markdown en el editor exporta el documento abierto, incluido su borrador sin guardar. Para exportar el libro completo, abrí Plan y avance y elegí Markdown o DOCX.',
+    'Descargar Markdown en el editor exporta el documento abierto, incluido su borrador sin guardar. Para exportar el libro completo, abrí Plan y avance y elegí Markdown, DOCX o PDF.',
     'El libro usa únicamente los documentos de tipo Manuscrito, guardados y en el orden del plan. Las casillas de contexto IA no deciden qué entra en el libro. DOCX conserva títulos y párrafos; otras marcas Markdown quedan como texto.',
     'Exportar proyecto genera un ZIP de documentos guardados y un manifiesto con nombres, tipos, fichas del plan, meta y decisiones. No incluye conversaciones, historial de versiones, imágenes de maqueta ni sesión ChatGPT; no es una copia completa de toda la app.',
     'La app todavía no reimporta ese ZIP como proyecto ni prepara EPUB/PDF de imprenta. Conservá tus exportaciones en un lugar elegido por vos.'
@@ -80,7 +80,7 @@ const helpTopics = [
     'Traducir y consultar matices puede mostrar una cita, una pregunta y alternativas con sus efectos. Elegí una, corregila o escribí otro criterio. Registrar mi criterio guarda una decisión del autor; Continuar con IA consume otro turno. No permite saltar un matiz pendiente del mismo original y encargo.',
     'Cuando hay borrador, compará original congelado y traducción editable. Revisé y apruebo crea una copia de tipo Traducción sin modificar el original. Podés corregir el texto antes de aprobar; un borrador del chat nunca se acepta por sí solo.',
     'Si cambia el original, el texto traducido o el encargo, la copia requiere revisión. En Traducción podés comparar ambas versiones actuales, editar la copia y volver a aprobarlas. Cambiar de unidad dentro del mismo encargo no invalida las demás.',
-    'La exportación de traducciones usa la última copia revisada de cada unidad para el idioma actual; no incluye unidades que todavía no tienen traducción. Markdown/DOCX siguen siendo básicos. El ZIP del proyecto conserva también vínculos, encargo y criterios. La IA puede omitir matices: la lectura humana sigue siendo necesaria.'
+    'La exportación de traducciones usa la última copia revisada de cada unidad para el idioma actual; no incluye unidades que todavía no tienen traducción. Markdown/DOCX/PDF son ediciones básicas de lectura. El ZIP del proyecto conserva también vínculos, encargo y criterios. La IA puede omitir matices: la lectura humana sigue siendo necesaria.'
   ]],
   ['rpg','Mundo para rol: preparación del director',[
     'Mundo para rol es un modo extra. Elegilo en el inicio o en Objetivo para preparar una mesa sin convertirla en un libro. La entrevista pregunta de a una sobre experiencia, tono, límites, sistema o reglas propias y escala del mundo.',
@@ -119,7 +119,7 @@ const tips={
   export:'ZIP de documentos y decisiones guardadas. Para el libro DOCX, usá Plan y avance.',
   'new-thread':'Vacía el chat y reinicia su contexto. Conserva fuentes y decisiones; los chats anteriores se consultan debajo del botón.',
   'new-doc':'Crear un documento de manuscrito vacío en este proyecto.',
-  import:'Importar copias Markdown/TXT UTF-8, hasta 250 KB cada una.',
+  import:'Importar copias Markdown/TXT, EPUB o DOCX de hasta 15 MB.',
   'template-open':'Crear una ficha provisional; elegís después si compartirla con el asistente.',
   'ai-effort':'Se aplica al próximo mensaje. Más esfuerzo puede tardar más.',
   skill:'Guía editorial local, con alternativa integrada si build-novel no está instalada.',

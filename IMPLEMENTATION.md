@@ -8,7 +8,7 @@ Criterios: inicialización, estado de cuenta ChatGPT sin exponer tokens, crear s
 
 ## Corte 1: MVP local implementado
 
-Disponible con `python3 app.py`: navegador sin dependencias, servicio Python en loopback, Markdown privado, metadatos JSON, contexto explícito, App Server por stdio y propuestas por bloque. Ver [README](README.md) para uso y límites, y [MVP_RESULTS](MVP_RESULTS.md) para resultados. Se importan copias desde el navegador; no se abren carpetas de manuscritos originales.
+Disponible con `python3 -m src.app`: navegador sin dependencias, servicio Python en loopback, Markdown privado, metadatos JSON, contexto explícito, App Server por stdio y propuestas por bloque. Ver [README](README.md) para uso y límites, y [MVP_RESULTS](MVP_RESULTS.md) para resultados. Se importan copias desde el navegador; no se abren carpetas de manuscritos originales.
 
 La arquitectura y la matriz siguientes son criterios de producto. Los casos implementados y comprobados están enumerados en MVP_RESULTS; las evaluaciones literarias, de series y de traducciones siguen pendientes.
 
@@ -45,3 +45,11 @@ Importación por selección y mapeo de archivos; no imponer migraciones destruct
 | Teclado y modo foco | Acciones accesibles, foco recuperable, lectura legible. |
 
 Progresión: documento ficticio → un cuento en copia → colección → cada volumen de Lattice → cambios entre volúmenes y traducciones → piloto con otro autor. Registrar resultados reales; «exhaustivo» no se deduce de tener cuatro libros ni de pasar una única prueba.
+
+## Corte 0.9.0 implementado
+
+Backend Python empaquetado en `src/`, sin wrappers en la raíz. HTTP conserva autenticación, límites y serialización; las operaciones editoriales viven en `workbench_operations`. El arranque desde código y el lanzador Windows usan `-m src.app`; PyInstaller incluye el mismo paquete y los recursos web. No cambia la ubicación de los proyectos.
+
+Metadatos versionados con una migración idempotente de proyectos anteriores y rechazo de versiones futuras. Importación EPUB/DOCX limitada y sin extracción de ZIP al sistema de archivos. PDF mediante ReportLab con fuentes locales incluidas; imágenes API optativas mediante adaptadores OpenAI/Gemini con vista previa y guardado humano. Se reutiliza el llavero existente.
+
+La estructura estable del compositor y sus ajustes está en HTML; configuración ya no reconstruye el chat. Los nuevos módulos de importación e imágenes tienen dependencias explícitas, estado privado e inicialización central; el resto de controladores continúa como JavaScript clásico compatible. Se formatearon los archivos modificados para facilitar su revisión.

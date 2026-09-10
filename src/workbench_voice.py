@@ -9,7 +9,8 @@ import shutil
 import subprocess
 import threading
 import wave
-from workbench_store import check, text_value
+from src.workbench_store import check, text_value
+from src import ROOT
 
 RATE = 16000
 MAX_SECONDS = 45
@@ -28,7 +29,7 @@ def decode_pcm(value):
 class Speech:
     def __init__(self):
         target = 'win' if os.name == 'nt' else 'linux'
-        self.root = Path(os.environ.get('STORY_VOICE_DIR', Path(__file__).parent / 'dist' / 'voice' / target))
+        self.root = Path(os.environ.get('STORY_VOICE_DIR', ROOT / 'dist' / 'voice' / target))
         self.library = self.root / ('libvosk.dll' if os.name == 'nt' else 'libvosk.so')
         self.model_path = self.root / 'model'
         self.tts = (shutil.which('powershell.exe') if os.name == 'nt' else

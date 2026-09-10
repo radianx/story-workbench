@@ -6,8 +6,8 @@ import tempfile
 import unittest
 import wave
 from unittest.mock import patch
-from workbench_voice import Speech, decode_pcm, RATE, MAX_SECONDS
-from workbench_store import Problem
+from src.workbench_voice import Speech, decode_pcm, RATE, MAX_SECONDS
+from src.workbench_store import Problem
 import test_workbench
 
 
@@ -20,7 +20,7 @@ class Voice(unittest.TestCase):
         with wave.open(output,'wb') as w:w.setparams((1,2,22050,0,'NONE','not compressed'));w.writeframes(b'\0\0'*500)
         speech=Speech();speech.tts='/fixed/espeak-ng'
         text='Hola `comando` $(no ejecutar) & <texto>'
-        with patch('workbench_voice.subprocess.run') as run:
+        with patch('src.workbench_voice.subprocess.run') as run:
             run.return_value.returncode=0;run.return_value.stdout=output.getvalue()
             result=speech.synthesize(text)
             self.assertEqual(run.call_args.kwargs['input'],text.encode())

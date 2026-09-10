@@ -2,9 +2,9 @@ import asyncio
 import tempfile
 import unittest
 from unittest.mock import patch
-from workbench_account import Account, auth_url, list_models, resolve_ai
-from workbench_production import validate_production
-from workbench_store import Problem
+from src.workbench_account import Account, auth_url, list_models, resolve_ai
+from src.workbench_production import validate_production
+from src.workbench_store import Problem
 
 
 MODELS = [dict(model='modelo-a',displayName='Modelo A',isDefault=True,defaultReasoningEffort='medium',
@@ -55,7 +55,7 @@ class Features(unittest.TestCase):
                 if method=='account/login/start': return {'type':'chatgpt','loginId':'fake-id','authUrl':'https://auth.openai.com/oauth/authorize?state=fake'}
                 return {}
             async def read(self): return {'method':'account/login/completed','params':{'loginId':'fake-id','success':True}}
-        with tempfile.TemporaryDirectory() as directory, patch('workbench_account.Server',Fake):
+        with tempfile.TemporaryDirectory() as directory, patch('src.workbench_account.Server',Fake):
             account=Account(directory)
             asyncio.run(account.execute('login'))
             self.assertEqual(account.snapshot(),{'status':'connected','models':MODELS})

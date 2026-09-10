@@ -6,8 +6,8 @@ ni guarda grabaciones o claves. Detecta respuestas libres; no certifica pronunci
 import argparse,base64,difflib,getpass,os,re,struct,sys,time,unicodedata,wave
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from workbench_realtime import Realtime
-from workbench_voice import Speech
+from src.workbench_realtime import Realtime
+from src.workbench_voice import Speech
 
 TEXTS=['¿Qué pierde la protagonista si decide volver?',
        'Antes de seguir, elegí una opción: contar la historia en primera persona o en tercera persona. ¿Cuál preferís?',

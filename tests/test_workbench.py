@@ -6,9 +6,9 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from app import AppServer
-from workbench_ai import Assistant
-from workbench_store import Store, Problem, digest
+from src.app import AppServer
+from src.workbench_ai import Assistant
+from src.workbench_store import Store, Problem, digest
 
 
 class StoreTests(unittest.TestCase):
@@ -49,7 +49,7 @@ class StoreTests(unittest.TestCase):
         writing=self.store.create('Página en blanco')
         self.assertEqual(len(writing['documents']),1)
         self.assertEqual(self.store.document(writing,writing['documents'][0]['id'])['content'],'')
-        del writing['workflow'];del writing['initial_idea'];self.store.persist(writing)
+        writing.pop('schema_version');del writing['workflow'];del writing['initial_idea'];self.store.persist(writing)
         self.assertEqual(self.store.load(writing['id'])['workflow'],'writing')
         with self.assertRaises(Problem):
             self.store.create('No crear',workflow='invalid')
@@ -61,7 +61,7 @@ class StoreTests(unittest.TestCase):
             assistant.start(project,'diagnosis','Sin fuentes')
         with self.assertRaises(Problem):
             assistant.start(project,'interview','Sin skill',False)
-        with patch('workbench_ai.threading.Thread.start') as start:
+        with patch('src.workbench_ai.threading.Thread.start') as start:
             first=assistant.start_interview(project)
             self.assertEqual(assistant.start_interview(project),first)
             self.assertEqual(assistant.start_interview(project,True),first)
@@ -195,8 +195,8 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(data['projects'][0]['id'],project)
 
     def test_conversation_reset_preserves_archive_and_clears_all_contexts(self):
-        from workbench_ai import portable_history
-        from workbench_realtime import context
+        from src.workbench_ai import portable_history
+        from src.workbench_realtime import context
         from test_desktop_features import MODELS
         store=self.server.store;project=store.create('Chats ficticios',True)['id']
         data=store.load(project)
@@ -224,7 +224,7 @@ class HTTPTests(unittest.TestCase):
             self.assertEqual(self.request('/api/project/team',dict(project=project,preferences=dict(model=model,effort=effort,max_agents=2)))[0],status)
         self.assertEqual(store.load(project)['team_preferences']['effort'],'low')
         # Recupera el historial de versiones previas que solo tenían history_start.
-        data=store.load(project);del data['conversations'];store.persist(data)
+        data=store.load(project);data.pop('schema_version');del data['conversations'];store.persist(data)
         self.assertEqual(store.load(project)['conversations'][0]['end'],1)
 
     def test_second_server_cannot_open_same_data(self):

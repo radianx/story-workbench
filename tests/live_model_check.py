@@ -3,8 +3,8 @@ from pathlib import Path
 import sys
 import tempfile
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from workbench_store import Store
-from workbench_ai import Assistant
+from src.workbench_store import Store
+from src.workbench_ai import Assistant
 from live_mvp import wait
 
 with tempfile.TemporaryDirectory(prefix='sw-model-choice-') as directory:

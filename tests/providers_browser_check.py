@@ -3,7 +3,7 @@ from pathlib import Path
 import sys,tempfile,threading
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from playwright.sync_api import sync_playwright
 with tempfile.TemporaryDirectory(prefix='sw-engines-') as directory:
     server=AppServer(0,directory);server.account.set(status='signed_out');project=server.store.create('Ficción de motores',True)

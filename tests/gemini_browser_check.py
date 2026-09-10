@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import threading
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from playwright.sync_api import sync_playwright
 buffered='--webkit-playback' in sys.argv
 

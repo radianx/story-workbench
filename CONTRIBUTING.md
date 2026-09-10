@@ -11,12 +11,14 @@ El código propio del proyecto y sus contribuciones se distribuyen bajo la [lice
 3. Con Python 3.11 o posterior, ejecutá desde la raíz:
 
    ```sh
-   python3 app.py --data-dir private/contrib --port 8766
+   python3 -m venv .venv
+   .venv/bin/python -m pip install -r requirements.txt
+   .venv/bin/python -m src.app --data-dir private/contrib --port 8766
    ```
 
 4. Abrí el enlace completo que imprime la terminal. Su token es temporal y privado. Omití conectar cuentas y elegí «Explorar un proyecto ficticio». Detené el servidor con Ctrl+C.
 
-El backend usa la biblioteca estándar de Python y la interfaz es HTML/CSS/JavaScript sin compilación. Para este recorrido no hacen falta npm, Rust, Docker, Codex ni claves. Los cambios web se ven al recargar; los cambios Python requieren reiniciar. `private/` está excluido de Git. Usá datos inventados, incluso para capturas y errores.
+El backend usa la biblioteca estándar de Python, con ReportLab/Pillow para PDF e imágenes y la interfaz es HTML/CSS/JavaScript sin compilación. Para este recorrido no hacen falta npm, Rust, Docker, Codex ni claves. Los cambios web se ven al recargar; los cambios Python requieren reiniciar. `private/` está excluido de Git. Usá datos inventados, incluso para capturas y errores.
 
 En Windows, si tu instalación ofrece `py` en lugar de `python3`, usá `py -3`. El recorrido automatizado de navegador descrito abajo está preparado para Linux; no equivale a una comprobación nativa de Windows.
 
@@ -24,13 +26,14 @@ En Windows, si tu instalación ofrece `py` en lugar de `python3`, usá `py -3`. 
 
 | Área | Entrada en el código | Comprobación relacionada |
 | --- | --- | --- |
-| Servidor HTTP y controles de acceso | `app.py` | `tests/test_workbench.py` |
-| Documentos, versiones, biblioteca y workspace | `workbench_store.py`, `workbench_workspace.py` | `tests/test_workbench.py`, `tests/test_workspace.py` |
-| Codex, cuenta y equipo editorial | `workbench_ai.py`, `workbench_account.py`, `workbench_team.py`, `scripts/codex_smoke.py` | `scripts/test_codex_smoke.py`, `tests/test_team.py` |
-| Proveedores experimentales | `workbench_providers.py`, `web/providers.js` | `tests/test_providers.py`, `tests/providers_browser_check.py` |
+| Servidor HTTP y controles de acceso | `src/app.py` | `tests/test_workbench.py` |
+| Importación, PDF, imágenes y migraciones | `src/workbench_import.py`, `src/workbench_pdf.py`, `src/workbench_images.py`, `src/workbench_migrations.py`, `web/images.js` | `tests/test_formats.py`, `tests/test_images.py`, `tests/formats_browser_check.py` |
+| Documentos, versiones, biblioteca y workspace | `src/workbench_store.py`, `src/workbench_workspace.py` | `tests/test_workbench.py`, `tests/test_workspace.py` |
+| Codex, cuenta y equipo editorial | `src/workbench_ai.py`, `src/workbench_account.py`, `src/workbench_team.py`, `scripts/codex_smoke.py` | `scripts/test_codex_smoke.py`, `tests/test_team.py` |
+| Proveedores experimentales | `src/workbench_providers.py`, `web/providers.js` | `tests/test_providers.py`, `tests/providers_browser_check.py` |
 | Chat, formato, ajustes y temas | `web/index.html`, `web/style.css`, `web/app.js`, `web/markdown.js`, `web/settings.js`, `web/appearance.js` | `tests/ux_browser_check.py`, `tests/markdown_browser_check.py`, `tests/themes_archive_browser_check.py` |
-| Traducción y rol | `workbench_modes.py`, `web/modes.js` | `tests/test_modes.py`, `tests/modes_browser_check.py` |
-| Voz y lectura | `workbench_voice.py`, `workbench_realtime.py`, `web/voice.js`, `web/realtime.js`, `web/gemini-voice.js` | `tests/test_voice.py`, `tests/test_realtime.py`, `tests/pcm_playback_check.js` |
+| Traducción y rol | `src/workbench_modes.py`, `web/modes.js` | `tests/test_modes.py`, `tests/modes_browser_check.py` |
+| Voz y lectura | `src/workbench_voice.py`, `src/workbench_realtime.py`, `web/voice.js`, `web/realtime.js`, `web/gemini-voice.js` | `tests/test_voice.py`, `tests/test_realtime.py`, `tests/pcm_playback_check.js` |
 | Ventana nativa, llavero y procesos | `src-tauri/src/`, `desktop/sidecar/` | [DESKTOP.md](DESKTOP.md#comprobaciones-ejecutables) |
 | Instaladores | `desktop/prepare.py`, `desktop/build.py` | `tests/installer_check.py` |
 
@@ -42,7 +45,7 @@ Desde la raíz, con Python 3.11+ y Node.js 22, estas comprobaciones no necesitan
 
 ```sh
 python3 -m unittest discover -s scripts
-python3 -m unittest discover -s tests
+.venv/bin/python -m unittest discover -s tests
 node tests/pcm_playback_check.js
 ```
 
@@ -52,13 +55,15 @@ Para cambios de interfaz, instalá Playwright en un entorno de desarrollo y Goog
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install playwright==1.60.0
+.venv/bin/python -m pip install -r requirements.txt playwright==1.60.0
+# Para verificar texto y páginas de PDF en Linux: instalar poppler-utils.
 .venv/bin/python tests/ux_browser_check.py
 .venv/bin/python tests/modes_browser_check.py
 .venv/bin/python tests/markdown_browser_check.py
+.venv/bin/python tests/formats_browser_check.py
 ```
 
-Instalar solo el Chromium de Playwright no satisface esa ruta. El CI verifica Chrome antes de ejecutar esos tres recorridos. No usan proveedores reales; otros recorridos por área están en `tests/` y en [README.md](README.md#comprobar).
+Instalar solo el Chromium de Playwright no satisface esa ruta. El CI verifica Chrome antes de ejecutar esos cuatro recorridos. No usan proveedores reales; otros recorridos por área están en `tests/` y en [README.md](README.md#comprobar).
 
 Las pruebas `live_*` son optativas: algunas usan cuentas, cuota o APIs facturables. Leé su encabezado y configuración antes de ejecutarlas. No forman parte del CI. Las pruebas nativas de audio requieren sesión gráfica/dispositivos y pueden afectar el volumen del sistema: sus requisitos están en [DESKTOP.md](DESKTOP.md). No necesitás construir instaladores para un cambio de documentación o web; si tocás escritorio o empaquetado, seguí ese documento y ejecutá las builds secuencialmente.
 
@@ -95,3 +100,11 @@ Las funciones grandes pendientes se describen en [README.md](README.md#datos-y-l
 - Crear unos pocos issues concretos con criterio de aceptación; reservar `good first issue` para tareas pequeñas con ubicación y forma de comprobarlas. `help wanted` puede indicar pruebas de plataforma o revisión editorial.
 
 El workflow no publica paquetes ni usa cuentas de autores. Su ejecución en GitHub y las opciones anteriores deben verificarse después de subir el workflow al remoto. Las [guías de contribución](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors) y las [recomendaciones de seguridad para Actions](https://docs.github.com/en/actions/reference/security/secure-use) explican las convenciones utilizadas.
+
+## Límites del código
+
+`src/app.py` valida el transporte, el origen y la autenticación; `src/workbench_operations.py` ejecuta operaciones del proyecto sin depender del handler HTTP. Las claves no entran en `Store`. Las conversiones de formato operan sobre copias y las migraciones de JSON no escriben al leer. No agregues archivos Python de aplicación en la raíz.
+
+El chat y los controles permanentes se declaran en HTML. La nueva funcionalidad web usa módulos con dependencias explícitas e inicialización desde `bootstrap.js`; cada controlador conserva su propio estado. El puente con los controladores clásicos está concentrado allí. `formats.js` no depende del estado del chat. Para migrar otro controlador, preservá sus recorridos de UI y evitá introducir un segundo propietario de su estado.
+
+Validación adicional del workflow: `actionlint .github/workflows/checks.yml`. `runner` no está disponible en el `env` del job; el perfil temporal de pruebas se prepara en un paso con `RUNNER_TEMP` y `GITHUB_ENV`.

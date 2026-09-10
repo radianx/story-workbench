@@ -1,9 +1,9 @@
 """Protocolos experimentales con SSE ficticio, sin credenciales ni llamadas reales."""
 import io,json,tempfile,threading,unittest,urllib.error
 from unittest.mock import patch
-from workbench_providers import Providers,engine_preferences
-from workbench_store import Store,Problem
-from workbench_ai import Assistant,portable_history
+from src.workbench_providers import Providers,engine_preferences
+from src.workbench_store import Store,Problem
+from src.workbench_ai import Assistant,portable_history
 
 class Response(io.BytesIO):
     headers={'Content-Type':'text/event-stream'}

@@ -2,7 +2,7 @@
 import json
 import re
 import time
-from workbench_store import check, text_value, digest, uid
+from src.workbench_store import check, text_value, digest, uid
 
 PURPOSES = ('novel', 'translation', 'rpg')
 GUIDES = {

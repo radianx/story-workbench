@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys,tempfile,threading
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import AppServer
+from src.app import AppServer
 from playwright.sync_api import sync_playwright
 with tempfile.TemporaryDirectory(prefix='sw-settings-') as temp:
     server=AppServer(0,temp);server.account.set(status='signed_out');project=server.store.create('Diseño ficticio',True);data=server.store.load(project['id']);data['workflow']='guided';data['runs']=[dict(id='test',mode='interview',prompt='Ficción',text='¿Qué historia querés crear?',status='completed',sources=[],date=0)];server.store.persist(data)

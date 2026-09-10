@@ -1,8 +1,8 @@
 import asyncio,json,tempfile,threading,unittest
 from unittest.mock import patch
-from workbench_ai import Assistant
-from workbench_store import Store,Problem
-from workbench_team import team_preferences,validate_plan
+from src.workbench_ai import Assistant
+from src.workbench_store import Store,Problem
+from src.workbench_team import team_preferences,validate_plan
 from test_desktop_features import MODELS
 
 
@@ -52,7 +52,7 @@ class TeamTests(unittest.TestCase):
         return data['runs'][-1],[self.store.document(data,d['id']) for d in data['documents'] if d['selected']]
     def execute(self,mode='panel'):
         run,docs=self.prepare(mode)
-        with patch('workbench_ai.Server',FakeServer),patch('workbench_team.Server',FakeServer):
+        with patch('src.workbench_ai.Server',FakeServer),patch('src.workbench_team.Server',FakeServer):
             asyncio.run(self.assistant.execute(self.project,run,docs))
         return self.store.load(self.project)['runs'][-1]
     def test_blind_context_models_and_no_writes(self):
@@ -99,7 +99,7 @@ class TeamTests(unittest.TestCase):
                 await asyncio.sleep(.01)
             self.assistant.cancel.set()
             with self.assertRaises(Problem):await asyncio.wait_for(task,2)
-        with patch('workbench_ai.Server',FakeServer),patch('workbench_team.Server',FakeServer):asyncio.run(run_and_cancel())
+        with patch('src.workbench_ai.Server',FakeServer),patch('src.workbench_team.Server',FakeServer):asyncio.run(run_and_cancel())
         self.assertTrue(all(s.closed for s in FakeServer.instances))
         reopened=Store(self.temp.name);saved=reopened.load(self.project)['runs'][-1]
         self.assertEqual(saved['status'],'interrupted')

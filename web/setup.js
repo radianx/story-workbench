@@ -35,13 +35,13 @@ $('setup-workspace').onclick=()=>{$('setup-dialog').close();openSettings();$('wo
 $('setup-resume').onclick=action(async()=>{const id=$('setup-project').value;if(!id)return;rememberSetup();$('setup-dialog').close();await openProject(id);});
 
 // Destinos explícitos compartidos por teclado y voz; nunca aprobaciones ni clicks arbitrarios.
-const navigationLabels={back:'Cerrar sección abierta',conversation:'Conversación',proposals:'Propuestas',decisions:'Decisiones',notices:'Avisos',library:'Biblioteca',material:'Material',settings:'Configuración',model:'Modelo y esfuerzo',voice:'Configuración de voz',account:'Cuenta ChatGPT',setup:'Asistente inicial',help:'Ayuda',book:'Libro 3D',plan:'Plan y avance',translation:'Traducción'};
+const navigationLabels={back:'Cerrar sección abierta',conversation:'Conversación',proposals:'Propuestas',decisions:'Decisiones',notices:'Avisos',library:'Biblioteca',material:'Material',settings:'Configuración',model:'Modelo y esfuerzo',voice:'Configuración de voz',account:'Cuenta ChatGPT',setup:'Asistente inicial',help:'Ayuda',images:'Imágenes experimentales',book:'Libro 3D',plan:'Plan y avance',translation:'Traducción'};
 async function navigateWorkbench(target){
   if(!Object.hasOwn(navigationLabels,target))throw new Error('Sección no permitida.');
   const modal=topDialog();
   if(target==='back'){
     if(!modal)return;
-    const closers={'settings-dialog':'settings-close','help-dialog':'help-close','account-dialog':'account-close','realtime-dialog':'realtime-close','engine-dialog':'engine-close','navigation-dialog':'navigation-close','setup-dialog':'setup-skip'};
+    const closers={'images-dialog':'images-close','settings-dialog':'settings-close','help-dialog':'help-close','account-dialog':'account-close','realtime-dialog':'realtime-close','engine-dialog':'engine-close','navigation-dialog':'navigation-close','setup-dialog':'setup-skip'};
     if(modal.id==='book-dialog'&&!bookDirty){$('book-close').click();return;}
     if(!closers[modal.id])throw new Error('Esta sección puede tener cambios pendientes. Usá su botón de cierre para revisarlos.');
     $(closers[modal.id]).click();return;
