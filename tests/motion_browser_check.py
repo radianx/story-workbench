@@ -37,6 +37,7 @@ with tempfile.TemporaryDirectory(prefix='sw-motion-') as directory:
             assert page.evaluate('submitOnce()') is False
             assert page.evaluate('submitOnce()') is False and page.evaluate('formCalls')==1
             page.evaluate('finishForm()')
+            page.locator('[data-panel=notices]').click()
             # Los cambios de etapa conservan el elemento; una actualización no reanima el texto.
             page.evaluate("()=>{state.runs=[{id:'motion',mode:'chat',status:'running',stage:'generation'}];renderProgress();window.progressElement=document.querySelector('#task-progress progress');state.runs[0].status='completed';renderProgress()}")
             assert page.evaluate('document.querySelector("#task-progress progress")===progressElement')

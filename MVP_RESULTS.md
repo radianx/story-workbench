@@ -1,3 +1,10 @@
+# Tarjetas de contexto y progreso en Avisos · Tauri 0.8.12 — 2026-09-10
+
+- La orientación de traducción/rol y el progreso de la tarea se muestran dentro de Avisos, conservando sus botones. Preparar un mundo inicial devuelve al chat y enfoca el mensaje. Limpiar notificaciones conserva ambas tarjetas.
+- Pasaron los recorridos de modos, UX y microinteracciones con datos ficticios: ausencia de tarjetas en Conversación, progreso completado en Avisos, limpieza sin perder controles, preparación de traducción, vuelta al chat para rol y foco. Sin llamadas IA ni cambios en manuscritos.
+
+- Instaladores Linux .deb y Windows NSIS 0.8.12 generados y verificados: 32/103 archivos de runtime y SHA256. No se probó la interfaz en Windows real ni se actualizó la instalación del usuario.
+
 # Avisos y controles de envío · Tauri 0.8.11 — 2026-09-10
 
 - Enviar ampliado a un mínimo de 132 × 52 px, símbolo ↵ decorativo y casilla Leer respuestas debajo. Conserva Enter/Shift+Enter y el micrófono junto al campo.

@@ -41,12 +41,23 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             project=server.store.list_projects()[0]['id']
             source=server.store.snapshot(project)['documents'][0]
             assert server.store.load(project)['translation_config']['source_language']=='es-AR'
-            page.reload();page.locator('#translation-open').click()
+            page.reload();page.locator('.run-text').wait_for()
+            assert page.locator('#conversation-panel #purpose-banner, #conversation-panel #task-progress').count()==0
+            assert page.locator('#purpose-banner').is_hidden() and page.locator('#task-progress').is_hidden()
+            page.locator('[data-panel=notices]').click()
+            assert page.locator('#notices-panel #purpose-banner').is_visible()
+            assert 'Traducción con criterio del autor' in page.locator('#purpose-banner').inner_text()
+            assert 'Listo para revisar' in page.locator('#notices-panel #task-progress').inner_text()
+            assert page.locator('#task-progress progress').get_attribute('value')=='4'
+            page.evaluate("notice('Prueba de limpieza')")
+            page.locator('#notices-clear').click()
+            assert page.locator('#purpose-banner').is_visible() and page.locator('#task-progress').is_visible()
+            page.locator('[data-translation-setup]').click()
             page.locator('#translation-source').select_option(source['id'])
             page.locator('#translation-from').fill('es-AR');page.locator('#translation-to').fill('en-US')
             page.locator('#translation-intent').fill('Conservar el vínculo.')
             page.locator('#translation-form button[type=submit]').click()
-            page.get_by_text('Encargo guardado. Marcá el original en las fuentes antes de traducir.',exact=True).wait_for()
+            page.locator('#translation-dialog #notice-text').get_by_text('Encargo guardado. Marcá el original en las fuentes antes de traducir.',exact=True).wait_for()
             page.locator('#translation-start').click();page.locator('[data-criterion]').wait_for()
             assert len(server.store.snapshot(project)['documents'])==1
             page.locator('[data-nuance]').first.click();page.locator('[data-criterion]').fill('Afecto amistoso, sin romance.')
@@ -74,7 +85,10 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.locator('#translation-close').click();page.set_viewport_size({'width':1440,'height':1000})
             page.locator('#settings-open').click();page.locator('#purpose').select_option('rpg');page.locator('#settings-close').click();page.wait_for_function('()=>state?.purpose==="rpg"')
             assert page.locator('#book-open').is_hidden() and page.locator('#plan-open').is_hidden()
-            page.locator('[data-rpg-starter]').click();assert page.locator('#mode').input_value()=='draft'
+            page.locator('[data-panel=notices]').click()
+            page.locator('[data-rpg-starter]').click()
+            assert page.locator('#prompt').is_visible() and page.locator('#prompt').evaluate('e=>e===document.activeElement')
+            assert page.locator('#mode').input_value()=='draft'
             assert 'jugadores' in page.locator('#prompt').input_value()
             assert len(server.store.load(project)['documents'])==2
             assert page.locator('#template-type option[value=rpg_npc]').count()==1

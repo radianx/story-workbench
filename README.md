@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.11**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.12**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -55,7 +55,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Conversaciones | Nueva conversación vacía el chat y su contexto; anteriores consultables en un desplegable de la biblioteca. Conserva fuentes, decisiones, propuestas y mensajes sin enviar. |
 | Modelos | Catálogo de la cuenta ChatGPT y esfuerzos compatibles; selección por proyecto, comprobación al enviar y modelo/esfuerzo efectivo en cada respuesta. |
 | Creación | Redacción guiada y botón explícito para guardar como nuevo borrador provisional; repetirlo abre la misma copia. |
-| Seguimiento | Baja al final cuando aparece un mensaje o llega texto nuevo del agente; permite volver a la última respuesta después de desplazarte manualmente. Avisos de la sesión en su propia pestaña, con contador y limpieza; los errores de formularios permanecen dentro de ellos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
+| Seguimiento | Baja al final cuando aparece un mensaje o llega texto nuevo del agente; permite volver a la última respuesta después de desplazarte manualmente. Avisos de la sesión, orientación de traducción/rol y progreso de la tarea en su propia pestaña, con contador y limpieza de notificaciones; los errores de formularios permanecen dentro de ellos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
 | Motores alternativos | OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local compatible, experimentales; proveedor por proyecto, claves aisladas y respuestas sujetas a las mismas aprobaciones. |
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |

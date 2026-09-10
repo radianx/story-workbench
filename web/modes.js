@@ -113,7 +113,7 @@ $('translation-documents').onclick=action(async event=>{
 });
 document.addEventListener('click',event=>{
   if(event.target.closest('[data-translation-setup]'))openTranslation();
-  if(event.target.closest('[data-rpg-starter]')){$('mode').value='draft';setTaskMode();$('prompt').value='Ayudame a preparar rápido un mundo inicial para mi mesa: premisa, lugar de partida, tres PNJ, dos facciones, reglas del mundo y tres ganchos abiertos. Si falta una decisión esencial sobre sistema, tono o límites, preguntame de a una. Todo lo que no aprobé es provisional; no decidas lo que harán los jugadores.';savePromptDraft();$('prompt').focus();}
+  if(event.target.closest('[data-rpg-starter]')){showPanel('conversation');$('mode').value='draft';setTaskMode();$('prompt').value='Ayudame a preparar rápido un mundo inicial para mi mesa: premisa, lugar de partida, tres PNJ, dos facciones, reglas del mundo y tres ganchos abiertos. Si falta una decisión esencial sobre sistema, tono o límites, preguntame de a una. Todo lo que no aprobé es provisional; no decidas lo que harán los jugadores.';savePromptDraft();$('prompt').focus();}
 });
 Object.assign(templates,{
   rpg_world:{role:'plan',text:'## Experiencia de mesa, tono y límites\n\nPor acordar con el director y el grupo.\n\n## Sistema y edición o reglas propias\n\nPor definir; no asumir reglas oficiales.\n\n## Premisa, escala y lugar inicial\n\nPor definir.\n\n## Qué saben los personajes jugadores\n\nPor definir.\n\n## Secretos del director y conflictos abiertos\n\nProvisional.'},

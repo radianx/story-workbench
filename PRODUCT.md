@@ -124,3 +124,7 @@ Enter envía y Shift+Enter inserta un salto de línea. Enviar, el micrófono y L
 ## Avisos y envío 0.8.11
 
 Enviar es más grande y muestra ↵; Leer respuestas queda debajo. La pestaña Avisos reúne hasta 100 notificaciones de esta ventana, agrupa repeticiones consecutivas y marca como leídos al abrirla, sin tapar ni cambiar el chat. Incluye Limpiar avisos y acceso mediante la navegación de teclado/voz. No guarda notificaciones en disco. Los formularios conservan sus mensajes dentro del diálogo y el inicio sin proyecto los muestra en su contenido.
+
+## Tarjetas en Avisos 0.8.12
+
+Avisos contiene también la orientación de traducción o rol y el progreso de la tarea actual. Conserva sus acciones y actualiza las etapas aunque se esté leyendo la conversación; estas tarjetas no se borran al limpiar las notificaciones. El chat queda libre de esas tarjetas.
