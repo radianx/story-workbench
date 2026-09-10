@@ -94,7 +94,7 @@ fn forward(backend: &Backend, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
 fn export_name(url: &tauri::Url) -> Option<String> {
     let name=url.query_pairs().find(|(key,_)|key=="name")?.1.into_owned();
     if name.is_empty() || name.len()>240 || name.chars().any(|c|c.is_control() || "/\\:<>\"|?*".contains(c)) ||
-        !["md","docx","zip"].iter().any(|ext|name.ends_with(&format!(".{ext}"))) {return None}
+        !["md","docx","zip","json"].iter().any(|ext|name.ends_with(&format!(".{ext}"))) {return None}
     Some(name)
 }
 fn save_export(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -248,6 +248,7 @@ mod tests {
     #[test] fn export_boundary_and_atomic_replace() {
         for name in ["../secret.md","a%2Fsecret.zip","a%5Cb.md","bad.exe","a%00.md"] {assert!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).is_none());}
         assert_eq!(export_name(&"workbench://app/api/desktop/save?name=libro.docx".parse().unwrap()).as_deref(),Some("libro.docx"));
+        assert_eq!(export_name(&"workbench://app/api/desktop/save?name=story-workbench-theme.json".parse().unwrap()).as_deref(),Some("story-workbench-theme.json"));
         let dir=tempfile::tempdir().unwrap();let path=dir.path().join("libro.md");
         save_export(&path,b"primero").unwrap();save_export(&path,b"segundo").unwrap();
         assert_eq!(std::fs::read(path).unwrap(),b"segundo");

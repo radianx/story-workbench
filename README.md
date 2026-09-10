@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.3**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.4**, 2026-09-09. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -13,6 +13,8 @@ Los paquetes locales están en `dist/installers/`. Ver [distribución y comproba
 3. El asistente inicial comienza por el tema de la app y permite conectar ChatGPT, preparar voz opcional y crear o abrir un proyecto. Se puede omitir y reabrir desde Configuración. Para conectar: **Cuenta ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro**. Completá el acceso en tu navegador y volvé a la app.
 
 Usa Tauri e incluye Python y Codex: el usuario no necesita terminal ni instalarlos por separado. Cada instalación usa la cuenta del autor que la abre. Se puede escribir sin iniciar sesión; la IA necesita internet y disponibilidad de Codex en esa cuenta. Codex con ChatGPT es el motor editorial principal, sin fallback de pago. Se pueden elegir seis adaptadores experimentales con clave propia o servidor local; ver [motores](PROVIDERS.md). La voz online opcional admite claves de OpenAI o Gemini con condiciones y facturación API separadas; el dictado local sigue disponible. Windows instala WebView2 si falta (requiere internet); Linux usa WebKitGTK del sistema. Los paquetes son preliminares y no están firmados ni publicados.
+
+**Archivar proyecto** lo retira de Tu biblioteca sin borrar archivos. **Proyectos archivados** permite recuperarlo. Modelo y esfuerzo se eligen junto al tipo de tarea, debajo del mensaje.
 
 ## Iniciar desde el código
 
@@ -45,7 +47,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental, detención e hilo persistente por proyecto. |
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
-| Voz | Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
+| Voz | Botón Probar voz del proveedor con diagnóstico de audio y sin respaldo local durante la prueba. Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
 | Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
 | Traducción | Inicio con original obligatorio e idiomas elegibles/detectables; unidades de hasta 12.000 caracteres sin omitir texto. Entrevista de intención, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |
@@ -56,8 +58,8 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
-| Apariencia | Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar el modo y ambas paletas para el usuario local, también al reiniciar la app; se restauran antes de mostrar la interfaz. |
-| Ambiente | Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
+| Apariencia | Neón y Vice City claros/oscuros, editor de colores y temas JSON compartibles ([formato](THEMES.md)). Tema Sistema por defecto; sigue los cambios claro/oscuro del equipo. También permite elegir Claro u Oscuro y recordar el modo y ambas paletas para el usuario local, también al reiniciar la app; se restauran antes de mostrar la interfaz. |
+| Ambiente | Opacidad ajustable y persistente de 0 a 100%. Imagen PNG/JPEG/WebP elegida en el equipo, tenue y sin transmisión a Codex. Dura en la pestaña y se retira al cambiar de proyecto. |
 | Exportación | Markdown del documento, incluido su borrador; ZIP del proyecto guardado con documentos y manifiesto de nombres, roles y decisiones. No exporta conversaciones. Desde Plan y avance: libro completo en orden a Markdown y DOCX básico de lectura. |
 
 La opción build-novel usa la instalación local descubierta por Codex. Se verificó su presencia, pero no se encontró una licencia de redistribución; no se incluye en los instaladores. Cuando no está instalada, se usa la guía editorial integrada de la app. El registro de cada respuesta indica cuál se usó. Diagnosticar nunca autoriza reescribir.
@@ -94,6 +96,7 @@ python3 tests/modes_browser_check.py
 python3 tests/realtime_browser_check.py
 python3 tests/gemini_browser_check.py
 python3 tests/settings_browser_check.py
+python3 tests/themes_archive_browser_check.py
 python3 tests/motion_browser_check.py
 python3 tests/setup_browser_check.py
 python3 tests/providers_browser_check.py

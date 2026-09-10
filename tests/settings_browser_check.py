@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='sw-settings-') as temp:
             page.locator('#theme-toggle').click();assert page.locator('#theme').input_value()=='dark:blue'
             prompt=page.locator('#prompt').bounding_box();assert prompt['width']>1000
             assert page.locator('#runs').bounding_box()['height']>page.locator('.composer').bounding_box()['height']*2
-            assert not page.locator('#ai-model').is_visible() and page.locator('#dictate').is_visible()
+            assert page.locator('.composer-bottom #ai-model').is_visible() and page.locator('#dictate').is_visible()
             page.locator('#help-open').click();assert page.locator('#help-dialog').bounding_box()['width']>1100;page.locator('#help-close').click()
             page.locator('#book-open').click();stage=page.locator('#book-stage').bounding_box();before=page.locator('#book-rotation').input_value()
             page.mouse.move(stage['x']+stage['width']/2,stage['y']+stage['height']/2);page.mouse.down();page.mouse.move(stage['x']+stage['width']/2+80,stage['y']+stage['height']/2+20,steps=5);page.mouse.up()

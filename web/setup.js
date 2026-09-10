@@ -47,7 +47,11 @@ async function navigateWorkbench(target){
     $(closers[modal.id]).click();return;
   }
   if(modal)throw new Error('Cerrá el diálogo actual antes de cambiar de sección.');
-  if(['settings','model','voice'].includes(target)){
+  if(target==='model'&&state){
+    if(document.body.classList.contains('focus'))$('focus').click();showPanel('conversation');
+    const control=selectedEngine()==='codex'?$('ai-model'):$('chat-engine');
+    if(control.disabled){$('account-open').click();}else control.focus();
+  }else if(['settings','model','voice'].includes(target)){
     openSettings();if(target==='model')$('engine-open').focus();if(target==='voice')$('realtime-settings').focus();
   }else if(target==='setup')await openSetup();
   else if(target==='account')$('account-open').click();

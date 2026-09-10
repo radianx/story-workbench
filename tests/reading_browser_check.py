@@ -127,6 +127,29 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             page.evaluate("()=>{$('reading-mode').value='local';$('reading-mode').onchange();}")
             page.evaluate("()=>readText('Solo voz local elegida.')")
             assert len(sessions)==count and local[-1]=='Solo voz local elegida.'
+            # La prueba explícita usa el proveedor incluso si la lectura normal es local.
+            page.locator('#settings-open').click()
+            page.evaluate("()=>{readerMode='ok';realtimeConfigured=true;realtimeConsent=true;}")
+            before=len(local)
+            page.locator('#voice-test').click()
+            page.wait_for_function("()=>$('voice-test-status').textContent.includes('Prueba terminada')")
+            assert '1 fragmentos' in page.locator('#voice-test-details').inner_text()
+            assert '0.1 s' in page.locator('#voice-test-details').inner_text()
+            assert 'procesados por el reproductor: 1' in page.locator('#voice-test-details').inner_text()
+            assert sessions[-1]=='gemini' and len(local)==before
+            for failure in ('empty','silent','error'):
+                page.evaluate('mode=>readerMode=mode',failure);page.locator('#voice-test').click()
+                page.wait_for_function("()=>$('voice-test-status').textContent.includes('No se completó')")
+                assert 'No se usó la voz local' in page.locator('#voice-test-status').inner_text() and len(local)==before
+            page.evaluate("()=>{readerMode='hold';}");page.locator('#voice-test').click()
+            page.wait_for_function('()=>onlineReading?.pending');page.locator('#voice-test-stop').click()
+            page.wait_for_function("()=>$('voice-test-status').textContent==='Prueba cancelada.'")
+            count=len(sessions)
+            page.evaluate("()=>{$('voice-volume').value='0';$('voice-volume').oninput();}");page.locator('#voice-test').click()
+            assert '0%' in page.locator('#voice-test-status').inner_text() and len(sessions)==count
+            page.evaluate("()=>{$('voice-volume').value='36';$('voice-volume').oninput();realtimeConsent=false;}");page.locator('#voice-test').click()
+            assert 'permisos' in page.locator('#voice-test-status').inner_text() and len(sessions)==count
+            page.locator('#settings-close').click()
             page.reload();page.locator('#workspace').wait_for()
             assert page.locator('#reading-mode').input_value()=='local'
             assert page.locator('#voice-volume').input_value()=='36'

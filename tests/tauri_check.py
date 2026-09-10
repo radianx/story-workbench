@@ -22,19 +22,20 @@ with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
                 window=result.stdout.splitlines()[-1]
                 if folder:stopped.wait(.6) # La carpeta GTK aparece antes de que acepte la entrada.
                 subprocess.run([str(args.dialog_tool),'windowfocus','--sync',window],check=True,capture_output=True)
+                seen=folder_count if folder else dialog_count
+                if window not in seen:seen.append(window)
+                ordinal=seen.index(window)
                 if folder:
-                    if len(folder_count)%2==0:
+                    if ordinal%2==0:
                         subprocess.run([str(args.dialog_tool),'key','--clearmodifiers','ctrl+l'],check=True)
                         subprocess.run([str(args.dialog_tool),'type','--clearmodifiers','--',str(original)],check=True)
                         subprocess.run([str(args.dialog_tool),'key','Return'],check=True)
                     else:subprocess.run([str(args.dialog_tool),'key','Escape'],check=True)
-                    folder_count.append(window)
-                elif len(dialog_count)%3!=1:
+                elif ordinal%3!=1:
                     subprocess.run([str(args.dialog_tool),'key','--clearmodifiers','ctrl+l'],check=True)
-                    subprocess.run([str(args.dialog_tool),'type','--clearmodifiers','--',str(Path(directory)/f'export-{len(dialog_count)}.{"docx" if len(dialog_count)%3==0 else "md"}')],check=True)
+                    subprocess.run([str(args.dialog_tool),'type','--clearmodifiers','--',str(Path(directory)/f'export-{ordinal}.{"docx" if ordinal%3==0 else "md"}')],check=True)
                     subprocess.run([str(args.dialog_tool),'key','Return'],check=True)
                 else:subprocess.run([str(args.dialog_tool),'key','Escape'],check=True)
-                if not folder:dialog_count.append(window)
                 for _ in range(50):
                     if stopped.wait(.1):break
                     visible=subprocess.run([str(args.dialog_tool),'search','--onlyvisible','--name','Elegir carpeta' if folder else 'Guardar exportación'],capture_output=True,text=True)
@@ -56,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix='sw-tauri-test-') as directory:
         if args.dialog_tool:
             assert not dialog_errors,dialog_errors
             assert len(dialog_count)==6,dialog_count
-            # GTK puede consumir Escape en su entrada de ubicación; contamos diálogos, no reintentos de teclado.
+            # GTK puede consumir Escape en su entrada de ubicación; los reintentos conservan la acción del mismo diálogo.
             assert len(set(folder_count))==4,folder_count
             assert (original/'cuento.md').read_text()=='Ficción de carpeta.'
             for file in Path(directory).glob('export-*.docx'):

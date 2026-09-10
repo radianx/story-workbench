@@ -6,15 +6,18 @@ $('theme').replaceChildren(new Option('Sistema','system'),...Object.entries(appe
 function applyTheme(value) {
   const theme = ['light', 'dark'].includes(value) ? value : 'system';
   document.documentElement.dataset.theme = theme;
+  applyCustomThemes();
   $('theme').value = themeOption(theme);
   updateThemeIcon();
+  if(typeof renderCustomTheme==='function')renderCustomTheme();
 }
 function updateThemeIcon(){const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);$('theme-toggle').textContent=dark?'☀':'☾';$('theme-toggle').title=dark?'Usar tema claro':'Usar tema oscuro';$('theme-toggle').setAttribute('aria-label',$('theme-toggle').title);}
 $('theme-toggle').onclick=()=>{const mode=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark';$('theme').value=themeOption(mode);$('theme').onchange();};
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',updateThemeIcon);
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{updateThemeIcon();if(typeof renderCustomTheme==='function')renderCustomTheme();});
 applyTheme(document.documentElement.dataset.theme);
 $('theme').onchange = () => {
   const [mode,palette='sage']=$('theme').value.split(':');
+  if(palette==='custom'&&!customTheme(mode)&&typeof customizeCurrentTheme==='function'){applyTheme(mode);customizeCurrentTheme();return;}
   const selected=Object.hasOwn(appearancePalettes,mode)&&Object.hasOwn(appearancePalettes[mode],palette)?mode:'system';
   if(selected!=='system')document.documentElement.dataset[selected+'Palette']=palette;
   applyTheme(selected);
@@ -24,7 +27,7 @@ $('theme').onchange = () => {
   } catch { notice('El tema se aplicó, pero el navegador no permitió recordar la elección.', true); }
 };
 window.addEventListener('storage', event => {
-  if(event.key===null||event.key==='sw-theme'||event.key.startsWith('sw-palette-')){
+  if(event.key===null||event.key==='sw-theme'||event.key.startsWith('sw-palette-')||event.key.startsWith('sw-custom-')){
     for(const mode of ['light','dark']){const value=storedAppearance('sw-palette-'+mode,'sage');document.documentElement.dataset[mode+'Palette']=Object.hasOwn(appearancePalettes[mode],value)?value:'sage';}
     applyTheme(storedAppearance('sw-theme','system'));
   }
@@ -73,12 +76,15 @@ async function refreshProjects() {
   const data = await api('/api/projects');
   $('project').innerHTML = data.projects.map(p=>`<option value="${p.id}">${escapeHTML(p.title)}</option>`).join('');
   if (state) $('project').value = state.id;
+  $('archived-projects').innerHTML=data.archived.map(p=>`<div class="archived-project"><span>${escapeHTML(p.title)}</span><button class="secondary" data-restore-project="${p.id}" aria-label="Restaurar ${escapeHTML(p.title)} a la biblioteca">Restaurar</button></div>`).join('')||'<p>No hay proyectos archivados.</p>';
   return data.projects;
 }
 async function openProject(id, startInterview=true) {
   if (!confirmLeave()) {$('project').value=state.id; return;}
   await cancelVoice();
-  state = await api(`/api/projects/${id}`); resetVoiceProject(); $('prompt').value=sessionStorage.getItem('sw-message-'+id)||''; current = null; dirty=false;
+  const incoming=await api(`/api/projects/${id}`);
+  if(incoming.archived)throw new Error('Este proyecto está archivado. Restauralo desde Proyectos archivados.');
+  state = incoming; resetVoiceProject(); $('prompt').value=sessionStorage.getItem('sw-message-'+id)||''; current = null; dirty=false;
   if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}
   sessionStorage.setItem('sw-project',id);
   $('welcome').hidden = true; $('workspace').hidden = false; $('export').disabled = false; $('book-open').disabled = false; $('plan-open').disabled = false;
@@ -96,6 +102,36 @@ async function openProject(id, startInterview=true) {
     try {await beginInterview();} catch(error) {notice(error.message,true);}
   }
 }
+$('archive-project').onclick=action(async()=>{
+  if(!state)return;
+  if(dirty)throw new Error('Guardá los cambios del documento antes de archivar el proyecto.');
+  const project=state.id;
+  savePromptDraft();
+  await api('/api/project/archive',{project,archived:true});
+  if(state?.id!==project){await refreshProjects();return;}
+  await cancelVoice();
+  if(state?.id!==project){await refreshProjects();return;}
+  state=null;dirty=false;stateEpoch++;clearDocument();resetVoiceProject();renderVoice();
+  sessionStorage.removeItem('sw-project');$('prompt').value='';
+  if(backgroundURL){URL.revokeObjectURL(backgroundURL);backgroundURL=null;$('ambient-image').hidden=true;$('inspire').textContent='◐ Ambiente';}
+  document.body.classList.remove('focus','guided','material-open','library-open');
+  $('workspace').hidden=true;$('welcome').hidden=false;
+  for(const id of ['export','book-open','plan-open'])$(id).disabled=true;
+  const projects=await refreshProjects();
+  if(!state&&projects.length){await openProject(projects[0].id,false);$('project').focus();}
+  else if(!state)$('blank').focus();
+  notice('Proyecto archivado. Conserva sus archivos e historial; podés restaurarlo desde Proyectos archivados.');
+});
+document.querySelectorAll('[data-archived-open]').forEach(button=>button.onclick=action(async()=>{await refreshProjects();showDialog($('archived-dialog'));}));
+$('archived-close').onclick=()=>$('archived-dialog').close();
+$('archived-projects').onclick=action(async event=>{
+  const button=event.target.closest('[data-restore-project]');if(!button)return;
+  const project=button.dataset.restoreProject;
+  await api('/api/project/archive',{project,archived:false});await refreshProjects();
+  if(!state){$('archived-dialog').close();await openProject(project,false);$('project').focus();}
+  else $('archived-close').focus();
+  notice('Proyecto restaurado a Tu biblioteca.');
+});
 function clearDocument() {
   current=null; $('editor').value=''; $('doc-title').value=''; $('editor').disabled=true;
   for(const id of ['save','rename','role','download','undo','redo']) $(id).disabled=true;
@@ -461,6 +497,7 @@ function renderAISettings() {
   if(preferences.effort && !choices.some(e=>e.reasoningEffort===preferences.effort)) effort.insertAdjacentHTML('beforeend',`<option value="${escapeHTML(preferences.effort)}">${escapeHTML(preferences.effort)} · no disponible</option>`);
   effort.value = preferences.effort || (choices.some(e=>e.reasoningEffort==='medium')?'medium':selected?.defaultReasoningEffort)||'';
   $('ai-summary').textContent='Modelo y esfuerzo · '+(model.selectedOptions[0]?.textContent||'Conectá ChatGPT')+(effort.value?' · '+(effortLabels[effort.value]||effort.value):'');
+  model.title=$('ai-summary').textContent;effort.title='Razonamiento para el próximo mensaje; se guarda por proyecto.';
   model.disabled = !state || !models.length || !!busy(); effort.disabled = model.disabled || !selected;
   $('ai-refresh').disabled = !!busy() || ['checking','waiting'].includes(accountState.status);
   $('ai-hint').textContent = accountState.models_error || (!models.length?'Conectá ChatGPT para ver sus modelos.':preferences.model&&!selected?'El modelo guardado ya no está disponible. Elegí otro.':'Se guarda por proyecto y se aplica al próximo mensaje. Un esfuerzo mayor puede tardar más.');

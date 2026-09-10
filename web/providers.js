@@ -8,6 +8,8 @@ function renderEngine(){
   $('engine-current').textContent=state?`Motor del proyecto: ${engineLabels[provider]}${external?' · experimental':''}`:'Elegí un proyecto para asignar su motor.';
   $('engine-open').disabled=!!busy();
   $('ai-options').hidden=external;
+  $('chat-ai-settings').hidden=external;$('chat-engine').hidden=!external;
+  $('chat-engine').textContent='Modelo: '+(state?.engine?.model||engineLabels[provider]);$('chat-engine').disabled=!!busy();
   document.querySelector('.skill-check').hidden=external;
   $('engine-context-note').textContent=external?'Se envían petición, fuentes marcadas, decisiones e historial compatible al proveedor elegido. API con condiciones y facturación propias; no hay fallback.':'Las tareas editoriales usan tu sesión ChatGPT mediante Codex. No hay fallback de pago.';
 }

@@ -58,7 +58,7 @@ async function readText(text){
 }
 // Sesión de lectura sin micrófono, herramientas, fuentes ni historial editorial.
 async function createOnlineReader(provider,generation){
-  const session={provider,audioContext:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null};
+  const session={provider,audioContext:new AudioContext(),output:new Set(),playAt:0,closed:false,pending:null,stats:{chunks:0,seconds:0,peak:0,played:0,transcript:''}};
   onlineReading=session;
   const cancelled=()=>session.closed||generation!==readingGeneration;
   session.close=(error=Error('Lectura cerrada.'))=>{if(session.closed)return;session.closed=true;clearTimeout(session.limit);clearTimeout(session.connectTimer);clearInterval(session.drain);session.rejectReady?.(error);session.pending?.reject(error);session.pending=null;session.socket?.close();clearGeminiAudio(session);if(session.audioContext.state!=='closed')session.audioContext.close().catch(()=>{});};
@@ -76,7 +76,8 @@ async function createOnlineReader(provider,generation){
       :new WebSocket('wss://api.openai.com/v1/realtime?model='+encodeURIComponent(connection.model),['realtime','openai-insecure-api-key.'+connection.token]);
     session.socket.binaryType='arraybuffer';
     session.limit=setTimeout(fail,600000);
-    session.socket.onerror=fail;session.socket.onclose=fail;
+    session.socket.onerror=()=>fail(Error('No se pudo mantener la conexión de voz.'));
+    session.socket.onclose=event=>fail(Error(`El proveedor cerró la sesión de voz${Number.isInteger(event?.code)?' (código '+event.code+')':''}.`));
     session.socket.onopen=()=>{if(provider==='gemini')session.socket.send(JSON.stringify({setup:connection.setup}));};
     session.queue=Promise.resolve();
     session.socket.onmessage=event=>{session.queue=session.queue.then(async()=>{
@@ -88,6 +89,7 @@ async function createOnlineReader(provider,generation){
       if(data.error||data.type==='error'||data.toolCall||data.type==='response.function_call_arguments.done')throw Error('Respuesta de lectura inválida.');
       if(data.setupComplete||data.type==='session.created'){clearTimeout(session.connectTimer);session.resolveReady();return;}
       const pending=session.pending;if(!pending)return;
+      if(data.serverContent?.outputTranscription?.text){session.stats.transcript=(session.stats.transcript+data.serverContent.outputTranscription.text).slice(-2000);session.onAudio?.();}
       const audio=provider==='gemini'?(data.serverContent?.modelTurn?.parts||[]).filter(p=>p.inlineData).map(p=>p.inlineData):data.type==='response.output_audio.delta'?[{mimeType:'audio/pcm;rate=24000',data:data.delta}]:[];
       for(const part of audio)if(playGeminiAudio(session,part)){
         pending.received=true;clearTimeout(pending.firstAudio);
@@ -117,6 +119,34 @@ async function createOnlineReader(provider,generation){
     return session;
   }catch(error){session.close();throw error;}
 }
+function showVoiceTest(reader,message){
+  const stats=reader?.stats;
+  $('voice-test-status').textContent=message;
+  $('voice-test-details').textContent=stats?`Audio recibido: ${stats.chunks} fragmentos · ${stats.seconds.toFixed(1)} s · señal máxima ${(stats.peak*100).toFixed(1)}% · procesados por el reproductor: ${stats.played}. Motor de audio: ${reader.audioContext.state}. Volumen: ${Math.round(voiceVolume*100)}%.${stats.transcript?' Texto devuelto: '+stats.transcript:''}`:'';
+}
+$('voice-test').onclick=action(async()=>{
+  const provider=voiceProvider(),label=provider==='gemini'?'Gemini Live':'OpenAI Realtime';
+  showVoiceTest(null,'');
+  if(!realtimeConfigured||!realtimeConsent){showVoiceTest(null,'Guardá la clave y los permisos del proveedor en Asistente de voz online antes de probar.');return;}
+  if(!voiceVolume){showVoiceTest(null,'El volumen está en 0%. Subilo antes de probar la voz.');return;}
+  if(recording||transcribing){showVoiceTest(null,'Terminá el dictado antes de probar.');return;}
+  if(remoteVoiceBusy())stopRealtime('Conversación cerrada para probar la salida de voz. Micrófono cerrado.');
+  stopReading();readingActive=true;const generation=readingGeneration;
+  $('voice-test-stop').hidden=false;showVoiceTest(null,'Conectando con '+label+'…');
+  let reader;
+  try{
+    reader=await createOnlineReader(provider,generation);
+    reader.onAudio=()=>{if(generation===readingGeneration)showVoiceTest(reader,reader.stats.peak>0?'Audio de '+label+' recibido; reproduciendo…':'Respuesta de '+label+' recibida; esperando audio con señal…');};
+    showVoiceTest(reader,'Conectado con '+label+'. Esperando audio…');
+    await reader.read('Esta es una prueba de voz de Story Workbench. La nave azul descansa junto al faro.');
+    if(generation===readingGeneration)showVoiceTest(reader,'Prueba terminada con '+label+'. Si no escuchaste nada, revisá la salida de sonido de la app y del sistema.');
+  }catch(error){
+    showVoiceTest(reader,generation!==readingGeneration?'Prueba cancelada.':'No se completó la prueba con '+label+': '+error.message+' No se usó la voz local.');
+  }finally{
+    reader?.close();if(generation===readingGeneration)stopReading();$('voice-test-stop').hidden=true;
+  }
+});
+$('voice-test-stop').onclick=()=>stopReading();
 function pcmBase64(parts){let text='';for(const part of parts){const bytes=new Uint8Array(part.buffer,part.byteOffset,part.byteLength);for(let i=0;i<bytes.length;i+=4096)text+=String.fromCharCode(...bytes.subarray(i,i+4096));}return btoa(text);}
 async function releaseRecording(capture){
   clearTimeout(capture.timeout);clearInterval(capture.timer);capture.stream?.getTracks().forEach(track=>track.stop());

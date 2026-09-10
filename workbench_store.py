@@ -74,7 +74,7 @@ class Store:
               'El directorio de datos no puede ser un enlace.')
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.lock = threading.RLock()
-        for project in self.list_projects():
+        for project in self.list_projects(archived=None):
             data = self.load(project['id'])
             changed = False
             for run in data['runs']:
@@ -95,13 +95,23 @@ class Store:
         check(path.is_relative_to(self.root), 'Ruta fuera del proyecto.')
         return path
 
-    def list_projects(self):
+    def list_projects(self, archived=False):
         projects = []
         for path in self.root.iterdir():
             if re.fullmatch('[a-f0-9]{32}', path.name):
                 data = self.load(path.name)
-                projects.append({k: data[k] for k in ('id', 'title', 'updated')})
+                hidden = bool(data.get('archived', False))
+                if archived is None or hidden == archived:
+                    projects.append({**{k: data[k] for k in ('id', 'title', 'updated')}, 'archived': hidden})
         return sorted(projects, key=lambda p: p['updated'], reverse=True)
+
+    def archive_project(self, data, archived):
+        check(type(archived) is bool, 'Estado de archivo inválido.')
+        check(not archived or not any(r['status'] in ('running','connecting','cancelling') for r in data['runs']),
+              'Esperá a que termine la tarea antes de archivar el proyecto.',409)
+        if bool(data.get('archived',False)) != archived:
+            data['archived'] = archived
+            self.persist(data)
 
     def load(self, project):
         path = self.path(project, 'project.json')

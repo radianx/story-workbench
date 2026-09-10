@@ -1,3 +1,10 @@
+# Personalización, chat y diagnóstico — 0.8.4
+
+- Modelo y esfuerzo junto al tipo de tarea, agrupados bajo el mensaje y adaptables a ventanas angostas. El destino de teclado/voz Modelo lleva al control del chat; los adaptadores experimentales abren su modelo propio.
+- Neón y Vice City en ambos modos; paletas personalizadas importables/exportables como JSON validado. Edición inmediata, restitución de salvia y opacidad persistente del ambiente. No se incluyen imágenes en el archivo del tema.
+- Prueba explícita de la API de voz con resultado dentro de Configuración: fragmentos, duración, señal, motor y cancelación. El lector local nunca puede enmascarar un fallo de esa prueba.
+- Archivar y restaurar retiran proyectos de la biblioteca sin borrar archivos. Un documento sucio o una tarea en curso impiden archivarlo; el último proyecto archivado devuelve a Inicio, desde donde también se puede restaurar.
+
 # Inicio, navegación y producción — 0.7.0
 
 - Primer inicio con tres pasos, omisión explícita/Escape y preferencia persistida. Reapertura en Configuración. Cuenta y voz reutilizan sus controles; no solicitan micrófono al abrir el recorrido.

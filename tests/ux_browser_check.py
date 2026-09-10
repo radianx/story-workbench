@@ -112,7 +112,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             # Respuesta HTTP demorada: no borrar lo escrito después de pulsar Enviar.
             server.account.set(status='connected', models=MODELS)
             page.locator('#account-open').click(); page.locator('#account-close').click()
-            page.locator('#settings-open').click();page.locator('#ai-model:not([disabled])').wait_for();page.locator('#settings-close').click()
+            page.locator('.composer-bottom #ai-model:not([disabled])').wait_for()
             sent = []
             def intercept(route):
                 sent.append(route.request.post_data_json)

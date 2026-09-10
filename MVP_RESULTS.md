@@ -1,3 +1,13 @@
+# Personalización, archivo y prueba de voz · Tauri 0.8.4 — 2026-09-10
+
+- Pasaron 39 pruebas de backend y 4 de Rust. Archivo/restauración persistente, rechazo de tareas activas y estados inválidos, y recuperación de tareas interrumpidas incluso en proyectos ocultos. Comparación de archivos antes/después: ningún documento o historial eliminado.
+- Pasaron los recorridos Chrome de editor, configuración, motores, setup, UX, Gemini, lectura y temas/archivo. Modelo y esfuerzo conservan compatibilidad y persistencia desde el chat; los adaptadores siguen separados. Diseño comprobado en 1920 px y 390 px.
+- Neón y Vice City claros/oscuros; crear, editar, exportar e importar paletas JSON, rechazar colores/URLs inválidos antes de guardar, recuperar preferencias al recargar y recordar la opacidad. La imagen de ambiente conserva su duración por sesión/proyecto.
+- La prueba de voz usa una frase ficticia y no llama al TTS de respaldo. Probados respuesta PCM, ausencia de audio, silencio, error, cancelación, volumen cero y falta de consentimiento. Se verificó que no abre el micrófono ni registra tareas editoriales. No se llamó a Gemini/OpenAI reales en este corte; la escucha real de Gemini sigue por confirmar.
+- El paquete Linux pasó dos arranques Tauri/WebKit en Xvfb: tema personalizado y opacidad recordados, modelo en el chat, prueba de voz simulada, llavero nativo con claves ficticias, seis exportaciones y cuatro selectores de carpeta. Se corrigió el automatizador GTK para conservar la misma acción cuando Escape no cierra el diálogo; el primer intento había contado ese reintento como una exportación nueva.
+- Generados instaladores 0.8.4 Linux .deb y Windows NSIS. Verificados 32/98 archivos de runtime, correspondencia de fuentes Windows y hashes SHA256. El backend Windows pasó bajo Wine: handshake, HTTP, cierre por stdin y segundo arranque. No se verificaron instalación ni interfaz en Windows real.
+- Los subagentes se evaluaron y documentaron como propuesta en PRODUCT.md; no se habilitaron ni se modificaron límites editoriales o de archivos.
+
 # Traducción desde una obra y carpetas · Tauri 0.8.3 — 2026-09-09
 
 - Pasaron las 37 pruebas de backend y los recorridos Chrome de modos, setup y editor. La traducción nueva exige original e idiomas; el encargo llega preparado a la entrevista, con sugerencia local corregible y sin idea inicial. Se comprueba detección de seis idiomas, abstención en textos breves/ambiguos y partición de originales largos sin omisiones.

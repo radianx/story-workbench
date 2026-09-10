@@ -6,7 +6,7 @@
   try{
     for(let n=0;n<100&&typeof openSetup!=='function';n++)await new Promise(r=>setTimeout(r,100));
     if(typeof require!=='undefined'||!document.querySelector('#setup-dialog'))throw Error('isolation');
-    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35')throw Error('persisted-preferences');}
+    if(localStorage.getItem('tauri-smoke')){if(document.documentElement.dataset.theme!=='dark'||document.querySelector('#voice-volume').value!=='35'||document.documentElement.dataset.darkPalette!=='custom'||document.querySelector('#background-opacity').value!=='42')throw Error('persisted-preferences');}
     else for(let n=0;n<100&&!document.querySelector('#setup-dialog').open;n++)await new Promise(r=>setTimeout(r,100));
     if(document.querySelector('#setup-dialog').open){
       if(document.querySelector('#setup-progress').textContent!=='Paso 1 de 4'||!document.querySelector('#setup-appearance #theme'))throw Error('setup-theme');
@@ -21,6 +21,10 @@
     if(!document.querySelector('#editor').value.includes('llave azul'))throw Error('editor');
     if(!document.querySelector('.microphone-controls #auto-read')||document.querySelector('.local-badge')||document.querySelectorAll('#appearance-controls select').length!==1)throw Error('composer-theme');
     await navigateWorkbench('settings');document.querySelector('#theme').value='dark';document.querySelector('#theme').onchange();
+    stage='custom-theme';customizeCurrentTheme();
+    if(!customTheme('dark')||!/^#[0-9a-f]{6}$/i.test(customTheme('dark').colors.green))throw Error('custom-theme');
+    $('background-opacity').value='42';$('background-opacity').oninput();
+    if(!document.querySelector('.composer-bottom #ai-model'))throw Error('chat-model');
     $('voice-volume').value='35';$('voice-volume').oninput();
     await navigateWorkbench('back');await navigateWorkbench('book');
     if(document.querySelector('#book-width').value!=='152.4')throw Error('book');
@@ -34,7 +38,7 @@
       const invalid=await fetch('/api/desktop/save?name=..%2Fsecret.md',{method:'POST',headers,body:'invalid'});
       if(invalid.status!==400)throw Error('export-path');
       if(!await download(await book.blob(),'libro.docx'))throw Error('save-dialog');
-      if(await download(new Blob(['No guardar']),'cancelado.md'))throw Error('cancel-dialog');
+      if(await download(new Blob(['No guardar']),'cancelado.json'))throw Error('cancel-dialog');
       if(!await download(new Blob([]),'vacio.md'))throw Error('empty-dialog');
       stage='folder-dialog';
       const deniedFolder=await fetch('/api/desktop/folder',{method:'POST',body:'{}'});
@@ -121,7 +125,10 @@
         $('realtime-provider').value=provider;realtimeConfigured=true;realtimeConsent=true;$('realtime-enabled').checked=true;
         await readText('Narración ficticia sin micrófono.');
         if(readingActive||onlineReading||$('voice-status').textContent.includes('respaldo'))throw Error('online-reading');
-      }}finally{navigator.mediaDevices.getUserMedia=originalMicrophone;}
+      }
+      stage='voice-test';await $('voice-test').onclick();
+      if(!$('voice-test-status').textContent.includes('Prueba terminada')||!$('voice-test-details').textContent.includes('1 fragmentos'))throw Error('voice-test');
+      }finally{navigator.mediaDevices.getUserMedia=originalMicrophone;}
     }finally{stopRealtime();window.fetch=originalFetch;window.WebSocket=originalSocket;$('realtime-enabled').checked=false;realtimeConsent=false;realtimeConfigured=false;}
     stage='reading';
     await readText('Una biblioteca ficticia.');

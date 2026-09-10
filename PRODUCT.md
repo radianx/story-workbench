@@ -78,3 +78,14 @@ Tauri reemplaza Electron como único shell. Paquetes locales .deb y NSIS; Python
 ## Inicio de traducción y carpetas
 
 El proyecto de traducción nuevo requiere material previo e idiomas elegidos por el autor, con sugerencia local de idioma original. No pide inventar una historia. El wizard divide el original en unidades reversibles y abre la entrevista con el encargo preparado. Importación de carpetas con selección de Markdown/TXT y copias independientes; espacio de proyectos elegible o creable en Configuración, persistido y aplicado al reiniciar sin mover obras ni cuentas.
+
+
+## Corte 0.8.4 aplicado
+
+Archivo reversible de proyectos, prueba explícita del proveedor de voz sin TTS de respaldo, Neón y Vice City claros/oscuros, paletas personalizadas JSON y opacidad persistente. Modelo y esfuerzo Codex aparecen junto al tipo de tarea del chat; los adaptadores experimentales conservan su configuración propia. Ver [temas](THEMES.md).
+
+## Propuesta: equipo editorial opcional (no implementado)
+
+Conservar la entrevista como entrada y al agente principal como interlocutor del autor. Tras aprobar el alcance y las decisiones necesarias, permitir delegación explícita: dos o tres revisores especializados en continuidad, voz o estructura, con fuentes acotadas, resultados provisionales y consolidación del principal. Una siguiente etapa podría dividir escenas independientes de un capítulo aprobado; un libro requiere además dependencias y revisión global de continuidad.
+
+Codex documenta [subagentes y roles](https://learn.chatgpt.com/docs/agent-configuration/subagents), con más consumo de tokens por cada agente. Hoy `scripts/codex_smoke.py` deshabilita `features.multi_agent` y `Assistant` admite un trabajo a la vez. Antes de habilitarlo hay que comprobar herencia de permisos/contexto, límites de concurrencia y duración, progreso y cancelación de todos los hijos, recuperación y revisión humana de resultados. El límite de archivos de la app se conserva; las propuestas no son canon ni se escriben en originales. Los proveedores experimentales no obtienen esta función automáticamente. No existe todavía un botón que genere un libro con subagentes.

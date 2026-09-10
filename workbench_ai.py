@@ -91,6 +91,7 @@ class Assistant:
             check(self.active is None, 'Ya hay una tarea en curso. Detenela o esperá.', 409)
             check(mode in MODES, 'Modo inválido.')
             data = self.store.load(project)
+            check(not data.get('archived'), 'Restaurá el proyecto a la biblioteca antes de iniciar una tarea.',409)
             check(mode!='translate' or data['purpose']=='translation', 'Elegí el modo Traducción.')
             check(not (mode=='draft' and data['purpose']=='translation'), 'Para traducir usá Traducir y consultar matices: conserva revisión y vínculo al original.')
             preferences = ai_preferences(data.get('ai_preferences', {}))

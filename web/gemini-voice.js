@@ -14,12 +14,15 @@ function playGeminiAudio(session,inline){
   const context=session.audioContext;
   if((session.playAt||0)-context.currentTime>30)throw new Error('La reproducción no puede seguir el ritmo del audio.');
   const buffer=context.createBuffer(1,samples,24000),channel=buffer.getChannelData(0);
-  for(let i=0;i<samples;i++)channel[i]=view.getInt16(i*2,true)/32768;
+  let peak=0;
+  for(let i=0;i<samples;i++){channel[i]=view.getInt16(i*2,true)/32768;peak=Math.max(peak,Math.abs(channel[i]));}
+  if(session.stats){session.stats.chunks++;session.stats.seconds+=buffer.duration;session.stats.peak=Math.max(session.stats.peak,peak);}
   if(!session.volumeNode){session.volumeNode=context.createGain();session.volumeNode.gain.value=voiceVolume;session.volumeNode.connect(context.destination);}
   const source=context.createBufferSource();source.buffer=buffer;source.connect(session.volumeNode);session.output.add(source);
-  source.onended=()=>{session.output.delete(source);source.disconnect();};
+  source.onended=()=>{session.output.delete(source);source.disconnect();if(session.stats&&!session.closed)session.stats.played++;};
   session.playAt=Math.max(context.currentTime,session.playAt||0);source.start(session.playAt);session.playAt+=buffer.duration;
-  return channel.some(sample=>sample!==0);
+  session.onAudio?.();
+  return peak>0;
 }
 async function geminiEvent(session,event){
   if(realtime!==session)return;

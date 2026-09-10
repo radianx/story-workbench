@@ -18,6 +18,29 @@ class StoreTests(unittest.TestCase):
         self.store = Store(self.temp.name)
         self.project = self.store.create('Ficción de prueba', True)['id']
 
+    def test_archive_restores_library_without_deleting_content(self):
+        data=self.store.load(self.project)
+        before={p.relative_to(self.store.root):p.read_bytes() for p in self.store.root.rglob('*') if p.is_file() and p.name!='project.json'}
+        self.store.archive_project(data,True)
+        self.assertEqual(self.store.list_projects(),[])
+        self.assertEqual(self.store.list_projects(archived=True)[0]['id'],self.project)
+        self.assertEqual(self.store.snapshot(self.project)['documents'][0]['content'],self.store.document(data,data['documents'][0]['id'])['content'])
+        with self.assertRaises(Problem):Assistant(self.store).start(self.project,'chat','No iniciar oculto')
+        with self.assertRaises(Problem):self.store.archive_project(data,'true')
+        reopened=Store(self.temp.name)
+        self.assertEqual(reopened.list_projects(),[])
+        reopened.archive_project(reopened.load(self.project),False)
+        self.assertEqual(reopened.list_projects()[0]['id'],self.project)
+        self.assertEqual(before,{p.relative_to(self.store.root):p.read_bytes() for p in self.store.root.rglob('*') if p.is_file() and p.name!='project.json'})
+        restored=reopened.load(self.project)
+        self.assertEqual({k:v for k,v in restored.items() if k not in ('archived','updated')},{k:v for k,v in data.items() if k not in ('archived','updated')})
+        restored['runs']=[dict(id='interrupted',status='running')]
+        with self.assertRaises(Problem):reopened.archive_project(restored,True)
+        restored['archived']=True;reopened.persist(restored)
+        recovered=Store(self.temp.name)
+        self.assertEqual(recovered.load(self.project)['runs'][0]['status'],'interrupted')
+        self.assertEqual(recovered.list_projects(),[])
+
     def test_workflows_and_legacy_projects(self):
         guided=self.store.create('Idea nueva',workflow='guided',initial_idea='Una biblioteca en el mar.')
         self.assertEqual(guided['documents'],[])
@@ -157,6 +180,19 @@ class HTTPTests(unittest.TestCase):
         h.update(headers or {})
         c.request('POST' if body is not None else 'GET',path,json.dumps(body) if body is not None else None,h)
         r=c.getresponse();payload=r.read();c.close();return r.status,payload
+
+    def test_archive_api(self):
+        project=self.server.store.create('Archivo ficticio')['id']
+        self.server.assistant.active=(project,'test')
+        self.assertEqual(self.request('/api/project/archive',dict(project=project,archived=True))[0],409)
+        self.server.assistant.active=None
+        self.assertEqual(self.request('/api/project/archive',dict(project=project,archived='true'))[0],400)
+        self.assertEqual(self.request('/api/project/archive',dict(project=project,archived=True))[0],200)
+        data=json.loads(self.request('/api/projects')[1])
+        self.assertEqual(data['projects'],[]);self.assertEqual(data['archived'][0]['id'],project)
+        self.assertEqual(self.request('/api/project/archive',dict(project=project,archived=False))[0],200)
+        data=json.loads(self.request('/api/projects')[1]);self.assertEqual(data['archived'],[])
+        self.assertEqual(data['projects'][0]['id'],project)
 
     def test_second_server_cannot_open_same_data(self):
         with self.assertRaises(BlockingIOError):

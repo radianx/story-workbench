@@ -115,7 +115,9 @@ class Handler(BaseHTTPRequestHandler):
                 elif path == '/api/account':
                     self.send(200, self.server.account.snapshot())
                 elif path == '/api/projects':
-                    self.send(200, {'projects': store.list_projects(), 'active': self.server.assistant.active})
+                    projects=store.list_projects(archived=None)
+                    self.send(200, {'projects': [p for p in projects if not p['archived']],
+                                    'archived': [p for p in projects if p['archived']], 'active': self.server.assistant.active})
                 else:
                     parts = path.strip('/').split('/')
                     check(len(parts) in (3, 4) and parts[:2] == ['api', 'projects'], 'Ruta no encontrada.', 404)
@@ -223,7 +225,11 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     project = body.get('project')
                     data = store.load(project)
-                    if path == '/api/project/purpose':
+                    if path == '/api/project/archive':
+                        check(not body.get('archived') or not self.server.assistant.active or self.server.assistant.active[0]!=project,
+                              'Esperá a que termine la tarea antes de archivar el proyecto.',409)
+                        store.archive_project(data,body.get('archived'));result={'ok':True}
+                    elif path == '/api/project/purpose':
                         check(not self.server.assistant.active,'Esperá a que termine la tarea.',409)
                         check(body.get('purpose') in modes.PURPOSES,'Objetivo inválido.')
                         data.update(purpose=body['purpose'],thread=None,context_key=None)
