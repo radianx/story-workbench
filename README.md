@@ -4,6 +4,12 @@ Un espacio local para escribir y revisar historias con IA, conservando el contro
 
 **Estado: MVP de escritorio Tauri 0.8.12**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
+## Contribuir
+
+La [guía de contribución](CONTRIBUTING.md) incluye un arranque sin cuenta ni claves, mapa del código, pruebas y primeros aportes posibles. Se aceptan reportes y propuestas en español o inglés; hay plantillas de issues y pull requests. Para vulnerabilidades, ver [SECURITY.md](SECURITY.md). La licencia del proyecto sigue pendiente (`UNLICENSED`); debe resolverse antes de recibir contribuciones de código externo.
+
+El workflow `Checks` está preparado para comprobar Python, JavaScript y tres recorridos de navegador con ficción y proveedores simulados. Su ejecución en GitHub queda por verificar al publicar el repositorio; no necesita secretos ni publica instaladores.
+
 ## Instalar la app de escritorio
 
 Los paquetes locales están en `dist/installers/`. Ver [distribución y comprobaciones](DESKTOP.md) para los límites de validación de cada sistema.
@@ -104,7 +110,7 @@ python3 tests/team_chats_browser_check.py
 python3 tests/motion_browser_check.py
 python3 tests/setup_browser_check.py
 python3 tests/providers_browser_check.py
-node tests/voice_vault_check.cjs
+node tests/pcm_playback_check.js
 # Motores locales reales; requiere recursos de voz y voz del sistema.
 python3 tests/live_voice_check.py
 # Prueba real con cuota ChatGPT y corpus ficticio temporal.
