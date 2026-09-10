@@ -54,7 +54,7 @@ Pasada sobre los recorridos de la app: inicio, biblioteca, entrevista, edición,
 | Un mensaje aún no enviado desaparecía al recargar y se trasladaba visualmente al cambiar de proyecto. | Conservación del mensaje y su tipo de tarea por proyecto durante la sesión de la ventana. También guarda peticiones preparadas desde el plan y acciones rápidas. Si seguís escribiendo mientras se procesa el envío, ese texto nuevo permanece. |
 | Una búsqueda sin coincidencias parecía una biblioteca vacía. | Estados diferentes, botón para limpiar la búsqueda y reinicio del filtro al abrir otro proyecto. |
 | Los errores desaparecían antes de poder leerlos o los reemplazaba una notificación de éxito. | Permanecen hasta cerrarlos explícitamente, con rol de alerta. Los éxitos breves conservan su cierre automático. |
-| Al actualizar una respuesta, el chat podía saltar mientras se leía otro pasaje. | Conserva la posición de lectura y ofrece **Ir a la última respuesta** cuando estás más arriba. Sigue el resultado automáticamente si ya estabas al final. |
+| Al actualizar una respuesta, el chat podía saltar mientras se leía otro pasaje. | Desde 0.8.10, por preferencia del usuario, baja al final ante mensajes nuevos o texto nuevo del agente. Ofrece **Ir a la última respuesta** al desplazarse manualmente; otros cambios visuales conservan la posición. |
 | Escape podía reutilizar la confirmación anterior del diálogo de nombre. | Cada apertura reinicia su resultado; cancelar ya no puede crear un documento con la confirmación anterior. |
 | En ventanas compactas la biblioteca desplazaba la entrevista. | A 600 px o menos, el modo guiado empieza con la biblioteca plegada y ofrece un botón explícito para abrirla. Controles y diálogos se acomodan al ancho disponible; el compositor admite desplazamiento interno en ventanas bajas. |
 
@@ -66,7 +66,7 @@ Explicita límites que afectan decisiones del autor: seleccionar una fuente no e
 
 ## Comprobación reproducible
 
-`python3 tests/ux_browser_check.py` usa proyectos ficticios y una respuesta HTTP simulada. Comprueba apertura voluntaria sin efectos de escritura, búsqueda, Escape/F1/foco, formularios pendientes, recuperación de borradores y aislamiento de mensajes, envío con escritura concurrente, avisos persistentes, cancelación de creación, conservación del scroll y biblioteca compacta. Captura la vista a 1440 px y 390 px, incluyendo ayuda oscura. No consume cuota IA ni usa el micrófono.
+`python3 tests/ux_browser_check.py` usa proyectos ficticios y una respuesta HTTP simulada. Comprueba apertura voluntaria sin efectos de escritura, búsqueda, Escape/F1/foco, formularios pendientes, recuperación de borradores y aislamiento de mensajes, envío con escritura concurrente, avisos persistentes, cancelación de creación, seguimiento automático de mensajes y biblioteca compacta. Captura la vista a 1440 px y 390 px, incluyendo ayuda oscura. No consume cuota IA ni usa el micrófono.
 
 El recorrido editorial general y el de voz siguen en `tests/browser_check.py` y `tests/voice_browser_check.py`. La prueba empaquetada abre y cierra la ayuda para detectar si falta el nuevo recurso. Resultados efectivamente ejecutados: [MVP_RESULTS.md](MVP_RESULTS.md).
 

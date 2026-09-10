@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.9**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.10**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -14,7 +14,7 @@ Los paquetes locales están en `dist/installers/`. Ver [distribución y comproba
 
 Usa Tauri e incluye Python y Codex: el usuario no necesita terminal ni instalarlos por separado. Cada instalación usa la cuenta del autor que la abre. Se puede escribir sin iniciar sesión; la IA necesita internet y disponibilidad de Codex en esa cuenta. Codex con ChatGPT es el motor editorial principal, sin fallback de pago. Se pueden elegir seis adaptadores experimentales con clave propia o servidor local; ver [motores](PROVIDERS.md). La voz online opcional admite claves de OpenAI o Gemini con condiciones y facturación API separadas; el dictado local sigue disponible. Windows instala WebView2 si falta (requiere internet); Linux usa WebKitGTK del sistema. Los paquetes son preliminares y no están firmados ni publicados.
 
-**Archivar proyecto** lo retira de Tu biblioteca sin borrar archivos. **Proyectos archivados** permite recuperarlo. Modelo y esfuerzo se eligen junto al tipo de tarea, debajo del mensaje.
+**Archivar proyecto** lo retira de Tu biblioteca sin borrar archivos. **Proyectos archivados** permite recuperarlo. Modelo y esfuerzo se eligen junto al tipo de tarea, debajo del mensaje. **Enter** envía el mensaje y **Shift+Enter** inserta un salto de línea; Ctrl/Cmd+Enter también sigue disponible.
 
 ## Iniciar desde el código
 
@@ -44,7 +44,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Contexto | Selección explícita de fuentes, contador de tamaño, nombres y hashes del material enviado. No recorta fuentes en silencio. Retirar o agregar fuentes abre hilo nuevo para evitar conservar material retirado en el historial del agente. |
 | Escritura | Editor Markdown, formato básico, vista previa segura, palabras y tiempo de lectura, atajo Ctrl/Cmd+S, modo foco con Ctrl/Cmd+Shift+F, botones Deshacer/Rehacer y atajos Ctrl+Z/Ctrl+Shift+Z (Cmd en macOS). Texto y formato usan el historial nativo del editor; al cambiar de documento o recargar, recurrir a Historial para las versiones guardadas. |
 | Recuperación | Borrador por documento y mensaje no enviado por proyecto durante la sesión de la ventana, guardado atómico, conflicto ante cambios externos, versiones anteriores y restauración recuperable. |
-| Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental, detención e hilo persistente por proyecto. |
+| Asistente | Cuenta ChatGPT administrada por Codex; conversación, diagnóstico, análisis de impacto hipotético, propuestas y resumen para retomar. Respuesta incremental con formato Markdown (títulos, énfasis, listas, citas, código, enlaces y tablas), detención e hilo persistente por proyecto. |
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Botón Probar voz del proveedor con diagnóstico de audio y sin respaldo local durante la prueba. Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI TTS o Gemini TTS cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
@@ -55,7 +55,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Conversaciones | Nueva conversación vacía el chat y su contexto; anteriores consultables en un desplegable de la biblioteca. Conserva fuentes, decisiones, propuestas y mensajes sin enviar. |
 | Modelos | Catálogo de la cuenta ChatGPT y esfuerzos compatibles; selección por proyecto, comprobación al enviar y modelo/esfuerzo efectivo en cada respuesta. |
 | Creación | Redacción guiada y botón explícito para guardar como nuevo borrador provisional; repetirlo abre la misma copia. |
-| Seguimiento | Conserva la posición mientras leés y permite ir a la última respuesta. Errores visibles hasta cerrarlos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
+| Seguimiento | Baja al final cuando aparece un mensaje o llega texto nuevo del agente; permite volver a la última respuesta después de desplazarte manualmente. Errores visibles hasta cerrarlos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
 | Motores alternativos | OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local compatible, experimentales; proveedor por proyecto, claves aisladas y respuestas sujetas a las mismas aprobaciones. |
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |

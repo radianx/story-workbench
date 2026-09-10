@@ -116,3 +116,7 @@ La opción predeterminada de voz conecta el audio con el chat editorial: transcr
 ## Lectura fiel al chat 0.8.9
 
 Se corrigió el uso de modelos conversacionales para leer: Gemini Live podía contestar las preguntas del chat aunque recibiera instrucciones de recitarlas. El audio de salida ahora usa Gemini 3.1 Flash TTS Preview o gpt-4o-mini-tts, con la misma clave del proveedor. Conserva audio incremental, volumen, cancelación, micrófono pausado y voz local de respaldo. Live/Realtime sigue transcribiendo la entrada. Las comprobaciones comparan también el contenido audible de preguntas, opciones y una orden citada.
+
+## Chat 0.8.10
+
+Enter envía y Shift+Enter inserta un salto de línea. Enviar, el micrófono y Leer respuestas acompañan al campo de texto; tarea/modelo/esfuerzo usan una fila inferior desplazable en espacios estrechos. El chat baja al final ante mensajes nuevos y texto entrante del agente. Las respuestas, su historial y los aportes del equipo muestran Markdown: encabezados, énfasis, listas, citas, código, enlaces y tablas con desplazamiento horizontal. La vista previa comparte el parser; el texto guardado conserva su formato original. HTML se muestra como texto y las imágenes no se descargan automáticamente.

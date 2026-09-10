@@ -209,3 +209,38 @@ dialog #notice{position:sticky;top:0;bottom:auto;left:auto;transform:none;width:
 .team-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px}.team-toggle input{accent-color:var(--green)}.team-warning{font-size:12px;color:var(--ink);background:var(--pale);padding:10px;border-radius:8px;line-height:1.5;margin:10px 0 0}.team-results{margin:14px 0;border:1px solid var(--line);border-radius:8px;padding:10px}.team-results details{margin-top:12px}.team-results summary,#team-settings>summary{cursor:pointer;color:var(--green)}#team-readers{margin-top:15px;border:1px solid var(--line)}#team-configure{font-size:11px}
 
 #previous-chats {margin-top:.5rem} #chat-links {max-height:180px;overflow:auto} #chat-links button {display:block;text-align:left;width:100%;overflow-wrap:anywhere} #chat-links small {display:block;color:var(--muted)} #chat-history {width:min(1000px,94vw)} #chat-history-content .run {margin:1.5rem 0}
+/* Markdown del chat, historial, equipo y vista previa: conserva la paleta activa. */
+.run-text.markdown{white-space:normal;min-width:0}
+:is(.markdown,#preview)>:first-child{margin-top:0}
+:is(.markdown,#preview)>:last-child{margin-bottom:0}
+:is(.markdown,#preview) :is(p,ul,ol,blockquote,pre,.markdown-table){margin:.8em 0}
+:is(.markdown,#preview) :is(h1,h2,h3,h4,h5,h6){font-family:inherit;line-height:1.35;margin:1.2em 0 .5em;color:var(--ink)}
+:is(.markdown,#preview) h1{font-size:1.65em}
+:is(.markdown,#preview) h2{font-size:1.4em}
+:is(.markdown,#preview) h3{font-size:1.2em}
+:is(.markdown,#preview) :is(ul,ol){padding-left:1.6em}
+:is(.markdown,#preview) li+li{margin-top:.25em}
+:is(.markdown,#preview) blockquote{border-left:3px solid var(--green);padding:.2em 1em;color:var(--muted)}
+:is(.markdown,#preview) code{font-family:ui-monospace,"Courier New",monospace;font-size:.9em;background:var(--pale);padding:.12em .3em;border-radius:4px}
+:is(.markdown,#preview) pre{max-width:100%;overflow-x:auto;white-space:pre;background:var(--pale);border:1px solid var(--line);border-radius:8px;padding:12px}
+:is(.markdown,#preview) pre code{background:none;padding:0}
+:is(.markdown,#preview) a{color:var(--green);text-decoration:underline;overflow-wrap:anywhere}
+:is(.markdown,#preview) hr{border:0;border-top:1px solid var(--line);margin:1.2em 0}
+.markdown-table{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.markdown-table table{border-collapse:collapse;width:100%;font-size:.95em}
+.markdown-table :is(th,td){padding:.55em .8em;border:1px solid var(--line);text-align:left;min-width:100px}
+.markdown-table th{background:var(--pale);font-weight:700}
+.markdown-table .align-center{text-align:center}
+.markdown-table .align-right{text-align:right}
+.markdown-table:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.composer-entry{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
+.composer-entry #prompt{flex:1 1 240px;min-width:0;width:0;margin:0}
+.composer-entry-actions{display:flex;align-items:center;gap:8px;flex:none}
+.composer-entry-actions .auto-read-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer}
+.composer-bottom{flex-wrap:nowrap;align-items:end;overflow-x:auto;max-width:100%;padding-bottom:3px}
+.composer-bottom>button{flex:none;white-space:nowrap}
+.composer-bottom .composer-options{flex:1 0 auto;flex-wrap:nowrap;min-width:0;max-width:none;align-items:end}
+.composer-bottom .composer-options #mode{flex:0 0 auto;max-width:220px}
+.composer-options .ai-settings{flex:0 0 300px;min-width:0}
+.composer-options #team-configure,.composer-options .team-toggle{flex:none;white-space:nowrap}
+@media(max-width:700px){.composer-entry{flex-wrap:wrap;gap:4px}.composer-entry #prompt{flex-basis:100%;width:100%}.composer-entry-actions{margin-left:auto}.composer-bottom .composer-options{flex-basis:auto}}

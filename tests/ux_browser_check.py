@@ -101,14 +101,23 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('.run').wait_for()
             page.locator('#settings-open').click();page.locator('#workflow').select_option('guided');page.locator('#settings-close').click()
             page.wait_for_function("() => document.body.classList.contains('guided')")
+            # Acciones junto al texto; los selectores comparten una fila inferior.
+            rects=page.evaluate("() => ['prompt','send','dictate','auto-read','mode','ai-model','ai-effort'].map(id=>{const r=$(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom};})")
+            assert all(r['top']<rects[0]['bottom'] and r['bottom']>rects[0]['top'] for r in rects[1:4]),rects
+            assert max(r['bottom'] for r in rects[4:])-min(r['bottom'] for r in rects[4:])<3,rects
+            page.screenshot(path='/tmp/sw-composer-wide.png',full_page=True)
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
             page.locator('#latest-answer').wait_for()
             with server.store.lock:
                 data=server.store.load(project); data['runs'][0]['text']+='Final ficticio'; server.store.persist(data)
-            page.wait_for_function("() => document.querySelector('.run-text').textContent.endsWith('Final ficticio')")
-            assert abs(page.locator('#runs').evaluate('(el)=>el.scrollTop')-120)<2
-            page.locator('#latest-answer').click()
+            page.wait_for_function("() => document.querySelector('.run-text').textContent.trimEnd().endsWith('Final ficticio')")
+            assert page.locator('#runs').evaluate('(el)=>el.scrollHeight-el.scrollTop-el.clientHeight')<2
             assert not page.locator('#latest-answer').is_visible()
+            page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
+            with server.store.lock:
+                data=server.store.load(project);data['runs'].append(dict(run,id='ux-new-message',prompt='Mensaje nuevo del autor',text=''));server.store.persist(data)
+            page.get_by_text('Mensaje nuevo del autor',exact=True).wait_for()
+            assert page.locator('#runs').evaluate('(el)=>el.scrollHeight-el.scrollTop-el.clientHeight')<2
             # Respuesta HTTP demorada: no borrar lo escrito después de pulsar Enviar.
             server.account.set(status='connected', models=MODELS)
             page.locator('#account-open').click(); page.locator('#account-close').click()
@@ -119,9 +128,27 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
                 prompt.fill('Una segunda idea mientras se envía.')
                 route.fulfill(status=200, content_type='application/json', body='{}')
             page.route('**/api/run', intercept)
-            prompt.fill('Primera idea'); page.locator('#send').click()
+            prompt.fill('Primera línea'); prompt.press('Shift+Enter'); prompt.press('End')
+            assert prompt.input_value()=='Primera línea\n' and sent==[]
+            # Confirmar composición (IME) o mantener Enter no debe enviar.
+            for attributes in [{'isComposing':True},{'keyCode':229},{'repeat':True}]:
+                prompt.dispatch_event('keydown',dict(key='Enter',**attributes))
+            page.wait_for_timeout(100); assert sent==[]
+            page.evaluate("$('send').disabled=true")
+            prompt.press('Enter'); assert prompt.input_value()=='Primera línea\n' and sent==[]
+            page.evaluate("$('send').disabled=false")
+            prompt.fill('   '); prompt.press('Enter')
+            page.wait_for_function("() => !$('send').hasAttribute('aria-busy')")
+            assert sent==[]
+            prompt.fill('Primera idea'); prompt.press('Enter')
             page.wait_for_function("() => document.querySelector('#prompt').value.startsWith('Una segunda')")
             assert sent[0]['prompt']=='Primera idea'
+            page.wait_for_function("() => !$('send').hasAttribute('aria-busy')")
+            prompt.fill('Otra línea'); prompt.press('Shift+Enter'); prompt.type('Continuación')
+            assert len(sent)==1
+            prompt.press('Control+Enter')
+            page.wait_for_function("() => document.querySelector('#prompt').value.startsWith('Una segunda')")
+            assert len(sent)==2 and sent[1]['prompt']=='Otra línea\nContinuación'
             page.reload(); page.locator('#workspace').wait_for()
             assert prompt.input_value()=='Una segunda idea mientras se envía.'
             second = server.store.create('Otro universo ficticio', workflow='guided')['id']

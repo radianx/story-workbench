@@ -4,7 +4,7 @@ const helpTopics = [
   ['interview','Empezar y continuar la entrevista',[
     'El asistente inicial aparece una vez, permite omitirlo y se reabre desde Configuración. Podés conectar cuentas, preparar claves opcionales y crear o abrir un proyecto. Ctrl/Cmd+K abre Ir a una sección; Ctrl/Cmd+, abre Configuración. Tab y Shift+Tab recorren controles y las flechas cambian pestañas. La voz online permite navegar después de conectarla; claves, permisos y aprobaciones editoriales siguen bajo control manual.',
     'Elegí Crear mi proyecto y Crear conversando. Una idea incompleta alcanza: el agente pregunta de a una. Si falta conectar ChatGPT, la app te muestra el acceso a tu cuenta.',
-    'Respondé en el mensaje o usá Dictar respuesta. Enviar inicia el trabajo y consume tu cuota de Codex. Podés detener una tarea sin convertir su respuesta en material aprobado.',
+    'Respondé en el mensaje o usá Dictar respuesta. Enter envía y Shift+Enter agrega una línea. El chat baja al final al recibir mensajes nuevos. Enviar inicia el trabajo y consume tu cuota de Codex. Podés detener una tarea sin convertir su respuesta en material aprobado.',
     'Cuando quieras avanzar, cambiá Tipo de tarea a Redactar borrador. Guardar como borrador provisional crea un documento nuevo únicamente cuando lo elegís. Ver material abre el editor; Ocultar material devuelve espacio al chat.',
     'Nueva conversación vacía el chat y reinicia su contexto. Las fuentes y decisiones siguen disponibles; consultá los chats anteriores en el desplegable debajo del botón. La forma de trabajo se cambia desde Configuración.'
   ]],
@@ -91,7 +91,7 @@ const helpTopics = [
   ]],
   ['shortcuts','Atajos y navegación',[
     'F1: abrir ayuda. Escape: cerrar el diálogo actual; si hay cambios pendientes, respetá su aviso. Tab y Shift+Tab: recorrer controles. Enter o Espacio: activar un botón o desplegar una explicación.',
-    'Ctrl+Enter: enviar desde el mensaje. Ctrl+S: guardar el documento. Ctrl+Z: deshacer. Ctrl+Shift+Z: rehacer. Ctrl+Shift+F: entrar o salir de foco. En macOS se usa Cmd en lugar de Ctrl.',
+    'Enter: enviar desde el mensaje. Shift+Enter: salto de línea. Ctrl+Enter también envía. Ctrl+S: guardar el documento. Ctrl+Z: deshacer. Ctrl+Shift+Z: rehacer. Ctrl+Shift+F: entrar o salir de foco. En macOS se usa Cmd en lugar de Ctrl.',
     'Las explicaciones esenciales también están en esta ayuda y junto a sus controles. Los textos al pasar el puntero son recordatorios opcionales.'
   ]]
 ];
@@ -127,7 +127,8 @@ const tips={
   redo:'Rehacer en este documento. Ctrl+Shift+Z.',
   'auto-read':'Lee las nuevas respuestas con el proveedor de voz autorizado o la voz local de respaldo. En Voz del chat pausa el micrófono durante la lectura y retoma la escucha continua al terminar. En Controles cierra la conversación oral para evitar eco. Se desactiva al cambiar de proyecto.',
   'book-open':'Vista 3D orientativa; no genera una cubierta lista para imprenta.',
-  send:'Enviar mensaje al asistente. También Ctrl+Enter desde el mensaje.'
+  prompt:'Enter para enviar · Shift+Enter para un salto de línea.',
+  send:'Enviar mensaje al asistente. Enter desde el mensaje; Shift+Enter inserta un salto de línea.'
 };
 for(const [id,text] of Object.entries(tips)){$(id).title=text;const description=document.createElement('span');description.id='tip-'+id;description.className='sr-only';description.textContent=text;document.body.append(description);$(id).setAttribute('aria-describedby',description.id);}
 const taskDescriptions={panel:'Lectores simulados e independientes opinan sobre los manuscritos o traducciones marcados. Activá Usar equipo; no reciben canon, sinopsis ni opiniones previas. No modifica el texto.',translate:'Consulta matices antes de traducir. Registrás el criterio y aprobás cada copia por separado.',interview:'Respondé una pregunta por vez. Las ideas siguen siendo provisionales.',draft:'Genera texto para revisar. Solo se guarda como manuscrito cuando elegís hacerlo.',diagnosis:'Señala problemas de las fuentes seleccionadas sin reescribir.',impact:'Explora consecuencias de un cambio hipotético sin aplicarlo.',proposal:'Prepara bloques antes/después para que decidas cuáles aceptar.',chat:'Conversá sobre las fuentes seleccionadas y las decisiones del proyecto.',summary:'Prepara un resumen provisional para retomar; verificá sus fuentes.'};

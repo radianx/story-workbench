@@ -18,9 +18,9 @@ fn local_url(url: &tauri::Url) -> bool {
     (url.scheme()=="workbench" && url.host_str()==Some("app")) ||
     (url.scheme()=="https" && url.host_str()==Some("workbench.app"))
 }
-fn auth_url(url: &tauri::Url) -> bool {
-    url.scheme()=="https" && url.host_str()==Some("auth.openai.com") &&
-    url.username().is_empty() && url.password().is_none() && url.port_or_known_default()==Some(443)
+fn external_url(url: &tauri::Url) -> bool {
+    matches!(url.scheme(),"http"|"https") && url.host_str().is_some() &&
+    url.username().is_empty() && url.password().is_none()
 }
 fn valid_backend(backend: &Backend) -> bool {
     let Ok(url)=tauri::Url::parse(&backend.origin) else { return false };
@@ -205,7 +205,7 @@ fn main() {
             let window=WebviewWindowBuilder::new(app,"main",initial)
                 .data_directory(data.join("webview")).title("Story Workbench").inner_size(1440.0,1000.0).min_inner_size(380.0,600.0)
                 .initialization_script("window.storyDesktop = true;").initialization_script(&smoke_script).use_https_scheme(true).on_navigation(local_url)
-                .on_new_window(move |url,_|{if auth_url(&url){let _=opener.opener().open_url(url.as_str(),None::<&str>);}NewWindowResponse::Deny})
+                .on_new_window(move |url,_|{if external_url(&url){let _=opener.opener().open_url(url.as_str(),None::<&str>);}NewWindowResponse::Deny})
                 .build()?;
             let close_window=window.clone();
             window.on_window_event(move |event| {if let tauri::WindowEvent::CloseRequested {api,..}=event {
@@ -271,7 +271,7 @@ mod tests {
         for origin in ["http://evil.test:8765","http://127.0.0.1:8765/path","http://user@127.0.0.1:8765","http://127.0.0.1:8765?x=y"] {assert!(!valid_backend(&Backend{origin:origin.into(),token:"a".repeat(43)}));}
         assert!(local_url(&"workbench://app/".parse().unwrap()));
         for url in ["https://evil.test/","workbench://evil/","http://workbench.app/"] {assert!(!local_url(&url.parse().unwrap()));}
-        assert!(auth_url(&"https://auth.openai.com/oauth/authorize".parse().unwrap()));
-        for url in ["https://auth.openai.com.evil.test/","http://auth.openai.com/","https://user@auth.openai.com/","https://auth.openai.com:444/"] {assert!(!auth_url(&url.parse().unwrap()));}
+        for url in ["https://auth.openai.com/oauth/authorize","https://example.org/story","http://example.org/"] {assert!(external_url(&url.parse().unwrap()));}
+        for url in ["file:///tmp/story","javascript:alert(1)","workbench://app/","https://user@auth.openai.com/"] {assert!(!external_url(&url.parse().unwrap()));}
     }
 }

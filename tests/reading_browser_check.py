@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix='sw-reading-') as directory:
             assert page.evaluate('readerClosed')==sockets and len(local)==before
             page.unroute('**/api/realtime/read-session')
             # La casilla visible narra respuestas nuevas incluso con conversación oral activa.
-            page.locator('.composer-bottom #auto-read').check()
+            page.locator('.composer-entry #auto-read').check()
             page.evaluate("""()=>{
               readerMode='hold';readerSent=[];window.stoppedMic=false;
               realtime={provider:'gemini',output:new Set(),stream:{getTracks:()=>[{stop:()=>stoppedMic=true}]}};

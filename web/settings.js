@@ -34,6 +34,9 @@ moveSetting('.voice-controls','settings-voice');
 moveSetting('.composer [data-help=voice]','settings-voice');
 const label=document.createElement('label');label.htmlFor='prompt';label.className='message-label';label.textContent='Tu mensaje';$('prompt').before(label);
 $('prompt').rows=2;
+const entry=document.createElement('div');entry.className='composer-entry';$('prompt').before(entry);
+const entryActions=document.createElement('div');entryActions.className='composer-entry-actions';
+entry.append($('prompt'),entryActions);entryActions.append(microphoneControls,$('cancel'),$('send'));
 function openSettings(){$('purpose').disabled=$('workflow').disabled=!state;renderAISettings();renderEngine();showDialog($('settings-dialog'));refreshWorkspace().catch(error=>notice(error.message,true));}
 $('settings-open').onclick=openSettings;
 $('settings-close').onclick=()=>$('settings-dialog').close();

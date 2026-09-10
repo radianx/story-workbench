@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory(prefix='sw-voice-browser-') as temp:
             page.locator('[data-read=voice-test]').click();page.get_by_text('Lectura terminada.',exact=True).wait_for()
             assert reads==['¿Qué querés que sienta el lector?']*2
             # Lectura automática solo al elegirla, y solo una vez por respuesta nueva.
-            page.locator('.composer-bottom #auto-read').check()
+            page.locator('.composer-entry #auto-read').check()
             with server.store.lock:
                 data=server.store.load(project);data['runs'].append({**data['runs'][0],'id':'voice-test2','text':'¿Quién es la protagonista?'});server.store.persist(data)
             page.wait_for_function("() => document.querySelectorAll('.run').length===2")

@@ -1,3 +1,12 @@
+# Chat, formato y teclado · Tauri 0.8.10 — 2026-09-10
+
+- Enter envía desde el mensaje y Shift+Enter inserta un salto de línea. Conserva Ctrl/Cmd+Enter y reutiliza el botón Enviar, incluidos sus bloqueos. La repetición de tecla y la confirmación de composición IME no envían mensajes.
+- Pasó `tests/ux_browser_check.py` con envíos simulados: Enter, texto multilínea, Ctrl+Enter, composición IME, tecla repetida, botón deshabilitado, mensaje vacío y conservación de texto escrito durante el envío. También pasó la comprobación de sintaxis JavaScript. Sin llamadas IA ni micrófono.
+- Enviar, micrófono y Leer respuestas comparten altura con el texto en escritorio; tarea/modelo/esfuerzo comparten una fila inferior. La comprobación midió sus posiciones y verificó vista compacta. Los controles inferiores se desplazan horizontalmente cuando falta espacio. El chat baja al final ante mensajes o texto del agente nuevos; comprobado incluso desde una posición de lectura anterior.
+- `tests/markdown_browser_check.py` pasó con Markdown incremental y completo: encabezados, énfasis, tachado, listas anidadas, citas, código literal y tablas alineadas/desplazables en chat, historial, equipo y vista previa. Verificó que HTML queda inerte, enlaces ejecutables/locales no se activan, imágenes no se descargan y el texto original persiste. Parser markdown-it local, con licencias incluidas.
+- Pasaron 45 pruebas Python y cuatro pruebas Rust, incluida la validación de enlaces HTTP/HTTPS al navegador externo. No se abrieron enlaces externos durante estas comprobaciones.
+- Pasaron las regresiones de dictado/lectura locales, lector online simulado con la cola multimedia Linux y voz → chat → lector. Instaladores 0.8.10 Linux .deb y Windows NSIS generados; 32/103 archivos de runtime, fuentes Windows y SHA256 verificados. No se probó interfaz Windows real ni se actualizó la instalación del usuario.
+
 # Lectura TTS del texto editorial · Tauri 0.8.9 — 2026-09-10
 
 - Reproducido con Gemini Live real: ante «¿Qué pierde la protagonista si decide volver?» el audio respondió que faltaba el texto de la historia. La validación de 0.8.8 había comprobado entrega de audio, sin contrastar lo dicho; no probaba fidelidad al chat.

@@ -172,19 +172,6 @@ function updateStats() {
   $('save-state').dataset.state=dirty?'dirty':'saved';$('save-state').setAttribute('role','status');
   $('save').disabled=!current || !dirty;
 }
-function markdown(text) {
-  // Markdown acotado: texto escapado, sin HTML ni recursos externos.
-  const inline=s=>escapeHTML(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
-  return text.split(/\n\s*\n/).map(block=>{
-    if(block.startsWith('```')) return `<pre>${escapeHTML(block.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, ''))}</pre>`;
-    return block.split('\n').map(line=>{
-      const h=line.match(/^(#{1,3}) (.*)$/); if(h)return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`;
-      if(line.startsWith('> '))return `<blockquote>${inline(line.slice(2))}</blockquote>`;
-      if(/^[-*] /.test(line))return `<div>• ${inline(line.slice(2))}</div>`;
-      return `<div>${inline(line)||'<br>'}</div>`;
-    }).join('');
-  }).map(block=>`<section>${block}</section>`).join('<br>');
-}
 function renderView() {
   $('editor').hidden=view!=='edit'; $('preview').hidden=view!=='preview'; $('history').hidden=view!=='history';
   document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-selected',b.dataset.view===view);});
@@ -293,12 +280,15 @@ function renderAssistant() {
   if(runsKey!==lastRuns){
     const restoreTranslationFocus=rememberTranslationFocus();
     const scrollPosition=$('runs').scrollTop;
+    const messagesKey=JSON.stringify(currentRuns().map(r=>[r.id,r.prompt,r.text]));
+    const newMessage=$('runs').dataset.messages!==messagesKey;
+    $('runs').dataset.messages=messagesKey;
     const nearBottom=$('runs').scrollHeight-$('runs').scrollTop-$('runs').clientHeight<100;
     lastRuns=runsKey;
-    $('runs').innerHTML=currentRuns().map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.provider&&r.provider!=='codex'?r.provider+' · experimental':'Codex')} · ${escapeHTML(r.reported_model||r.model)}${r.effort?' · '+escapeHTML(effortLabels[r.effort]||r.effort):''}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text">${escapeHTML(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${typeof teamHTML==='function'?teamHTML(r):''}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
+    $('runs').innerHTML=currentRuns().map(r=>`<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status]||r.status}${r.model?` · ${escapeHTML(r.provider&&r.provider!=='codex'?r.provider+' · experimental':'Codex')} · ${escapeHTML(r.reported_model||r.model)}${r.effort?' · '+escapeHTML(effortLabels[r.effort]||r.effort):''}`:''}</div><details class="run-output ${outputPreference(r.id).seen?'':'is-new'}" data-output="${r.id}" ${outputPreference(r.id).open!==false?'open':''}><summary>${r.status==='completed'?'Respuesta lista':labels[r.status]||r.status}${outputPreference(r.id).seen?'':'<span class="new-tag">Nuevo</span>'}</summary><div class="run-text markdown">${markdown(r.mode==='translate' && r.status!=='completed'?'Preparando la consulta o traducción revisable…':r.text || (['running','connecting'].includes(r.status)?'Preparando una respuesta…':''))}</div>${translationHTML(r)}${typeof teamHTML==='function'?teamHTML(r):''}${r.error?`<div class="run-error">${escapeHTML(r.error)}</div>`:''}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference('sources-'+r.id).open?'open':''}><summary>${r.sources.length} fuentes enviadas · ${r.guide==='integrated'?'Guía integrada':r.skill?'build-novel':'Asistente general'}</summary>${r.sources.map(s=>`${escapeHTML(s.name)} · ${s.hash.slice(0,8)}${s.synopsis||s.pov?' · incluye ficha del plan':''}${state.documents.find(d=>d.id===s.id)?.hash!==s.hash?' · cambió desde este envío':''}`).join('<br>')}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status==='completed'?`<button class="quiet" data-read="${r.id}">Escuchar</button>`:''}${r.mode==='draft' && r.status==='completed'?`<button class="quiet" data-draft="${r.id}">${r.saved_document?'Abrir borrador guardado':(r.purpose==='rpg'?'Guardar material de rol provisional':'Guardar como borrador provisional')}</button>`:''}${r.mode==='summary' && r.status==='completed'?`<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>`:''}${r.status==='completed' && !outputPreference(r.id).seen?`<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>`:''}</details></div>`).join('') || '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
     if(!currentRuns().length && state.workflow==='guided')$('runs').innerHTML='<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Empecemos con lo que imaginás.</h3><p>No hace falta llegar con un argumento cerrado.<br>El asistente te acompaña, una pregunta por vez.</p></div>';
     if(!currentRuns().length && state.conversations?.length)$('runs').innerHTML='<div class="assistant-empty"><h3>Nueva conversación</h3><p>El chat anterior ya no forma parte del contexto.<br>Las fuentes seleccionadas y las decisiones del proyecto siguen disponibles.</p></div>';
-    if(nearBottom)$('runs').scrollTop=$('runs').scrollHeight;else $('runs').scrollTop=scrollPosition;
+    if(newMessage||nearBottom)$('runs').scrollTop=$('runs').scrollHeight;else $('runs').scrollTop=scrollPosition;
     restoreTranslationFocus();updateLatestAnswer();
   }
   const proposalsKey=JSON.stringify(state.proposals);
@@ -394,7 +384,11 @@ async function sendChatMessage(message=$('prompt').value,valid=()=>true){
 }
 $('send').onclick=action(()=>sendChatMessage());
 $('cancel').onclick=action(async()=>{const run=busy();if(run){await api('/api/run/cancel',{project:state.id,run:run.id});await poll();}});
-$('prompt').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('send').click();}};
+$('prompt').onkeydown=e=>{
+  if(e.key!=='Enter'||e.shiftKey||e.altKey||e.isComposing||e.keyCode===229)return;
+  e.preventDefault();
+  if(!e.repeat)$('send').click();
+};
 $('proposals').onclick=action(async e=>{
   const button=e.target.closest('[data-accept],[data-reject]'); if(!button)return;
   const accept=!!button.dataset.accept;
@@ -427,7 +421,7 @@ $('chat-links').onclick=action(event=>{
   const button=event.target.closest('[data-chat]');if(!button)return;
   const chat=state.conversations.find(c=>c.id===button.dataset.chat);if(!chat)return;
   $('chat-history-title').textContent=chat.title;
-  $('chat-history-content').innerHTML=state.runs.slice(chat.start,chat.end).map(r=>`<article class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><p>${escapeHTML(labels[r.mode]||r.mode)} · ${escapeHTML(labels[r.status]||r.status)}</p><div class="run-text">${escapeHTML(r.text||'Sin respuesta guardada.')}</div>${teamHTML(r)}${r.error?`<p class="run-error">${escapeHTML(r.error)}</p>`:''}</article>`).join('')+(chat.draft?`<article><h3>Mensaje que quedó sin enviar</h3><div class="run-text">${escapeHTML(chat.draft)}</div></article>`:'');
+  $('chat-history-content').innerHTML=state.runs.slice(chat.start,chat.end).map(r=>`<article class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><p>${escapeHTML(labels[r.mode]||r.mode)} · ${escapeHTML(labels[r.status]||r.status)}</p><div class="run-text markdown">${markdown(r.text||'Sin respuesta guardada.')}</div>${teamHTML(r)}${r.error?`<p class="run-error">${escapeHTML(r.error)}</p>`:''}</article>`).join('')+(chat.draft?`<article><h3>Mensaje que quedó sin enviar</h3><div class="run-text">${escapeHTML(chat.draft)}</div></article>`:'');
   showDialog($('chat-history'));
 });
 $('chat-history-close').onclick=()=>$('chat-history').close();
