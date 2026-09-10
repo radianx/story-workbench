@@ -2,7 +2,7 @@
 
 Se pueden proponer mejoras, reportar errores, probar Linux/Windows, revisar accesibilidad o aportar código y documentación. Issues y pull requests pueden estar en español o inglés. No hace falta una cuenta de IA para trabajar en la interfaz, el almacenamiento o las pruebas simuladas.
 
-**Licencia pendiente:** el proyecto figura como `UNLICENSED`. Antes de aportar código, consultá al mantenedor por la licencia de contribución y distribución. Esta guía no concede una licencia ni exige una cesión de derechos. Los avisos de terceros se conservan por separado.
+El código propio del proyecto y sus contribuciones se distribuyen bajo la [licencia MIT](LICENSE). No se exige cesión de derechos. Conservá el aviso de copyright y los avisos de terceros, que mantienen sus propias licencias.
 
 ## Primer arranque
 
@@ -88,7 +88,7 @@ Las funciones grandes pendientes se describen en [README.md](README.md#datos-y-l
 
 ## Al abrir el repositorio en GitHub — mantenedor
 
-- Elegir la licencia del proyecto y alinear `LICENSE`, `package.json` y la documentación antes de recibir código externo. Verificar por separado avisos y permisos de dependencias; build-novel no se distribuye.
+- Conservar la licencia MIT del código propio y verificar por separado avisos y permisos de dependencias; build-novel no se distribuye.
 - Revisar los archivos y el historial que se publicarán, no solo el estado actual. `.gitignore` no elimina contenido de commits anteriores. `HANDOFF.md`, `private/` y `dist/` son locales.
 - Activar el canal **Security → Report a vulnerability** y probar que está disponible. [Configuración oficial](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 - Ejecutar el workflow **Checks** en GitHub. Después de su primera ejecución, configurar las comprobaciones requeridas para PR en la rama principal según las opciones de la cuenta. El workflow por sí solo no configura protección de ramas.

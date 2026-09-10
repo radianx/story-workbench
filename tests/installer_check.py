@@ -11,6 +11,7 @@ version=json.loads((ROOT/'src-tauri/tauri.conf.json').read_text())['version']
 for target,base in [('linux',args.linux_root/'usr/lib/Story Workbench'),('win',args.windows_root)]:
     runtime=base/'runtime';manifest=json.loads((runtime/'MANIFEST.json').read_text())
     assert manifest['target']==target
+    assert (runtime/'LICENSE').read_bytes()==(ROOT/'LICENSE').read_bytes()
     actual={p.relative_to(runtime).as_posix() for p in runtime.rglob('*') if p.is_file()}
     assert actual==set(manifest['files'])|{'MANIFEST.json'}, actual-set(manifest['files'])-{'MANIFEST.json'}
     for name,digest in manifest['files'].items():

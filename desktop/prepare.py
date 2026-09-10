@@ -84,6 +84,7 @@ def main():
                 destination.write_bytes(tar.extractfile(member).read())
         if not (runtime / 'codex/bin/codex.exe').is_file():
             raise SystemExit('No se encontró el ejecutable Windows de Codex.')
+    shutil.copy(ROOT / 'LICENSE', runtime / 'LICENSE')
     for name in ('CODEX-LICENSE.txt','CODEX-NOTICE.txt'):
         shutil.copy(ROOT / 'desktop' / name, runtime / name)
     from prepare_voice import prepare as prepare_voice

@@ -2,6 +2,7 @@
 name = "story-workbench"
 version = "0.8.12"
 edition = "2021"
+license = "MIT"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

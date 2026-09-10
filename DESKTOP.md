@@ -1,6 +1,6 @@
 # Distribución Tauri 0.8.12
 
-Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados; todavía no hay licencia definitiva del producto.
+Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados. El código propio se distribuye bajo la [licencia MIT](LICENSE); se conservan las licencias de terceros.
 
 ## Instalación
 
@@ -41,7 +41,7 @@ npm run dist:win
 
 Ejecutar builds secuencialmente: cada preparación reemplaza `src-tauri/runtime`. `desktop/prepare.py` selecciona únicamente fuentes públicas y verifica integridad de las descargas; registra hashes en `MANIFEST.json`. Windows incluye Python embebible oficial 3.14.7 con SHA256 fijado y un lanzador Rust con CRT estático que hereda stdin y espera el cierre de Python; no requiere instalar Visual C++ aparte. NSIS usa zlib para reducir el tiempo de empaquetado. El build de Windows usa cargo-xwin/MSVC y NSIS. Las fuentes de la app y el caché de herramientas son los únicos directorios montados en Docker; no se montan proyectos ni credenciales.
 
-Los instaladores finales y `SHA256SUMS` quedan en `dist/installers`. Los paquetes Electron anteriores son artefactos históricos, no se regeneran. `UNLICENSED` no concede una licencia de redistribución del producto; se mantienen avisos de terceros. build-novel se descubre localmente cuando está instalado, no se copia.
+Los instaladores finales y `SHA256SUMS` quedan en `dist/installers`. Los paquetes Electron anteriores son artefactos históricos, no se regeneran. El empaquetado copia `LICENSE` al runtime para incluir el aviso MIT, junto con los avisos de terceros. Los instaladores 0.8.12 generados antes de adoptar MIT no se han reconstruido con ese archivo. build-novel se descubre localmente cuando está instalado, no se copia.
 
 ## Comprobaciones ejecutables
 

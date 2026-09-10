@@ -3,7 +3,7 @@
   "version": "0.8.12",
   "description": "Escritura guiada y revisión editorial local con ChatGPT",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "author": "A. J. Sbardella",
   "scripts": {
     "desktop": "tauri dev",

@@ -2,6 +2,7 @@
 name = "story-server-launcher"
 version = "0.8.0"
 edition = "2021"
+license = "MIT"
 
 [[bin]]
 name = "story-server"
