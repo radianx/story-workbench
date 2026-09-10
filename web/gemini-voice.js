@@ -76,6 +76,11 @@ async function geminiEvent(session,event){
   if(data.error)throw new Error('Gemini rechazó la sesión. Revisá acceso, cuota y facturación del proyecto en AI Studio.');
   if(data.setupComplete){session.ready=true;realtimeConnected(session);return;}
   const content=data.serverContent;
+  if(session.relay){
+    if(content?.inputTranscription)voiceTranscript(session,content.inputTranscription.text);
+    if(content?.turnComplete)voiceTranscript(session,'',true);
+    return; // Nunca reproducir ni ejecutar una respuesta propia de Gemini en Voz del chat.
+  }
   if(content?.interrupted){clearGeminiAudio(session);$('realtime-caption').textContent='';}
   for(const part of content?.modelTurn?.parts||[])if(part.inlineData)playGeminiAudio(session,part.inlineData);
   if(content?.turnComplete||data.toolCall)flushGeminiAudio(session);
@@ -111,7 +116,7 @@ async function startGeminiVoice(session){
     sendGemini(session,{realtimeInput:{audio:{mimeType:'audio/pcm;rate=16000',data:pcmBase64([event.data])}}});
   };
   await session.audioContext.resume();renderRealtime();
-  const result=await api('/api/realtime/connect',{project:session.project,provider:'gemini',consent:true,actions:session.actions});
+  const result=await api('/api/realtime/connect',{project:session.project,provider:'gemini',consent:true,actions:session.actions,relay:session.relay});
   if(realtime!==session)return;
   session.socket=new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token='+encodeURIComponent(result.token));
   session.socket.binaryType='arraybuffer';

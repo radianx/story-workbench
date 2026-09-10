@@ -1,11 +1,11 @@
-# Distribución Tauri 0.8.7
+# Distribución Tauri 0.8.8
 
 Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados; todavía no hay licencia definitiva del producto.
 
 ## Instalación
 
-- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.7-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
-- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.7-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
+- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.8.8-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
+- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.8.8-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
 - Abrir **Story Workbench** desde el menú. El asistente inicial empieza por el tema y permite conectar la cuenta propia, configurar voz opcional y crear/abrir un proyecto; se puede omitir y reabrir en Configuración.
 
 Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen incluidos. El usuario no necesita terminal, Node, Rust ni Python. Codex con ChatGPT sigue siendo el motor principal; no hay cambio automático a una API de pago. Los adaptadores con clave son experimentales y requieren elección explícita. No hay actualizaciones automáticas.
@@ -49,6 +49,7 @@ Los instaladores finales y `SHA256SUMS` quedan en `dist/installers`. Los paquete
 python3 -m unittest discover -s tests
 python3 tests/desktop_bridge_check.py
 python3 tests/reading_browser_check.py
+python3 tests/voice_chat_browser_check.py
 python3 tests/reading_browser_check.py --webkit-playback
 python3 tests/gemini_browser_check.py --webkit-playback
 node tests/pcm_playback_check.js

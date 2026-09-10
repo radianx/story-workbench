@@ -378,18 +378,21 @@ $('runs').onclick=action(async e=>{
 const b=e.target.closest('[data-quick]');if(b){$('mode').value=b.dataset.quick;setTaskMode();$('prompt').value={diagnosis:'Revisá las fuentes seleccionadas y señalá contradicciones con sus pasajes, sin reescribir.',impact:'Si cambiamos este hecho de canon: [describí el cambio], ¿qué más deberíamos revisar?',proposal:'Proponé cambios mínimos y justificados en el manuscrito seleccionado. Conservá voz, tono y canon; separá cada cambio en un bloque.'}[b.dataset.quick];savePromptDraft();$('prompt').focus();}const s=e.target.closest('[data-summary]');if(s){const r=state.runs.find(r=>r.id===s.dataset.summary);await api('/api/document/add',{project:state.id,name:'Resumen provisional.md',role:'referencia',content:'# Resumen provisional — verificar fuentes\n\n'+r.text+'\n\nFuentes de origen:\n'+r.sources.map(s=>`- ${s.name} (${s.hash})`).join('\n')});state=await api(`/api/projects/${state.id}`);renderDocuments();notice('Resumen guardado como referencia provisional, con sus fuentes.');}});
 function savePromptDraft(){if(!state)return;try{sessionStorage.setItem('sw-message-'+state.id,$('prompt').value);sessionStorage.setItem('sw-message-mode-'+state.id,$('mode').value);}catch{notice('No se pudo conservar el mensaje en esta ventana. Copialo antes de salir.',true);}}
 $('prompt').addEventListener('input',savePromptDraft);
-$('send').onclick=action(async()=>{
+async function sendChatMessage(message=$('prompt').value,valid=()=>true){
+  if(!valid())return;
+  if(busy())throw Error('Ya hay una tarea en curso.');
   if(dirty)throw new Error('Guardá el documento antes de enviarlo: El motor editorial recibe la versión guardada.');
-  const project=state.id, message=$('prompt').value, mode=$('mode').value, skill=$('skill').checked, team=$('team-enabled').checked;
+  const project=state.id, mode=$('mode').value, skill=$('skill').checked, team=$('team-enabled').checked;
   if(!message.trim())return;
-  if(!await engineReady() || state.id!==project)return;
+  if(!await engineReady() || state.id!==project || !valid())return;
   if(mode==='panel'&&!team)throw Error('Activá Usar equipo para ejecutar el panel ciego.');
-  await api('/api/run',{project,mode,prompt:message.trim(),skill,team});
+  const run=await api('/api/run',{project,mode,prompt:message.trim(),skill,team});
   if(state.id!==project)return;
   $('team-enabled').checked=false;renderTeam();
   if($('prompt').value===message){$('prompt').value='';savePromptDraft();}
-  showPanel('conversation');await poll();
-});
+  showPanel('conversation');await poll();return run;
+}
+$('send').onclick=action(()=>sendChatMessage());
 $('cancel').onclick=action(async()=>{const run=busy();if(run){await api('/api/run/cancel',{project:state.id,run:run.id});await poll();}});
 $('prompt').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('send').click();}};
 $('proposals').onclick=action(async e=>{

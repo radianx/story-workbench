@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix='sw-rtc-') as directory:
               };
               window.toolCall=(id,name,args)=>testChannel.onmessage({data:JSON.stringify({type:'response.done',response:{status:'completed',output:[{type:'function_call',call_id:id,name,arguments:JSON.stringify(args)}]}})});
             ''')
-            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1');localStorage.setItem('sw-voice-mode','controls')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             assert not page.locator('#realtime-enabled').is_checked() and not connections
             page.evaluate("()=>{$('voice-volume').value='45';$('voice-volume').oninput();}")

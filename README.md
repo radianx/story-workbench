@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.8.7**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.8.8**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Instalar la app de escritorio
 
@@ -48,7 +48,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Plan y avance | Tarjetas de capítulos o escenas sobre los manuscritos, sinopsis, POV, orden y filtro por estado; meta de palabras y progreso de revisión. Cambiar un texto revisado invalida esa marca. |
 | Fichas | Plantillas propias de personaje, mundo, voz y arco; documentos provisionales inicialmente sin seleccionar para IA. |
 | Voz | Botón Probar voz del proveedor con diagnóstico de audio y sin respaldo local durante la prueba. Dictado local en español, hasta 45 segundos por captura, transcripción editable antes de enviar, descarte y apagado del micrófono al cambiar de proyecto. Lectura con OpenAI Realtime o Gemini Live cuando están autorizados, TTS local de respaldo, opción Siempre voz local y detención; volumen persistente en Configuración y casilla Leer respuestas junto al micrófono para lectura automática de respuestas nuevas. No abre el micrófono. |
-| Voz online opcional | Conversación con OpenAI gpt-realtime o Gemini Live (clave de AI Studio), micrófono pausado/cerrado explícitamente y herramientas para navegar, preparar criterios o lanzar tareas Codex. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
+| Voz online opcional | Voz del chat con OpenAI Realtime o Gemini Live: transcripción al mismo chat y lectura de su respuesta; micrófono pausado durante tarea y lectura. Controles de la app queda como modo separado para navegar y preparar tareas. Claves en memoria o cifradas opcionalmente con el almacén del sistema en escritorio, sin fallback. Ver [condiciones y validación](REALTIME.md). |
 | Traducción | Inicio con original obligatorio e idiomas elegibles/detectables; unidades de hasta 12.000 caracteres sin omitir texto. Entrevista de intención, encargo y glosario; consultas de matiz con cita y alternativas, criterio humano, comparación y aprobación de copia separada, revisión vinculada a versión y exportación Markdown/DOCX de unidades aprobadas. |
 | Rol (extra) | Entrevista para mundo de mesa, PNJ, facciones, lugares, reglas propias y ganchos abiertos; seis fichas adicionales, material provisional y dossier ZIP. No ejecuta partidas. |
 | Equipo editorial | Optativo por mensaje con Codex: modelo/esfuerzo separados, máximo 1–3 colaboradores, reparto y síntesis del principal, panel ciego y aviso de consumo. Aportes colapsables; cancelación conjunta. Experimental. |

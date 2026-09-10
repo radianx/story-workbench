@@ -125,7 +125,7 @@ const tips={
   download:'Descargar este documento como Markdown, incluido el borrador sin guardar.',
   undo:'Deshacer en este documento. Para versiones guardadas, usá Historial. Ctrl+Z.',
   redo:'Rehacer en este documento. Ctrl+Shift+Z.',
-  'auto-read':'Lee las nuevas respuestas con el proveedor de voz autorizado o la voz local de respaldo. Cierra la conversación oral para evitar eco; pulsá el micrófono para retomarla. Se desactiva al cambiar de proyecto.',
+  'auto-read':'Lee las nuevas respuestas con el proveedor de voz autorizado o la voz local de respaldo. En Voz del chat pausa el micrófono durante la lectura y retoma la escucha continua al terminar. En Controles cierra la conversación oral para evitar eco. Se desactiva al cambiar de proyecto.',
   'book-open':'Vista 3D orientativa; no genera una cubierta lista para imprenta.',
   send:'Enviar mensaje al asistente. También Ctrl+Enter desde el mensaje.'
 };

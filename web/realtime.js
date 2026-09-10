@@ -1,7 +1,7 @@
 'use strict';
 let realtime=null, realtimeConfigured=false, realtimeConsent=false, realtimeProviders={};
 const realtimeBusy=()=>!!realtime;
-const realtimeSignature=()=>JSON.stringify([state.id,state.purpose,state.engine,state.translation_config,state.documents.filter(d=>d.selected).map(d=>[d.id,d.hash])]);
+const realtimeSignature=()=>JSON.stringify([state.id,state.history_start,state.purpose,state.engine,state.translation_config,state.documents.filter(d=>d.selected).map(d=>[d.id,d.hash])]);
 const voiceProvider=()=>$('realtime-provider').value;
 function realtimeStatus(message){$('realtime-status').textContent=message;}
 function renderRealtime(){
@@ -15,7 +15,7 @@ function renderRealtime(){
 function stopRealtime(message='Conversación terminada. Micrófono cerrado.'){
   if(onlineReading)stopReading();
   const session=realtime;realtime=null;
-  if(session){if(session.provider==='gemini')closeGeminiVoice(session);clearTimeout(session.timeout);clearInterval(session.timer);session.stream?.getTracks().forEach(t=>t.stop());session.channel?.close();session.pc?.close();session.audio?.pause();if(session.audio)session.audio.srcObject=null;}
+  if(session){if(session.provider==='gemini')closeGeminiVoice(session);clearTimeout(session.timeout);clearTimeout(session.transcriptTimer);clearInterval(session.timer);session.stream?.getTracks().forEach(t=>t.stop());session.channel?.close();session.pc?.close();session.audio?.pause();if(session.audio)session.audio.srcObject=null;}
   realtimeStatus(message);$('realtime-mute').textContent='Pausar micrófono';$('realtime-mute').setAttribute('aria-pressed','false');renderRealtime();
 }
 function updateRealtime(){
@@ -72,6 +72,51 @@ async function runVoiceTool(session,name,args){
   if(name==='workbench_action')return realtimeAction(session,args);
   throw new Error('Función no permitida.');
 }
+// La transcripción pasa por el mismo envío que el teclado; el proveedor de voz no decide la respuesta.
+function syncVoiceMicrophone(session){
+  if(realtime!==session)return;
+  session.stream?.getAudioTracks().forEach(track=>track.enabled=!!session.listening&&!session.waiting&&!session.speaking);
+  renderVoice();
+}
+function updateVoiceChat(){
+  const session=realtime;if(!session?.relayRun)return;
+  const run=currentRuns().find(r=>r.id===session.relayRun);
+  if(!run||!['completed','failed','cancelled','interrupted'].includes(run.status))return;
+  session.relayRun=null;session.waiting=false;syncVoiceMicrophone(session);
+}
+async function relayVoiceText(session,text){
+  if(realtime!==session||session.signature!==realtimeSignature()||!text.trim())return;
+  const existing=$('prompt').value;
+  $('prompt').value=existing+(existing.trim()?'\n':'')+text.trim();savePromptDraft();showPanel('conversation');
+  $('realtime-caption').textContent='Transcripción: '+text.trim();
+  if(!session.actions||existing.trim()||busy()||session.waiting||dirty){
+    setVoiceListening(false);voiceStatus('Transcripción en Tu mensaje. Revisala y pulsá Enviar; no se reemplazó ni envió otro borrador.');return;
+  }
+  session.waiting=true;syncVoiceMicrophone(session);voiceStatus('Mensaje de voz enviado al chat. Esperando al motor editorial…');
+  try{
+    const run=await sendChatMessage($('prompt').value,()=>realtime===session&&session.signature===realtimeSignature());
+    if(realtime!==session)return;
+    session.relayRun=run?.id;
+    if(!run){session.waiting=false;setVoiceListening(false);voiceStatus('Mensaje sin enviar. Revisá la conexión y pulsá Enviar.');}
+    updateVoiceChat();
+  }catch(error){if(realtime===session){session.waiting=false;setVoiceListening(false);voiceStatus(error.message+' La transcripción quedó en Tu mensaje.');notice(error.message,true);}}
+}
+function voiceTranscript(session,text,finished=false){
+  if(realtime!==session||!session.relay)return;
+  if(typeof text==='string'){
+    session.transcript=(session.transcript||'')+text;
+    if(session.transcript.length>12000){$('prompt').value+=($('prompt').value?'\n':'')+session.transcript;savePromptDraft();stopRealtime('Dictado demasiado largo. Quedó en Tu mensaje para dividirlo antes de enviar.');return;}
+    $('realtime-caption').textContent='Escuché: '+session.transcript;
+  }
+  if(finished)session.transcriptEnded=true;
+  if(!session.transcriptEnded||!session.transcript?.trim())return;
+  clearTimeout(session.transcriptTimer);
+  // Gemini no ordena transcripción y turnComplete; reunir los fragmentos tardíos antes del envío.
+  session.transcriptTimer=setTimeout(()=>{
+    const value=session.transcript;session.transcript='';session.transcriptEnded=false;
+    relayVoiceText(session,value).catch(error=>{if(realtime===session)notice(error.message,true);});
+  },session.provider==='gemini'?600:0);
+}
 function realtimeConnected(session){
   if(realtime!==session)return;
   clearTimeout(session.timeout);const started=Date.now();
@@ -83,7 +128,12 @@ async function realtimeEvent(session,event){
   if(realtime!==session||typeof event.data!=='string'||event.data.length>2000000)return;
   if(session.signature!==realtimeSignature()){updateRealtime();return;}
   const data=JSON.parse(event.data);
+  if(session.relay&&data.type==='conversation.item.input_audio_transcription.completed'){
+    if(typeof data.item_id!=='string'||session.seen.has(data.item_id))return;session.seen.add(data.item_id);voiceTranscript(session,data.transcript,true);return;
+  }
+  if(session.relay&&data.type==='conversation.item.input_audio_transcription.failed'){voiceStatus('No se pudo transcribir. Volvé a hablar o escribí el mensaje.');return;}
   if(data.type==='error'){stopRealtime('La sesión de voz informó un error. Revisá conexión y cuota antes de reconectar.');return;}
+  if(session.relay)return;
   if(['response.output_audio_transcript.delta','response.audio_transcript.delta'].includes(data.type)&&typeof data.delta==='string'){
     $('realtime-caption').textContent=($('realtime-caption').textContent+data.delta).slice(-8000);
   }
@@ -109,8 +159,8 @@ async function startRealtime(options={}){
   if(voiceProvider()==='openai'&&typeof RTCPeerConnection!=='function')throw new Error('La voz de OpenAI no está disponible en este entorno. Podés usar dictado local o probar Gemini Live.');
   $('settings-dialog')?.close();$('realtime-dialog').close();
   await cancelVoice();
-  const session={listening:!options.pushToTalk||spaceListening,continuous:!options.pushToTalk,provider:voiceProvider(),project:state.id,signature:realtimeSignature(),actions:$('realtime-allow-actions').checked,seen:new Set(),queue:Promise.resolve()};
-  realtime=session;realtimeStatus(session.provider==='gemini'?'Conectando Gemini Live…':'Conectando gpt-realtime…');renderRealtime();
+  const session={relay:$('voice-mode').value==='chat',listening:!options.pushToTalk||spaceListening,continuous:!options.pushToTalk,provider:voiceProvider(),project:state.id,signature:realtimeSignature(),actions:$('realtime-allow-actions').checked,seen:new Set(),queue:Promise.resolve()};
+  realtime=session;if(session.relay)$('auto-read').checked=true;realtimeStatus(session.provider==='gemini'?'Conectando Gemini Live…':'Conectando gpt-realtime…');renderRealtime();
   session.timeout=setTimeout(()=>{if(realtime===session)stopRealtime('La conexión tardó demasiado. Micrófono cerrado.');},45000);
   try{
     session.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
@@ -118,7 +168,7 @@ async function startRealtime(options={}){
     session.stream.getAudioTracks().forEach(t=>t.enabled=session.listening);
     if(session.provider==='gemini'){await startGeminiVoice(session);return;}
     session.pc=new RTCPeerConnection();session.audio=new Audio();session.audio.volume=voiceVolume;session.audio.autoplay=true;
-    session.pc.ontrack=e=>{if(realtime===session){session.audio.srcObject=e.streams[0];session.audio.play().catch(()=>{if(realtime===session)stopRealtime('No se pudo reproducir la voz. Volvé a conectar.');});}};
+    session.pc.ontrack=e=>{if(realtime===session){if(session.relay)return;session.audio.srcObject=e.streams[0];session.audio.play().catch(()=>{if(realtime===session)stopRealtime('No se pudo reproducir la voz. Volvé a conectar.');});}};
     session.pc.onconnectionstatechange=()=>{if(realtime===session&&['failed','disconnected','closed'].includes(session.pc.connectionState))stopRealtime('Conexión de voz cerrada. Podés reconectar manualmente.');};
     session.stream.getTracks().forEach(track=>session.pc.addTrack(track,session.stream));
     session.channel=session.pc.createDataChannel('oai-events');
@@ -128,7 +178,7 @@ async function startRealtime(options={}){
     renderRealtime();const offer=await session.pc.createOffer();
     if(realtime!==session)return;
     await session.pc.setLocalDescription(offer);
-    const answer=await api('/api/realtime/connect',{project:session.project,sdp:offer.sdp,consent:true,actions:session.actions});
+    const answer=await api('/api/realtime/connect',{project:session.project,sdp:offer.sdp,consent:true,actions:session.actions,relay:session.relay});
     if(realtime!==session)return;
     await session.pc.setRemoteDescription({type:'answer',sdp:answer.sdp});
   }catch(error){if(realtime===session)stopRealtime(error.name==='NotAllowedError'?'Micrófono no autorizado. Podés seguir escribiendo.':error.message);}
@@ -165,7 +215,8 @@ $('realtime-start').onclick=action(startRealtime);
 $('realtime-stop').onclick=$('realtime-global-stop').onclick=()=>stopRealtime();
 function setVoiceListening(enabled,continuous=false){
   if(!realtime)return;realtime.listening=enabled;realtime.continuous=continuous;
-  realtime.stream?.getAudioTracks().forEach(t=>t.enabled=enabled);
+  if(enabled&&realtime.relay&&readingActive)stopReading();
+  syncVoiceMicrophone(realtime);
   if(realtime.provider==='gemini'&&!enabled&&realtime.inputNode){realtime.flushInput=true;realtime.inputNode.port.postMessage('end');}
   $('realtime-mute').setAttribute('aria-pressed',String(!enabled));$('realtime-mute').textContent=enabled?'Pausar micrófono':'Reactivar micrófono';renderVoice();
 }
@@ -179,3 +230,6 @@ async function refreshVoiceStorage(){
 $('realtime-provider').onchange=()=>{try{localStorage.setItem('sw-voice-provider',voiceProvider());}catch{}stopRealtime('Proveedor cambiado. Confirmá sus condiciones antes de conectar.');$('realtime-key').value='';realtimeConsent=false;$('realtime-consent').checked=false;realtimeConfigured=!!realtimeProviders[voiceProvider()];updateVoiceProviderNote();refreshVoiceStorage().catch(e=>notice(e.message,true));renderRealtime();};
 try{const provider=localStorage.getItem('sw-voice-provider');if(['openai','gemini'].includes(provider))$('realtime-provider').value=provider;}catch{}
 api('/api/realtime').then(result=>{realtimeProviders=result.providers;realtimeConfigured=!!realtimeProviders[voiceProvider()];renderRealtime();}).catch(error=>realtimeStatus(error.message));
+
+$('voice-mode').value=storedAppearance('sw-voice-mode','chat')==='controls'?'controls':'chat';
+$('voice-mode').onchange=()=>{stopRealtime('Modo de voz cambiado. Pulsá el micrófono para conectar.');try{localStorage.setItem('sw-voice-mode',$('voice-mode').value);}catch{}};

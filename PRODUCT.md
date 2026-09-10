@@ -108,3 +108,7 @@ En WebKit de Linux, Gemini y la lectura online reproducen cada turno como WAV en
 ## Reproducción incremental 0.8.7
 
 La salida multimedia de Linux comienza con los primeros bloques PCM y precarga los siguientes durante la reproducción. Reemplaza la espera del turno completo introducida en 0.8.6; comparte el cambio entre conversación Gemini y lectura online. Conserva el control de volumen, interrupción y límite de memoria. La conexión y el primer audio dependen del proveedor. Ver [mediciones ejecutadas](MVP_RESULTS.md).
+
+## Voz integrada al chat 0.8.8
+
+La opción predeterminada de voz conecta el audio con el chat editorial: transcribe y envía mediante el mismo flujo del teclado, luego lee la respuesta del motor elegido. Conserva la conexión oral con el micrófono pausado durante tarea y lectura, respeta borradores y permite desactivar el envío o la lectura. El asistente oral con herramientas sigue disponible bajo Controles de la app. Ver [voz](REALTIME.md).

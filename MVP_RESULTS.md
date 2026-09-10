@@ -1,3 +1,12 @@
+# Voz integrada al chat · Tauri 0.8.8 — 2026-09-10
+
+- Voz del chat predeterminada y persistente: transcripción enviada por el mismo flujo que el teclado, lectura de la respuesta del motor editorial y pausa del micrófono durante tarea/lectura. Controles de la app conserva las herramientas en un modo explícitamente separado. Gemini no decide qué enviar ni responde por su cuenta en Voz del chat.
+- `tests/voice_chat_browser_check.py` comprobó envío persistente único, fragmentos de transcripción posteriores al fin de turno, lectura del resultado editorial, reanudación de micrófono, conservación de borrador previo, permisos, cancelación y deduplicación OpenAI. Servicios simulados y micrófono virtual.
+- Prueba real Gemini mediante Chrome con una grabación ficticia como micrófono virtual: audio → transcripción → mensaje guardado → respuesta editorial simulada → audio lector Gemini. Clave existente en memoria, sin manuscritos ni micrófono físico. No ejecutó una tarea Codex real. Una sonda Python WebSocket anterior perdió la conexión; el recorrido posterior del navegador completó el puente.
+- Instaladores 0.8.8 Linux .deb y Windows NSIS generados, con 32/100 archivos y SHA256 verificados. El equipo mantiene instalada 0.8.7; requiere actualizar y reiniciar. No se probó interfaz Windows real ni una nueva tarea Codex real.
+- Pasaron las 45 pruebas de backend, incluida la configuración de transcripción sin herramientas ni contexto editorial.
+- Pasaron regresiones de controles Gemini y OpenAI, y lectura con la cola multimedia Linux. La entrada OpenAI se comprobó con servicios simulados; conserva el límite WebRTC del WebKitGTK local.
+
 # Reproducción incremental · Tauri 0.8.7 — 2026-09-10
 
 - El usuario confirmó que 0.8.6 ya se escucha en la app. Para reducir su espera, Linux empieza con un bloque WAV corto y precarga los siguientes; ya no espera el turno completo. Conversación Gemini y lectura online comparten la cola, sin cambiar el formato de entrada del micrófono ni Web Audio en otros motores.

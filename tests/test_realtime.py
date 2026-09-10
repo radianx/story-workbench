@@ -32,6 +32,19 @@ class RealtimeTests(unittest.TestCase):
                 with self.assertRaises(Problem) as error:engine.read_session(provider,True)
                 self.assertNotIn(KEY,str(error.exception));self.assertFalse(engine.connecting.locked())
                 opener.return_value.open.side_effect=None
+    def test_chat_voice_transcribes_without_editorial_context_or_tools(self):
+        engine=Realtime();engine.configure(KEY);engine.configure('AQ.fixture-voice-relay','gemini')
+        with patch('workbench_realtime.urllib.request.build_opener') as opener:
+            opener.return_value.open.return_value=io.BytesIO(b'{"name":"temporary"}')
+            setup=engine.connect_gemini(None,True,True,relay=True)['setup']
+            self.assertIn('inputAudioTranscription',setup);self.assertNotIn('tools',setup)
+            self.assertNotIn('Contexto inicial',json.dumps(setup))
+            opener.return_value.open.return_value=io.BytesIO(b'v=0\r\nanswer')
+            engine.connect(None,'v=0',True,True,relay=True)
+            body=opener.return_value.open.call_args.args[0].data.decode()
+            self.assertIn('"create_response": false',body);self.assertIn('gpt-4o-mini-transcribe',body)
+            self.assertIn('"tools": []',body);self.assertNotIn('Contexto inicial',body)
+
     def test_opt_in_transport_context_and_errors(self):
         with tempfile.TemporaryDirectory() as directory:
             store=Store(directory);project=store.create('Voz ficticia',True)['id']

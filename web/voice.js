@@ -16,33 +16,34 @@ const remoteVoiceBusy=()=>typeof realtimeBusy==='function'&&realtimeBusy();
 const voiceBusy=()=>!!recording||transcribing||remoteVoiceBusy();
 function voiceStatus(message){$('voice-status').textContent=message;}
 function renderVoice(){
-  const online=$('realtime-enabled').checked,listening=!!recording||(remoteVoiceBusy()&&realtime.listening);
+  const online=$('realtime-enabled').checked,listening=!!recording||(remoteVoiceBusy()&&realtime.listening&&!realtime.waiting&&!realtime.speaking);
   $('dictate').disabled=!state||transcribing||(!online&&!voiceCapabilities.dictation);
   $('dictate').innerHTML=listening?'■':'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg>';
-  $('dictate').title=online?(listening?'Pausar escucha continua':'Activar escucha continua · mantené Espacio para hablar'):(recording?'Terminar dictado':'Dictar respuesta · mantené Espacio para hablar');$('dictate').setAttribute('aria-label',$('dictate').title);
-  $('dictate').setAttribute('aria-pressed',String(listening));$('dictate-cancel').hidden=!recording;
+  $('dictate').title=online?(remoteVoiceBusy()&&(realtime.waiting||realtime.speaking)?(realtime.listening?'Desactivar escucha al terminar la respuesta':'Activar escucha al terminar la respuesta'):(listening?'Pausar escucha continua':'Activar escucha continua · mantené Espacio para hablar')):(recording?'Terminar dictado':'Dictar respuesta · mantené Espacio para hablar');$('dictate').setAttribute('aria-label',$('dictate').title);
+  $('dictate').setAttribute('aria-pressed',String(online&&remoteVoiceBusy()?realtime.listening:listening));$('dictate-cancel').hidden=!recording;
   $('read-last').disabled=(!voiceCapabilities.reading&&!onlineReadingAllowed())||!currentRuns().some(r=>r.status==='completed'&&r.text);
   $('read-stop').hidden=!readingActive;
   if(state)$('send').disabled=!!busy()||!!recording||transcribing;
 }
 function onlineReadingAllowed(){return $('reading-mode')?.value!=='local'&&$('realtime-enabled').checked&&typeof realtimeConfigured!=='undefined'&&realtimeConfigured&&realtimeConsent;}
-function stopReading(){readingGeneration++;onlineReading?.close();onlineReading=null;readingActive=false;readingAudio?.pause();readingAudio=null;if(readingURL)URL.revokeObjectURL(readingURL);readingURL=null;renderVoice();}
+function stopReading(){if(typeof realtime!=='undefined'&&realtime?.relay){realtime.speaking=false;syncVoiceMicrophone(realtime);}readingGeneration++;onlineReading?.close();onlineReading=null;readingActive=false;readingAudio?.pause();readingAudio=null;if(readingURL)URL.revokeObjectURL(readingURL);readingURL=null;renderVoice();}
 async function readText(text){
   if(recording||transcribing)throw new Error('Terminá el dictado antes de escuchar.');
-  if(remoteVoiceBusy())stopRealtime('Conversación cerrada para escuchar el texto. Micrófono cerrado.');
-  stopReading();readingActive=true;const generation=readingGeneration;
+  if(remoteVoiceBusy()&&!realtime.relay)stopRealtime('Conversación cerrada para escuchar el texto. Micrófono cerrado.');
+  stopReading();if(remoteVoiceBusy()&&realtime.relay){realtime.speaking=true;syncVoiceMicrophone(realtime);}
+  readingActive=true;const generation=readingGeneration;
   const chunks=text.match(/[\s\S]{1,400}(?:\s|$)|[\s\S]{1,400}/gu)||[];
   let reader=null,fallback=false,fallbackReason='La lectura online no está disponible.';
   voiceStatus('Preparando lectura local…');$('read-stop').hidden=false;
   try {
     if(onlineReadingAllowed()){
       voiceStatus('Preparando lectura online · micrófono cerrado…');
-      try{reader=await createOnlineReader(voiceProvider(),generation);reader.onAudio=()=>{if(generation===readingGeneration&&reader.audio&&!reader.audio.paused)voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');};}catch{fallback=true;}
+      try{reader=await createOnlineReader(voiceProvider(),generation);reader.onAudio=()=>{if(generation===readingGeneration&&reader.audio&&!reader.audio.paused)voiceStatus('Leyendo con '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));};}catch{fallback=true;}
     }
     for(const chunk of chunks){
       if(generation!==readingGeneration)return;
       if(reader){
-        voiceStatus('Esperando audio de '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
+        voiceStatus('Esperando audio de '+(reader.provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));
         try{await reader.read(chunk);continue;}catch(error){reader.close();reader=null;fallback=true;if(error.message==='No llegó audio.')fallbackReason='No llegó audio del proveedor.';}
         if(generation!==readingGeneration)return;
       }
@@ -94,7 +95,7 @@ async function createOnlineReader(provider,generation){
       const audio=provider==='gemini'?(data.serverContent?.modelTurn?.parts||[]).filter(p=>p.inlineData).map(p=>p.inlineData):data.type==='response.output_audio.delta'?[{mimeType:'audio/pcm;rate=24000',data:data.delta}]:[];
       for(const part of audio)if(playGeminiAudio(session,part)){
         pending.received=true;clearTimeout(pending.firstAudio);
-        voiceStatus((bufferedVoicePlayback?'Recibiendo audio de ':'Leyendo con ')+(provider==='gemini'?'Gemini Live':'gpt-realtime')+' · micrófono cerrado…');
+        voiceStatus((bufferedVoicePlayback?'Recibiendo audio de ':'Leyendo con ')+(provider==='gemini'?'Gemini Live':'gpt-realtime')+(remoteVoiceBusy()&&realtime.relay?' · micrófono pausado…':' · micrófono cerrado…'));
       }
       if(data.serverContent?.interrupted)throw Error('Lectura interrumpida.');
       if(data.type==='response.done'){
@@ -201,7 +202,7 @@ $('auto-read').onchange=()=>{if(!$('auto-read').checked){stopReading();voiceStat
 $('runs').addEventListener('click',action(e=>{const button=e.target.closest('[data-read]');if(button)return readText(state.runs.find(r=>r.id===button.dataset.read).text);}));
 let lastVoiceRun=null;
 function updateVoice(){
-  renderVoice();const run=currentRuns().at(-1);
+  updateVoiceChat();renderVoice();const run=currentRuns().at(-1);
   if(!run||run.id===lastVoiceRun||run.status!=='completed')return;
   if($('auto-read').checked&&(recording||transcribing))return;
   lastVoiceRun=run.id;

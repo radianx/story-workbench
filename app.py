@@ -176,8 +176,10 @@ class Handler(BaseHTTPRequestHandler):
                 with store.lock:
                     snapshot=store.snapshot(body.get('project'))
                 provider=body.get('provider','openai');check(provider in ('openai','gemini'),'Proveedor de voz inválido.')
-                result=(self.server.realtime.connect_gemini(snapshot,body.get('consent'),body.get('actions',False)) if provider=='gemini'
-                        else self.server.realtime.connect(snapshot,body.get('sdp'),body.get('consent'),body.get('actions',False)))
+                relay=body.get('relay',False);check(type(relay) is bool,'Modo de voz inválido.')
+                options={'relay':True} if relay else {}
+                result=(self.server.realtime.connect_gemini(snapshot,body.get('consent'),body.get('actions',False),**options) if provider=='gemini'
+                        else self.server.realtime.connect(snapshot,body.get('sdp'),body.get('consent'),body.get('actions',False),**options))
                 self.send(200,result)
                 return
             if path == '/api/realtime/read-session':

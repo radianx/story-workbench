@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='sw-gemini-') as directory:
               };
               window.geminiReceive=data=>geminiSocket.onmessage({data:new TextEncoder().encode(JSON.stringify(data)).buffer});
             ''')
-            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1');localStorage.setItem('sw-voice-mode','controls')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
             page.locator('#settings-open').click();page.locator('#realtime-enabled').check()
             page.locator('#realtime-provider').select_option('gemini')
