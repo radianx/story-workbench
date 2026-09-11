@@ -2285,7 +2285,7 @@ dialog input[type="checkbox"] {
   min-width: 40px;
   min-height: 40px;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 8px;
   padding: 8px;
   background: var(--paper);
 }
@@ -3090,12 +3090,12 @@ dialog #notice {
 }
 .composer-entry-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 8px;
   flex: none;
 }
 .composer-entry-actions .microphone-controls {
-  padding-top: 6px;
+  align-items: stretch;
 }
 .send-controls {
   display: flex;
@@ -3105,7 +3105,7 @@ dialog #notice {
   min-width: 105px;
 }
 .send-controls #send {
-  width: 40px;
+  width: 100%;
   min-height: 36px;
   padding: 4px;
   font-size: 15px;
