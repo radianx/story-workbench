@@ -3235,9 +3235,66 @@ dialog #notice {
   margin: 1rem auto;
 }
 #image-gallery article {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   padding: 1rem 0;
 }
 #image-gallery button {
   margin: 0.25rem;
+}
+/* Generated attachments share the active palette, including inside history. */
+.image-attachment {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  padding: 10px;
+  margin: 10px 8px 10px 0;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--paper);
+  cursor: zoom-in;
+}
+.image-attachment img {
+  width: 240px;
+  height: 180px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.image-attachment small {
+  display: block;
+  margin-top: 4px;
+}
+#image-viewer {
+  width: min(1100px, 96vw);
+  max-width: 96vw;
+}
+.image-viewport {
+  height: min(65vh, 800px);
+  overflow: auto;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 12px;
+}
+#image-viewer-original {
+  max-width: none;
+  max-height: none;
+  height: auto;
+  margin: auto;
+  display: block;
+}
+#image-viewer-original[hidden] {
+  display: none;
+}
+.image-viewer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+}
+.image-viewer-tools input {
+  width: min(240px, 50vw);
 }

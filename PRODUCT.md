@@ -134,3 +134,7 @@ Avisos contiene también la orientación de traducción o rol y el progreso de l
 Importación de obras EPUB sin DRM y DOCX como copias de texto, en el wizard y la biblioteca. Exportación PDF de lectura con páginas y dimensiones configuradas. Imágenes mediante APIs OpenAI/Gemini experimentales: configuración propia visible, consentimiento por generación, vista previa, guardado explícito y descarga del original; reutilización opcional como portada 3D. Codex con ChatGPT sigue siendo el motor editorial principal. No se ha conectado la generación de imágenes de Codex a este flujo.
 
 Backend reorganizado en `src/`, operaciones separadas de HTTP, metadatos versionados y primeros módulos ES del frontend. Ninguno de estos cambios modifica repositorios de obras originales.
+
+## Adjuntos visuales de Codex (posterior a 0.9.0)
+
+La generación nativa de imágenes de Codex queda conectada al chat individual de entrevista, conversación y borrador. El pedido debe ser explícito; usa la sesión ChatGPT y conserva las restricciones de los demás trabajos. Los resultados PNG/JPEG se guardan como adjuntos provisionales, con miniatura, visor con zoom y descarga del original, también en el historial y la galería. No aprueban canon ni sustituyen una portada. La pantalla de APIs de imágenes continúa como alternativa experimental con clave propia.

@@ -10,6 +10,148 @@ export function initImages({
   openSettings,
 }) {
   const $ = (id) => document.getElementById(id);
+  const thumbnails = new Map();
+  let galleryRecords = [],
+    thumbnailProject = null,
+    viewing = null,
+    viewerURL = null,
+    fitWidth = 0,
+    viewerRequest = 0;
+  const viewer = $("image-viewer"),
+    original = $("image-viewer-original");
+  function imageRecord(id, projectId) {
+    return (
+      getProject()?.id === projectId &&
+      (getProject().images?.find((image) => image.id === id) ||
+        galleryRecords.find((image) => image.id === id))
+    );
+  }
+  async function hydrateImages() {
+    const projectId = getProject()?.id;
+    if (thumbnailProject !== projectId) {
+      for (const promise of thumbnails.values())
+        promise.then((url) => url && URL.revokeObjectURL(url));
+      thumbnails.clear();
+      galleryRecords = [];
+      thumbnailProject = projectId;
+      if (viewer.open) viewer.close();
+    }
+    for (const button of document.querySelectorAll("[data-image]")) {
+      const id = button.dataset.image;
+      if (
+        !imageRecord(id, button.dataset.imageProject) ||
+        button.dataset.loading
+      )
+        continue;
+      button.dataset.loading = "true";
+      if (!thumbnails.has(id))
+        thumbnails.set(
+          id,
+          binary(`/api/projects/${projectId}/images/${id}?thumbnail=1`)
+            .then((blob) => URL.createObjectURL(blob))
+            .catch(() => null),
+        );
+      const url = await thumbnails.get(id);
+      if (!button.isConnected || getProject()?.id !== projectId) continue;
+      if (url) button.querySelector("img").src = url;
+      else
+        button.querySelector("img").alt =
+          "Vista previa no disponible. Abrir original.";
+    }
+  }
+  function zoom() {
+    const value = Number($("image-zoom").value);
+    $("image-zoom-value").value = value + "%";
+    const viewport = original.parentElement;
+    // Keep the fit stable while zooming: scrollbars can change viewport size.
+    if (!fitWidth)
+      fitWidth = Math.min(
+        original.naturalWidth,
+        viewport.clientWidth - 24,
+        ((viewport.clientHeight - 24) * original.naturalWidth) /
+          original.naturalHeight,
+      );
+    original.style.width = Math.max(1, (fitWidth * value) / 100) + "px";
+  }
+  $("image-zoom").oninput = zoom;
+  $("image-fit").onclick = () => {
+    fitWidth = 0;
+    $("image-zoom").value = "100";
+    zoom();
+  };
+  $("image-viewer-close").onclick = () => viewer.close();
+  viewer.addEventListener("close", () => {
+    viewerRequest++;
+    viewing = null;
+    original.removeAttribute("src");
+    original.hidden = true;
+    if (viewerURL) URL.revokeObjectURL(viewerURL);
+    viewerURL = null;
+  });
+  viewer.addEventListener("keydown", (event) => {
+    if (
+      !["+", "=", "-"].includes(event.key) ||
+      event.target.tagName === "INPUT"
+    )
+      return;
+    event.preventDefault();
+    $("image-zoom").value =
+      Number($("image-zoom").value) + (event.key === "-" ? -25 : 25);
+    zoom();
+  });
+  window.addEventListener("resize", () => {
+    fitWidth = 0;
+    if (viewing) zoom();
+  });
+  document.addEventListener(
+    "click",
+    action(async (event) => {
+      const button = event.target.closest("[data-image]");
+      if (!button) return;
+      const projectId = button.dataset.imageProject;
+      const record = imageRecord(button.dataset.image, projectId);
+      if (!record) return;
+      const request = ++viewerRequest;
+      $("image-viewer-title").textContent =
+        "Imagen · " + record.width + " × " + record.height;
+      $("image-viewer-status").textContent = "Cargando original…";
+      $("image-viewer-download").disabled = true;
+      showDialog(viewer);
+      try {
+        const blob = await binary(
+          `/api/projects/${projectId}/images/${record.id}`,
+        );
+        if (request !== viewerRequest || !imageRecord(record.id, projectId))
+          return;
+        viewing = { blob, file: record.file };
+        viewerURL = URL.createObjectURL(blob);
+        original.onload = () => {
+          fitWidth = 0;
+          original.hidden = false;
+          $("image-zoom").value = "100";
+          zoom();
+        };
+        original.onerror = () => {
+          $("image-viewer-status").textContent =
+            "No se pudo mostrar el original. Podés descargarlo.";
+        };
+        original.src = viewerURL;
+        $("image-viewer-download").disabled = false;
+        $("image-viewer-status").textContent =
+          record.provider === "codex"
+            ? "Codex · ChatGPT · imagen provisional"
+            : record.provider + " · experimental";
+      } catch (error) {
+        if (request === viewerRequest)
+          $("image-viewer-status").textContent = error.message;
+      }
+    }),
+  );
+  $("image-viewer-download").onclick = action(async () => {
+    if (viewing) await download(viewing.blob, viewing.file);
+  });
+  document.addEventListener("workbench:images-render", hydrateImages);
+  hydrateImages();
   const defaults = {
     openai: "gpt-image-2.5-flare",
     gemini: "gemini-3.1-flash-image",
@@ -47,6 +189,7 @@ export function initImages({
   async function gallery() {
     const data = await api(`/api/projects/${project}`);
     if (!sameProject()) return;
+    galleryRecords = data.images || [];
     const list = $("image-gallery");
     list.replaceChildren();
     for (const record of data.images || []) {
@@ -60,7 +203,17 @@ export function initImages({
         element.onclick = action(handler);
         row.append(element);
       };
-      row.append(title);
+      const preview = document.createElement("button");
+      preview.className = "image-attachment";
+      preview.dataset.image = record.id;
+      preview.dataset.imageProject = project;
+      preview.setAttribute("aria-label", "Ampliar imagen generada");
+      const thumbnail = document.createElement("img");
+      thumbnail.alt = "Imagen guardada; ampliar";
+      thumbnail.width = 240;
+      thumbnail.height = 180;
+      preview.append(thumbnail);
+      row.append(preview, title);
       const load = () => binary(`/api/projects/${project}/images/${record.id}`);
       button("Descargar imagen", async () =>
         download(await load(), record.file),
@@ -76,6 +229,7 @@ export function initImages({
       list.append(row);
     }
     $("image-gallery-empty").hidden = !!data.images?.length;
+    hydrateImages();
   }
   async function open() {
     if (!getProject()) throw Error("Abrí un proyecto para crear imágenes.");

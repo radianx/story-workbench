@@ -54,3 +54,4 @@ jobs:
           python3 tests/modes_browser_check.py
           python3 tests/markdown_browser_check.py
           python3 tests/formats_browser_check.py
+          python3 tests/codex_images_browser_check.py

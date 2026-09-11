@@ -1635,9 +1635,10 @@
         <button class="quiet" id="images-close">Cerrar</button>
       </div>
       <p>
-        Generación experimental con API propia, independiente de Codex con
-        ChatGPT. Una imagen es una propuesta visual; conservarla no la convierte
-        en canon.
+        Para generar con tu sesión ChatGPT, pedí la imagen en el chat Codex.
+        Aparecerá como un adjunto y también en esta galería. El formulario de
+        abajo usa APIs propias y es experimental. Conservar una imagen no la
+        convierte en canon.
       </p>
       <div class="voice-settings-grid">
         <form id="image-form">
@@ -1699,6 +1700,45 @@
       <h3>Imágenes guardadas</h3>
       <p id="image-gallery-empty">Todavía no guardaste imágenes.</p>
       <div id="image-gallery"></div>
+    </dialog>
+    <dialog id="image-viewer" aria-labelledby="image-viewer-title">
+      <header class="book-heading">
+        <h2 id="image-viewer-title">Imagen generada</h2>
+        <button id="image-viewer-close" class="secondary">Cerrar</button>
+      </header>
+      <p id="image-viewer-status" role="status"></p>
+      <div
+        class="image-viewport"
+        tabindex="0"
+        aria-label="Imagen ampliada; usá las flechas para desplazarte"
+      >
+        <img
+          id="image-viewer-original"
+          alt="Imagen generada provisional"
+          hidden
+        />
+      </div>
+      <footer class="image-viewer-tools">
+        <label for="image-zoom"
+          >Zoom <output id="image-zoom-value">100%</output></label
+        >
+        <input
+          id="image-zoom"
+          type="range"
+          min="25"
+          max="300"
+          step="25"
+          value="100"
+        />
+        <button id="image-fit" class="secondary">Ajustar</button>
+        <button id="image-viewer-download" class="primary">
+          Descargar original
+        </button>
+      </footer>
+      <small
+        >Adjunto provisional del proyecto. No cambia la portada ni el
+        manuscrito.</small
+      >
     </dialog>
   </body>
 </html>

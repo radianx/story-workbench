@@ -58,7 +58,7 @@ class Server:
         self.process = await asyncio.create_subprocess_exec(
             *command, env=env, cwd=self.cwd, stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
-            limit=8 * 1024 * 1024)
+            limit=32 * 1024 * 1024)  # Image items contain base64 alongside their metadata.
         self.sequence = 0
         self.events = []
         try:

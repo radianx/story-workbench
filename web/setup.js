@@ -41,7 +41,7 @@ async function navigateWorkbench(target){
   const modal=topDialog();
   if(target==='back'){
     if(!modal)return;
-    const closers={'images-dialog':'images-close','settings-dialog':'settings-close','help-dialog':'help-close','account-dialog':'account-close','realtime-dialog':'realtime-close','engine-dialog':'engine-close','navigation-dialog':'navigation-close','setup-dialog':'setup-skip'};
+    const closers={'image-viewer':'image-viewer-close','images-dialog':'images-close','settings-dialog':'settings-close','help-dialog':'help-close','account-dialog':'account-close','realtime-dialog':'realtime-close','engine-dialog':'engine-close','navigation-dialog':'navigation-close','setup-dialog':'setup-skip'};
     if(modal.id==='book-dialog'&&!bookDirty){$('book-close').click();return;}
     if(!closers[modal.id])throw new Error('Esta sección puede tener cambios pendientes. Usá su botón de cierre para revisarlos.');
     $(closers[modal.id]).click();return;

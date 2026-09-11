@@ -134,7 +134,18 @@ class Handler(BaseHTTPRequestHandler):
                         record = next((item for item in data.get('images', []) if item['id'] == parts[4]), None)
                         check(record is not None, 'Imagen no encontrada.', 404)
                         check(record['mime'] in ('image/png', 'image/jpeg'), 'Imagen inválida.')
-                        self.send(200, store.path(project, 'images', record['file']).read_bytes(), record['mime'])
+                        raw = store.path(project, 'images', record['file']).read_bytes()
+                        if urlsplit(self.path).query == 'thumbnail=1':
+                            import io
+                            from PIL import Image
+                            with Image.open(io.BytesIO(raw)) as image:
+                                image.thumbnail((480, 360))
+                                output = io.BytesIO()
+                                image.save(output, format='PNG')
+                                raw = output.getvalue()
+                            self.send(200, raw, 'image/png')
+                        else:
+                            self.send(200, raw, record['mime'])
                     elif len(parts) == 3:
                         self.send(200, store.snapshot(project))
                     elif parts[3] in ('book.md', 'book.docx', 'book.pdf', 'translation.md', 'translation.docx', 'translation.pdf'):
