@@ -138,9 +138,12 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
                 data=server.store.load(project);data['runs'][0]['status']='running';server.store.persist(data)
             page.locator('.run-text.is-streaming').wait_for()
             assert page.locator('#cancel').is_visible()
+            assert page.locator('.run-output > summary .work-spinner').is_visible()
+            assert page.locator('.work-spinner').evaluate('el=>getComputedStyle(el).animationName')=='workbench-wait'
             assert page.locator('#cancel').evaluate('el=>getComputedStyle(el).backgroundColor')=='rgb(180, 35, 50)'
             assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='writing-cursor'
             page.emulate_media(reduced_motion='reduce')
+            assert page.locator('.work-spinner').evaluate('el=>getComputedStyle(el).animationName')=='none'
             assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='none'
             page.emulate_media(reduced_motion='no-preference')
             with server.store.lock:
@@ -150,6 +153,7 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
                 data=server.store.load(project);data['runs'][0]['status']='completed';server.store.persist(data)
             page.wait_for_function("() => !document.querySelector('.is-streaming')")
             assert page.locator('#cancel').is_hidden()
+            assert page.locator('.work-spinner').count()==0
 
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
             page.locator('#latest-answer').wait_for()
@@ -182,12 +186,15 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.evaluate("$('send').disabled=true")
             prompt.press('Enter'); assert prompt.input_value()=='Primera línea\n' and sent==[]
             page.evaluate("$('send').disabled=false")
+            unseen=page.locator('.new-tag').count();assert unseen>0
             prompt.fill('   '); prompt.press('Enter')
             page.wait_for_function("() => !$('send').hasAttribute('aria-busy')")
             assert sent==[]
+            assert page.locator('.new-tag').count()==unseen
             prompt.fill('Primera idea'); prompt.press('Enter')
             page.wait_for_function("() => document.querySelector('#prompt').value.startsWith('Una segunda')")
             assert sent[0]['prompt']=='Primera idea'
+            page.wait_for_function("() => !document.querySelector('.new-tag')")
             page.wait_for_function("() => !$('send').hasAttribute('aria-busy')")
             prompt.fill('Otra línea'); prompt.press('Shift+Enter'); prompt.type('Continuación')
             assert len(sent)==1
@@ -196,6 +203,11 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             assert len(sent)==2 and sent[1]['prompt']=='Otra línea\nContinuación'
             page.reload(); page.locator('#workspace').wait_for()
             assert prompt.input_value()=='Una segunda idea mientras se envía.'
+            assert page.locator('.new-tag').count()==0
+            with server.store.lock:
+                data=server.store.load(project);data['runs'].append(dict(run,id='fresh-reply',text='Nueva respuesta ficticia'));server.store.persist(data)
+            page.locator('[data-output=fresh-reply] .new-tag').wait_for()
+            assert page.locator('.new-tag').count()==1
             second = server.store.create('Otro universo ficticio', workflow='guided')['id']
             with server.store.lock:
                 data=server.store.load(second); data['runs']=[run]; server.store.persist(data)

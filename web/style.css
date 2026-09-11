@@ -2560,7 +2560,8 @@ button[aria-busy="true"] {
   cursor: progress;
   pointer-events: none;
 }
-button[aria-busy="true"]::after {
+button[aria-busy="true"]::after,
+.work-spinner {
   content: "";
   display: inline-block;
   width: 10px;
