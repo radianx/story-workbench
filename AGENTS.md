@@ -1,6 +1,6 @@
 # Trabajo en este proyecto
 
-Leer README.md y PRODUCT.md antes de implementar. No confundir propuestas con funcionalidades existentes.
+Leer README.md y docs/PRODUCT.md antes de implementar. No confundir propuestas con funcionalidades existentes.
 
 - Mantener el proyecto local y mínimo; validar Codex antes de construir infraestructura.
 - No modificar ni reorganizar repositorios de libros vecinos. Trabajar con material ficticio o copias privadas autorizadas.

@@ -8,4 +8,4 @@ Incluí versión o commit, sistema operativo, pasos mínimos con material fictic
 
 El proyecto está en fase MVP. No hay un plazo de respuesta garantizado ni ramas antiguas con mantenimiento de seguridad comprometido. Indicá si el problema también se reproduce en la revisión más reciente.
 
-La app escucha en loopback y almacena los proyectos localmente, pero la inferencia online envía el contexto seleccionado al proveedor autorizado. No está diseñada para exponerse como servidor público ni aislar procesos maliciosos que se ejecuten con el mismo usuario. Los controles existentes se describen en [IMPLEMENTATION.md](IMPLEMENTATION.md).
+La app escucha en loopback y almacena los proyectos localmente, pero la inferencia online envía el contexto seleccionado al proveedor autorizado. No está diseñada para exponerse como servidor público ni aislar procesos maliciosos que se ejecuten con el mismo usuario. Los controles existentes se describen en [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).

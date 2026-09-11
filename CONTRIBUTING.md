@@ -7,7 +7,7 @@ El código propio del proyecto y sus contribuciones se distribuyen bajo la [lice
 ## Primer arranque
 
 1. Creá un fork de [radianx/story-workbench](https://github.com/radianx/story-workbench), cloná tu fork y entrá en la carpeta del repositorio.
-2. Leé [README.md](README.md), [PRODUCT.md](PRODUCT.md) y [AGENTS.md](AGENTS.md). README describe el estado actual; los cortes antiguos de producto y resultados son históricos.
+2. Leé [README.md](README.md), [docs/PRODUCT.md](docs/PRODUCT.md) y [AGENTS.md](AGENTS.md). README describe el estado actual; los cortes antiguos de producto y resultados son históricos.
 3. Con Python 3.11 o posterior, ejecutá desde la raíz:
 
    ```sh
@@ -22,6 +22,8 @@ El backend usa la biblioteca estándar de Python, con ReportLab/Pillow para PDF 
 
 En Windows, si tu instalación ofrece `py` en lugar de `python3`, usá `py -3`. El recorrido automatizado de navegador descrito abajo está preparado para Linux; no equivale a una comprobación nativa de Windows.
 
+Las guías de uso, arquitectura y los informes técnicos están en [`docs/`](docs/).
+
 ## Dónde cambiar cada cosa
 
 | Área | Entrada en el código | Comprobación relacionada |
@@ -34,7 +36,7 @@ En Windows, si tu instalación ofrece `py` en lugar de `python3`, usá `py -3`. 
 | Chat, formato, ajustes y temas | `web/index.html`, `web/style.css`, `web/app.js`, `web/markdown.js`, `web/settings.js`, `web/appearance.js` | `tests/ux_browser_check.py`, `tests/markdown_browser_check.py`, `tests/themes_archive_browser_check.py` |
 | Traducción y rol | `src/workbench_modes.py`, `web/modes.js` | `tests/test_modes.py`, `tests/modes_browser_check.py` |
 | Voz y lectura | `src/workbench_voice.py`, `src/workbench_realtime.py`, `web/voice.js`, `web/realtime.js`, `web/gemini-voice.js` | `tests/test_voice.py`, `tests/test_realtime.py`, `tests/pcm_playback_check.js` |
-| Ventana nativa, llavero y procesos | `src-tauri/src/`, `desktop/sidecar/` | [DESKTOP.md](DESKTOP.md#comprobaciones-ejecutables) |
+| Ventana nativa, llavero y procesos | `src-tauri/src/`, `desktop/sidecar/` | [docs/DESKTOP.md](docs/DESKTOP.md#comprobaciones-ejecutables) |
 | Instaladores | `desktop/prepare.py`, `desktop/build.py` | `tests/installer_check.py` |
 
 La interfaz habla con el servidor Python local. Rust es la envoltura Tauri y sus capacidades nativas; no reemplaza al backend editorial. El servidor coordina el proveedor elegido y conserva las aprobaciones del autor.
@@ -66,7 +68,7 @@ python3 -m venv .venv
 
 Instalar solo el Chromium de Playwright no satisface esa ruta. El CI verifica Chrome antes de ejecutar esos cinco recorridos. No usan proveedores reales; otros recorridos por área están en `tests/` y en [esta sección](#comprobar-un-cambio).
 
-Las pruebas `live_*` son optativas: algunas usan cuentas, cuota o APIs facturables. Leé su encabezado y configuración antes de ejecutarlas. No forman parte del CI. Las pruebas nativas de audio requieren sesión gráfica/dispositivos y pueden afectar el volumen del sistema: sus requisitos están en [DESKTOP.md](DESKTOP.md). No necesitás construir instaladores para un cambio de documentación o web; si tocás escritorio o empaquetado, seguí ese documento y ejecutá las builds secuencialmente.
+Las pruebas `live_*` son optativas: algunas usan cuentas, cuota o APIs facturables. Leé su encabezado y configuración antes de ejecutarlas. No forman parte del CI. Las pruebas nativas de audio requieren sesión gráfica/dispositivos y pueden afectar el volumen del sistema: sus requisitos están en [docs/DESKTOP.md](docs/DESKTOP.md). No necesitás construir instaladores para un cambio de documentación o web; si tocás escritorio o empaquetado, seguí ese documento y ejecutá las builds secuencialmente.
 
 ## Un pull request fácil de revisar
 
@@ -86,16 +88,16 @@ Estas son áreas candidatas, no issues ya asignados ni funciones prometidas:
 
 - Mejorar un texto de ayuda o un tooltip a partir de una confusión reproducible.
 - Corregir un problema concreto de contraste, teclado o foco en un tema.
-- Compartir un tema JSON con una vista previa ficticia: ver [THEMES.md](THEMES.md).
+- Compartir un tema JSON con una vista previa ficticia: ver [docs/THEMES.md](docs/THEMES.md).
 - Probar instalación y actualización en Windows real, documentando versión y pasos.
 - Reducir un bug a un ejemplo ficticio y añadirlo a la comprobación existente.
 
-Las funciones grandes pendientes se describen en [PRODUCT.md](PRODUCT.md); conviene acordar un corte pequeño antes de implementarlas.
+Las funciones grandes pendientes se describen en [docs/PRODUCT.md](docs/PRODUCT.md); conviene acordar un corte pequeño antes de implementarlas.
 
 ## Al abrir el repositorio en GitHub — mantenedor
 
 - Conservar la licencia MIT del código propio y verificar por separado avisos y permisos de dependencias; build-novel no se distribuye.
-- Revisar los archivos y el historial que se publicarán, no solo el estado actual. `.gitignore` no elimina contenido de commits anteriores. `HANDOFF.md`, `private/` y `dist/` son locales.
+- Revisar los archivos y el historial que se publicarán, no solo el estado actual. `.gitignore` no elimina contenido de commits anteriores. `docs/HANDOFF.md`, `private/` y `dist/` son locales.
 - Activar el canal **Security → Report a vulnerability** y probar que está disponible. [Configuración oficial](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 - Ejecutar el workflow **Checks** en GitHub. Después de su primera ejecución, configurar las comprobaciones requeridas para PR en la rama principal según las opciones de la cuenta. El workflow por sí solo no configura protección de ramas.
 - Crear unos pocos issues concretos con criterio de aceptación; reservar `good first issue` para tareas pequeñas con ubicación y forma de comprobarlas. `help wanted` puede indicar pruebas de plataforma o revisión editorial.

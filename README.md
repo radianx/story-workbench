@@ -14,7 +14,7 @@ Creá, revisá y traducí historias conversando con IA, conservando el control e
 
 Para conectar tu cuenta, abrí **ChatGPT → Conectar ChatGPT → Abrir inicio de sesión seguro**, completá el acceso en el navegador y volvé a la app. También podés explorar un proyecto ficticio o trabajar manualmente sin conectar una cuenta.
 
-Los instaladores todavía no están firmados. Para compatibilidad, ubicaciones de datos y detalles de instalación, consultá la [guía de escritorio](DESKTOP.md). macOS aún no tiene instalador.
+Los instaladores todavía no están firmados. Para compatibilidad, ubicaciones de datos y detalles de instalación, consultá la [guía de escritorio](docs/DESKTOP.md). macOS aún no tiene instalador.
 
 ## Tu primer proyecto
 
@@ -67,10 +67,12 @@ La guía editorial integrada permite comenzar sin instalar habilidades adicional
 
 ## Más información y contribuciones
 
-- [Voz, lectura y proveedores](REALTIME.md) · [Motores de IA](PROVIDERS.md)
-- [Traducción y rol](MODES.md) · [Temas personalizados](THEMES.md)
-- [Instalación y datos locales](DESKTOP.md) · [Seguridad](SECURITY.md)
+[Todas las guías e informes](docs/).
+
+- [Voz, lectura y proveedores](docs/REALTIME.md) · [Motores de IA](docs/PROVIDERS.md)
+- [Traducción y rol](docs/MODES.md) · [Temas personalizados](docs/THEMES.md)
+- [Instalación y datos locales](docs/DESKTOP.md) · [Seguridad](SECURITY.md)
 - [Reportar un problema o sugerir una mejora](https://github.com/radianx/story-workbench/issues)
-- [Contribuir y ejecutar desde el código](CONTRIBUTING.md) · [Producto y alcance](PRODUCT.md)
+- [Contribuir y ejecutar desde el código](CONTRIBUTING.md) · [Producto y alcance](docs/PRODUCT.md)
 
 Story Workbench se distribuye bajo la [licencia MIT](LICENSE). Las dependencias conservan sus propias licencias.

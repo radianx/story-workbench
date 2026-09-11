@@ -1,6 +1,6 @@
 # Distribución Tauri 0.9.2
 
-Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados. El código propio se distribuye bajo la [licencia MIT](LICENSE); se conservan las licencias de terceros.
+Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados. El código propio se distribuye bajo la [licencia MIT](../LICENSE); se conservan las licencias de terceros.
 
 ## Instalación
 

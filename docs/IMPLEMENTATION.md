@@ -8,7 +8,7 @@ Criterios: inicialización, estado de cuenta ChatGPT sin exponer tokens, crear s
 
 ## Corte 1: MVP local implementado
 
-Disponible con `python3 -m src.app`: navegador sin dependencias, servicio Python en loopback, Markdown privado, metadatos JSON, contexto explícito, App Server por stdio y propuestas por bloque. Ver [README](README.md) para uso y límites, y [MVP_RESULTS](MVP_RESULTS.md) para resultados. Se importan copias desde el navegador; no se abren carpetas de manuscritos originales.
+Disponible con `python3 -m src.app`: navegador sin dependencias, servicio Python en loopback, Markdown privado, metadatos JSON, contexto explícito, App Server por stdio y propuestas por bloque. Ver [README](../README.md) para uso y límites, y [MVP_RESULTS](MVP_RESULTS.md) para resultados. Se importan copias desde el navegador; no se abren carpetas de manuscritos originales.
 
 La arquitectura y la matriz siguientes son criterios de producto. Los casos implementados y comprobados están enumerados en MVP_RESULTS; las evaluaciones literarias, de series y de traducciones siguen pendientes.
 
