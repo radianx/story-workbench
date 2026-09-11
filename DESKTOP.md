@@ -1,11 +1,11 @@
-# Distribución Tauri 0.9.1
+# Distribución Tauri 0.9.2
 
 Tauri es la única vía de escritorio. Los paquetes locales no contienen cuentas, proyectos, conversaciones, imágenes privadas ni habilidades globales. No están publicados ni firmados. El código propio se distribuye bajo la [licencia MIT](LICENSE); se conservan las licencias de terceros.
 
 ## Instalación
 
-- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.9.1-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
-- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.9.1-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
+- **Linux x64, Ubuntu 24.04+:** abrir `dist/installers/Story-Workbench-0.9.2-linux-amd64.deb` con el instalador gráfico. El paquete `story-workbench` actualiza la instalación anterior y resuelve WebKitGTK, GTK, eSpeak y la apertura del navegador mediante el gestor de paquetes. Otras distribuciones/versiones no están validadas.
+- **Windows x64, Windows 10/11:** abrir `Story-Workbench-0.9.2-win-x64.exe`, elegir idioma y seguir el asistente para el usuario actual. Incluye el bootstrapper de WebView2: si falta ese componente, lo instala con internet. Puede aparecer un aviso de editor desconocido. La compilación desde Linux y las pruebas bajo Wine no sustituyen la comprobación en Windows real.
 - Abrir **Story Workbench** desde el menú. El asistente inicial empieza por el tema y permite conectar la cuenta propia, configurar voz opcional y crear/abrir un proyecto; se puede omitir y reabrir en Configuración.
 
 Python, Codex CLI 0.153.4, Vosk 0.3.45 y el modelo español pequeño 0.42 vienen incluidos. El usuario no necesita terminal, Node, Rust ni Python. Codex con ChatGPT sigue siendo el motor principal; no hay cambio automático a una API de pago. Los adaptadores con clave son experimentales y requieren elección explícita. No hay actualizaciones automáticas.
@@ -74,8 +74,8 @@ En 0.9.0 el runtime incluye ReportLab, Pillow y charset-normalizer con sus metad
 
 Para comprobar los cambios de interfaz, módulos y PDF en WebKit sin pruebas de audio ni claves: `.venv/bin/python tests/tauri_check.py --binary src-tauri/target/release/story-workbench --formats-only`.
 
-## Actualización 0.9.1
+## Actualización 0.9.2
 
-Incluye adjuntos de imágenes Codex con miniatura, zoom y descarga original, compositor de una a siete líneas, mensajes al ancho disponible, título y pestañas en una fila, versión en Configuración y acceso a preparar traducción desde el chat. Los paquetes y hashes están en `dist/installers/`, ignorados por Git.
+Añade traducción de capítulos completos, almacenamiento de hasta 1 MB por documento y aviso de contexto configurable. Incluye los adjuntos visuales de Codex y el chat compacto incorporados después de 0.9.0. Los paquetes y hashes están en `dist/installers/`, ignorados por Git.
 
-Verificación de 0.9.1: dos arranques Tauri/WebKit (`--formats-only`), backend extraído del .deb, runtime Windows con PDF/DOCX/Pillow/Vosk bajo Wine, dos arranques del sidecar Windows y comprobación de integridad de ambos instaladores (33 archivos Linux y 458 Windows). Hashes en `SHA256SUMS-0.9.1`. Sin prueba de instalación nativa Windows.
+Verificación de 0.9.2: interfaz en navegador, dos arranques Tauri/WebKit sin pruebas de audio, backend extraído del .deb con PDF/DOCX, dos arranques del sidecar Windows bajo Wine e integridad de ambos instaladores (33 archivos Linux y 458 Windows). Hashes en `SHA256SUMS-0.9.2`; changelog en `RELEASE-0.9.2.md`. Sin prueba de instalación nativa Windows.
