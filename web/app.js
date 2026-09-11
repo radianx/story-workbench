@@ -776,6 +776,8 @@ function imageAttachmentsHTML(run) {
   );
 }
 function renderAssistant() {
+  resizePrompt();
+  renderTranslationNext();
   renderAISettings();
   renderProgress();
   updateRealtime();
@@ -1175,7 +1177,29 @@ $("runs").onclick = action(async (e) => {
     notice("Resumen guardado como referencia provisional, con sus fuentes.");
   }
 });
+function resizePrompt() {
+  const prompt = $("prompt");
+  if (!prompt.clientWidth) return;
+  const style = getComputedStyle(prompt);
+  const padding =
+    parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const max = parseFloat(style.lineHeight) * 7 + padding;
+  const scrollTop = prompt.scrollTop;
+  prompt.style.height = "auto";
+  const height = prompt.scrollHeight;
+  prompt.style.height = Math.min(height, max) + "px";
+  prompt.style.overflowY = height > max ? "auto" : "hidden";
+  prompt.scrollTop = scrollTop;
+}
+let composerWidth = 0;
+new ResizeObserver(([entry]) => {
+  if (entry.contentRect.width !== composerWidth) {
+    composerWidth = entry.contentRect.width;
+    resizePrompt();
+  }
+}).observe($("prompt").parentElement);
 function savePromptDraft() {
+  resizePrompt();
   if (!state) return;
   try {
     sessionStorage.setItem("sw-message-" + state.id, $("prompt").value);

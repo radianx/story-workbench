@@ -4,6 +4,7 @@ let engineStorage={available:false,stored:{}},engineKeys={},engineSettingsProjec
 const selectedEngine=()=>state?.engine?.provider||'codex';
 function renderEngine(){
   const provider=selectedEngine(),external=provider!=='codex';
+  $('connection').hidden=!external;
   $('connection').textContent=engineLabels[provider]+(external?' · experimental':'');
   $('engine-current').textContent=state?`Motor del proyecto: ${engineLabels[provider]}${external?' · experimental':''}`:'Elegí un proyecto para asignar su motor.';
   $('engine-open').disabled=!!busy();

@@ -162,3 +162,9 @@ Las imágenes generadas aparecen en el mensaje como miniaturas clickeables. El v
 La integración consume los eventos `imageGeneration` del [protocolo App Server](https://learn.chatgpt.com/docs/app-server), verificados contra el esquema de Codex CLI 0.154.0. Acepta imágenes PNG/JPEG de hasta 15 MB y 20 megapíxeles, con un máximo compartido de 30 imágenes por proyecto. No abre rutas ni imágenes remotas escritas en Markdown. Las miniaturas se cargan desde el servidor local autenticado; los originales se piden al abrir el visor. Si Codex rechaza la generación o devuelve un adjunto incompatible, el chat conserva el texto y muestra el error.
 
 Comprobaciones de este cambio: `python3 -m unittest discover -s tests -p test_codex_images.py` y `python3 tests/codex_images_browser_check.py`. Prueba real con ficción: Codex/ChatGPT produjo un PNG de 1254 × 1254 que quedó adjunto al mensaje, sin clave API. Los instaladores 0.9.0 anteriores todavía no incluyen este cambio.
+
+### Chat más compacto (código posterior a 0.9.0)
+
+Los mensajes aprovechan el ancho del panel. El encabezado reúne título y pestañas en una fila cuando hay espacio; la conexión ChatGPT se muestra una sola vez, en la barra superior. El campo de mensaje comienza en una línea, crece hasta siete y luego permite desplazamiento vertical. Conserva Enter para enviar, Shift+Enter para un salto, micrófono, lectura, modelo y esfuerzo. Configuración muestra la versión de la app.
+
+En traducción, después de una respuesta de entrevista y con un original seleccionado y encargo válido, aparece **Traducir y consultar matices** junto al chat. Prepara la tarea y conserva cualquier mensaje pendiente; no envía ni aprueba automáticamente. Es un acceso disponible para el autor, no una declaración automática de que la entrevista terminó. Comprobado en `tests/modes_browser_check.py`, incluidos crecimiento, scroll, ancho, versión y preparación sin envío.

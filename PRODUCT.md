@@ -138,3 +138,7 @@ Backend reorganizado en `src/`, operaciones separadas de HTTP, metadatos version
 ## Adjuntos visuales de Codex (posterior a 0.9.0)
 
 La generación nativa de imágenes de Codex queda conectada al chat individual de entrevista, conversación y borrador. El pedido debe ser explícito; usa la sesión ChatGPT y conserva las restricciones de los demás trabajos. Los resultados PNG/JPEG se guardan como adjuntos provisionales, con miniatura, visor con zoom y descarga del original, también en el historial y la galería. No aprueban canon ni sustituyen una portada. La pantalla de APIs de imágenes continúa como alternativa experimental con clave propia.
+
+## Chat compacto (posterior a 0.9.0)
+
+Mensajes al ancho del panel y encabezado con título/pestañas distribuidos horizontalmente, adaptable a ventanas estrechas. Sin duplicar la conexión ChatGPT. Compositor de una a siete líneas con scroll posterior, versión visible en Configuración y acceso a preparar traducción desde la conversación cuando hay encargo y una respuesta de entrevista. El autor conserva el envío y la aprobación; el acceso no interpreta frases del modelo como estados editoriales confirmados.

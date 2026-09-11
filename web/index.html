@@ -333,42 +333,44 @@
         </footer>
       </section>
       <aside aria-label="Asistente editorial" class="assistant">
-        <div class="assistant-heading">
-          <div>
-            <span class="eyebrow" id="assistant-eyebrow"
-              >UNA SEGUNDA MIRADA</span
-            >
-            <h2>
-              <span id="assistant-title">Asistente editorial</span>
-              <span class="spark">✧</span>
-            </h2>
+        <div class="assistant-header">
+          <div class="assistant-heading">
+            <div>
+              <span class="eyebrow" id="assistant-eyebrow"
+                >UNA SEGUNDA MIRADA</span
+              >
+              <h2>
+                <span id="assistant-title">Asistente editorial</span>
+                <span class="spark">✧</span>
+              </h2>
+            </div>
+            <span class="connection" id="connection">Codex · ChatGPT</span>
           </div>
-          <span class="connection" id="connection">Codex · ChatGPT</span>
-        </div>
-        <div
-          aria-label="Paneles del asistente"
-          class="assistant-tabs"
-          role="tablist"
-        >
-          <button
-            aria-selected="true"
-            class="active"
-            data-panel="conversation"
-            role="tab"
+          <div
+            aria-label="Paneles del asistente"
+            class="assistant-tabs"
+            role="tablist"
           >
-            Conversación</button
-          ><button aria-selected="false" data-panel="proposals" role="tab">
-            Propuestas <span id="proposal-count">0</span></button
-          ><button aria-selected="false" data-panel="decisions" role="tab">
-            Decisiones</button
-          ><button
-            aria-controls="notices-panel"
-            aria-selected="false"
-            data-panel="notices"
-            role="tab"
-          >
-            Avisos <span hidden="" id="notices-count">0</span>
-          </button>
+            <button
+              aria-selected="true"
+              class="active"
+              data-panel="conversation"
+              role="tab"
+            >
+              Conversación</button
+            ><button aria-selected="false" data-panel="proposals" role="tab">
+              Propuestas <span id="proposal-count">0</span></button
+            ><button aria-selected="false" data-panel="decisions" role="tab">
+              Decisiones</button
+            ><button
+              aria-controls="notices-panel"
+              aria-selected="false"
+              data-panel="notices"
+              role="tab"
+            >
+              Avisos <span hidden="" id="notices-count">0</span>
+            </button>
+          </div>
         </div>
         <section class="assistant-panel" id="conversation-panel">
           <div class="runs" id="runs"></div>
@@ -389,16 +391,21 @@
               Comenzar entrevista
             </button>
           </div>
+          <div id="translation-next" class="translation-next" hidden>
+            <span>Cuando quieras pasar al borrador:</span>
+            <button id="translation-next-start" class="secondary">
+              Traducir y consultar matices
+            </button>
+          </div>
           <div class="composer">
             <label class="sr-only" for="mode">Tipo de tarea</label
-            ><label class="sr-only" for="prompt">Mensaje al asistente</label
-            ><label class="message-label" for="prompt">Tu mensaje</label>
+            ><label class="sr-only" for="prompt">Mensaje al asistente</label>
             <div class="composer-entry">
               <textarea
                 aria-describedby="mode-hint"
                 id="prompt"
                 placeholder="¿Qué te gustaría trabajar en esta historia?"
-                rows="2"
+                rows="1"
               ></textarea>
               <div class="composer-entry-actions">
                 <span class="microphone-controls"
@@ -416,7 +423,8 @@
                 </button>
                 <div class="send-controls">
                   <button class="primary" id="send">
-                    Enviar <span aria-hidden="true">↵</span></button
+                    <span class="sr-only">Enviar</span
+                    ><span aria-hidden="true">↵</span></button
                   ><label class="auto-read-toggle"
                     ><input id="auto-read" type="checkbox" /> Leer
                     respuestas</label
@@ -447,11 +455,19 @@
                 </select>
                 <div class="ai-settings" id="chat-ai-settings">
                   <label
-                    >Modelo<select disabled="" id="ai-model">
+                    >Modelo<select
+                      disabled=""
+                      id="ai-model"
+                      title="Modelo de IA"
+                    >
                       <option>Conectá ChatGPT</option>
                     </select></label
                   ><label
-                    >Esfuerzo<select disabled="" id="ai-effort">
+                    >Esfuerzo<select
+                      disabled=""
+                      id="ai-effort"
+                      title="Esfuerzo de razonamiento"
+                    >
                       <option>—</option>
                     </select></label
                   ><button
@@ -1156,7 +1172,10 @@
     </dialog>
     <dialog aria-labelledby="settings-title" id="settings-dialog">
       <div class="book-heading">
-        <h2 id="settings-title">Configuración</h2>
+        <div>
+          <h2 id="settings-title">Configuración</h2>
+          <small id="app-version">Versión 0.9.0</small>
+        </div>
         <button class="secondary" id="settings-close">Volver al chat</button>
       </div>
       <div class="settings-grid">

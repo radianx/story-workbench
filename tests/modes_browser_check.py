@@ -41,6 +41,44 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             project=server.store.list_projects()[0]['id']
             source=server.store.snapshot(project)['documents'][0]
             assert server.store.load(project)['translation_config']['source_language']=='es-AR'
+            page.locator('#translation-next-start').wait_for()
+            count = len(server.store.load(project)['runs'])
+            prompt = page.locator('#prompt')
+            prompt.fill('Mi criterio pendiente.')
+            page.locator('#translation-next-start').click()
+            assert prompt.input_value() == 'Mi criterio pendiente.'
+            assert page.locator('#mode').input_value() == 'translate'
+            assert len(server.store.load(project)['runs']) == count  # Preparing is not sending.
+            prompt.fill('')
+            page.locator('#translation-next-start').click()
+            assert 'Continuemos la traducción' in prompt.input_value()
+            prompt.fill('')
+            compact = page.locator('.composer').bounding_box()['height']
+            assert compact < 150, compact
+            one = prompt.bounding_box()['height']
+            assert one <= 36, one
+            prompt.fill('\n'.join(['Texto']*7)); seven = prompt.bounding_box()['height']
+            prompt.fill('\n'.join(['Texto']*20))
+            assert prompt.bounding_box()['height'] == seven and seven > one * 3
+            assert prompt.evaluate('el=>getComputedStyle(el).overflowY') == 'auto'
+            prompt.evaluate('el=>el.scrollTop=60')
+            page.evaluate('resizePrompt()')
+            assert prompt.evaluate('el=>el.scrollTop') == 60
+            prompt.fill('')
+            assert prompt.bounding_box()['height'] == one
+            page.set_viewport_size({'width':1920,'height':1080})
+            page.wait_for_timeout(100)
+            assert page.locator('#runs .run').first.bounding_box()['width'] > 1400
+            heading = page.locator('.assistant-heading').bounding_box()
+            tabs = page.locator('.assistant-tabs').bounding_box()
+            assert tabs['x'] > heading['x'] + heading['width']
+            assert page.locator('#connection').is_hidden()
+            page.locator('#settings-open').click()
+            import json
+            version = json.loads((Path(__file__).resolve().parents[1]/'package.json').read_text())['version']
+            assert page.locator('#app-version').inner_text() == 'Versión '+version
+            page.locator('#settings-close').click()
+            page.set_viewport_size({'width':1440,'height':1000})
             page.reload();page.locator('.run-text').wait_for()
             assert page.locator('#conversation-panel #purpose-banner, #conversation-panel #task-progress').count()==0
             assert page.locator('#purpose-banner').is_hidden() and page.locator('#task-progress').is_hidden()

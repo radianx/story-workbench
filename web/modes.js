@@ -94,12 +94,30 @@ $("purpose").onchange = action(async () => {
   if (state.workflow === "guided" && !hasPurposeInterview())
     await beginInterview();
 });
+function renderTranslationNext() {
+  const last = currentRuns().at(-1),
+    config = state.translation_config,
+    source = state.documents.find(
+      (d) => d.id === config?.source && d.selected && !d.translation,
+    );
+  $("translation-next").hidden =
+    state.purpose !== "translation" ||
+    !!busy() ||
+    last?.mode !== "interview" ||
+    last.status !== "completed" ||
+    !source?.content?.trim() ||
+    source.content.length > 12000 ||
+    !config.source_language ||
+    !config.target_language;
+}
+$("translation-next-start").onclick = action(prepareTranslation);
 function prepareTranslation() {
   $("mode").value = "translate";
   setTaskMode();
   showPanel("conversation");
-  $("prompt").value =
-    "Continuemos la traducción de la unidad del encargo. Consultá un matiz relevante si falta mi criterio; conservá la intención y las decisiones aprobadas.";
+  if (!$("prompt").value.trim())
+    $("prompt").value =
+      "Continuemos la traducción de la unidad del encargo. Consultá un matiz relevante si falta mi criterio; conservá la intención y las decisiones aprobadas.";
   savePromptDraft();
   $("prompt").focus();
 }

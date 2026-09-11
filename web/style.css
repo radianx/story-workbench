@@ -1194,10 +1194,10 @@ dialog input {
   padding-left: 27px;
 }
 .guided .runs {
-  padding: 28px 40px 15px;
+  padding: 18px 16px 12px;
 }
 .guided .run {
-  max-width: 760px;
+  max-width: none;
   margin: 0 auto 28px;
 }
 .guided .run-prompt {
@@ -1749,10 +1749,10 @@ dialog input {
   align-self: center;
 }
 .guided:not(.material-open) .run {
-  max-width: 820px;
+  max-width: none;
 }
 .guided.focus:not(.material-open) .workbench {
-  grid-template-columns: minmax(0, 1000px);
+  grid-template-columns: minmax(0, 1fr);
 }
 .voice-controls {
   display: flex;
@@ -2224,7 +2224,7 @@ dialog input[type="checkbox"] {
   width: calc(100% - 32px);
   max-width: none;
   margin: 12px 16px 16px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: light-dark(#fff, #101b16);
   border: 1px solid light-dark(#819782, #678672);
   border-radius: 20px;
@@ -2254,9 +2254,9 @@ dialog input[type="checkbox"] {
   width: 100%;
   font-size: 16px;
   line-height: 1.6;
-  min-height: 62px;
-  max-height: 150px;
-  resize: vertical;
+  min-height: 0;
+  max-height: none;
+  resize: none;
   padding: 5px 0;
   color: var(--ink);
 }
@@ -2341,7 +2341,7 @@ dialog input[type="checkbox"] {
   flex: 1;
 }
 .guided:not(.material-open) .run {
-  max-width: 1100px;
+  max-width: none;
 }
 #book-stage {
   cursor: grab;
@@ -2396,7 +2396,7 @@ dialog input[type="checkbox"] {
   }
   #prompt {
     font-size: 16px;
-    min-height: 60px;
+    min-height: 0;
   }
   .guided .assistant {
     min-height: 0;
@@ -3102,18 +3102,18 @@ dialog #notice {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 132px;
+  min-width: 105px;
 }
 .send-controls #send {
-  width: 100%;
-  min-height: 52px;
-  padding: 12px 20px;
+  width: 40px;
+  min-height: 36px;
+  padding: 4px;
   font-size: 15px;
   font-weight: 600;
 }
 .send-controls #send span {
   font-size: 20px;
-  margin-left: 8px;
+  margin-left: 0;
 }
 .assistant-tabs {
   overflow-x: auto;
@@ -3213,8 +3213,8 @@ dialog #notice {
     gap: 4px;
   }
   .composer-entry #prompt {
-    flex-basis: 100%;
-    width: 100%;
+    flex: 1 1 100px;
+    width: 0;
   }
   .composer-entry-actions {
     margin-left: auto;
@@ -3297,4 +3297,68 @@ dialog #notice {
 }
 .image-viewer-tools input {
   width: min(240px, 50vw);
+}
+
+/* Compact composer; explicit task/model controls remain available. */
+.composer-entry {
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+.composer-entry #prompt {
+  font-size: 15px;
+  line-height: 24px;
+}
+.composer-options .ai-settings label {
+  font-size: 0;
+}
+.composer-options .ai-settings select {
+  font-size: 12px;
+}
+.composer-bottom select {
+  padding: 5px 8px;
+}
+.composer-bottom {
+  margin-top: 2px;
+}
+.composer #voice-status {
+  margin: 2px 0 0;
+  font-size: 10px;
+}
+.translation-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 16px;
+  color: var(--muted);
+}
+.translation-next[hidden] {
+  display: none;
+}
+#app-version {
+  color: var(--muted);
+}
+
+.assistant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.assistant-header .assistant-heading {
+  padding: 0;
+}
+.assistant-header .assistant-heading h2 {
+  margin: 6px 0 0;
+}
+.assistant-header .assistant-tabs {
+  padding: 0;
+  border: 0;
+  margin-left: auto;
+  align-self: end;
 }
