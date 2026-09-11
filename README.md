@@ -2,7 +2,7 @@
 
 Un espacio local para escribir y revisar historias con IA, conservando el control del autor. Nombre provisional.
 
-**Estado: MVP de escritorio Tauri 0.9.0**, 2026-09-10. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
+**Estado: MVP de escritorio Tauri 0.9.1**, 2026-09-11. Editor, fuentes, conversaciones con Codex y revisión por bloques comprobados con material ficticio. No se modificaron los repositorios de libros.
 
 ## Contribuir
 
@@ -68,7 +68,7 @@ Desde **Importar carpeta…** (Inicio o Configuración) podés revisar y copiar 
 | Seguimiento | Baja al final cuando aparece un mensaje o llega texto nuevo del agente; permite volver a la última respuesta después de desplazarte manualmente. Avisos de la sesión, orientación de traducción/rol y progreso de la tarea en su propia pestaña, con contador y limpieza de notificaciones; los errores de formularios permanecen dentro de ellos. Biblioteca plegable a 600 px o menos en modo guiado. Barra de cuatro etapas reales por tarea, sin estimar el porcentaje del libro. Respuestas colapsables con resaltado Nuevo y Marcar como visto; conserva estado al recargar. |
 | Motores alternativos | OpenAI API, Gemini, Anthropic, DeepSeek, Kimi y servidor local compatible, experimentales; proveedor por proyecto, claves aisladas y respuestas sujetas a las mismas aprobaciones. |
 | Libro 3D | 6 × 9 pulgadas iniciales; lomo según páginas estimadas o reales y papel blanco/crema, con opción manual. Maqueta giratoria de portada, lomo, contraportada y páginas. Medidas en milímetros, título, autor e imágenes locales guardadas por proyecto. Es visual, no un archivo listo para imprenta. |
-| Imágenes de Codex | Pedidas en el chat con la sesión ChatGPT: miniatura, visor con zoom, descarga original y conservación provisional en historial y galería. Sin clave API. Disponible en el código posterior a 0.9.0. |
+| Imágenes de Codex | Pedidas en el chat con la sesión ChatGPT: miniatura, visor con zoom, descarga original y conservación provisional en historial y galería. Sin clave API. Incluido desde 0.9.1. |
 | Imágenes API · experimental | Configuración → Generación de imágenes prepara proveedor preferido y clave API; OpenAI y Gemini son adaptadores experimentales con coste API separado. Desde Imágenes: descripción explícita, vista previa, descarte, guardado humano, descarga original PNG/JPEG y aplicación opcional a la portada 3D. No envía manuscritos ni conversaciones automáticamente. |
 | Revisión | Antes/después por bloque; aceptar o rechazar. Solo aceptar cambia la copia local y selecciona el texto resultante en el editor. Propuestas desactualizadas fallan sin sobrescribir. |
 | Continuidad | Registro manual de decisiones aprobadas, pendientes y rechazadas, registro de aceptaciones, resumen guardable como referencia provisional con fuentes. |
@@ -155,15 +155,15 @@ Tauri es la única vía de desarrollo y distribución desde 0.8.0. Electron qued
 
 Las APIs de imágenes siguen los contratos oficiales de [OpenAI Image API](https://developers.openai.com/api/docs/guides/image-generation) y [Gemini](https://ai.google.dev/gemini-api/docs/generate-content/image-generation). Se comprobaron mediante respuestas simuladas; autenticación, disponibilidad y calidad de esas generaciones no se validaron con llamadas facturables. La pantalla de proveedores API sigue siendo experimental. Para generar con la sesión ChatGPT, pedí la imagen directamente en el chat Codex (entrevista, conversación o borrador sin equipo); no necesita una clave API ni cambia automáticamente de proveedor.
 
-### Adjuntos de Codex (código posterior a 0.9.0)
+### Adjuntos de Codex (0.9.1)
 
 Las imágenes generadas aparecen en el mensaje como miniaturas clickeables. El visor permite ampliar con el control de zoom (o teclas +/−), ajustar a la ventana, descargar el PNG/JPEG original y cerrar con Escape. También funcionan en conversaciones anteriores y en **Imágenes guardadas**. Se conservan automáticamente como adjuntos provisionales del proyecto, incluidos en su ZIP; usarlas como portada sigue requiriendo una decisión del autor.
 
 La integración consume los eventos `imageGeneration` del [protocolo App Server](https://learn.chatgpt.com/docs/app-server), verificados contra el esquema de Codex CLI 0.154.0. Acepta imágenes PNG/JPEG de hasta 15 MB y 20 megapíxeles, con un máximo compartido de 30 imágenes por proyecto. No abre rutas ni imágenes remotas escritas en Markdown. Las miniaturas se cargan desde el servidor local autenticado; los originales se piden al abrir el visor. Si Codex rechaza la generación o devuelve un adjunto incompatible, el chat conserva el texto y muestra el error.
 
-Comprobaciones de este cambio: `python3 -m unittest discover -s tests -p test_codex_images.py` y `python3 tests/codex_images_browser_check.py`. Prueba real con ficción: Codex/ChatGPT produjo un PNG de 1254 × 1254 que quedó adjunto al mensaje, sin clave API. Los instaladores 0.9.0 anteriores todavía no incluyen este cambio.
+Comprobaciones de este cambio: `python3 -m unittest discover -s tests -p test_codex_images.py` y `python3 tests/codex_images_browser_check.py`. Prueba real con ficción: Codex/ChatGPT produjo un PNG de 1254 × 1254 que quedó adjunto al mensaje, sin clave API. Incluido en los instaladores 0.9.1.
 
-### Chat más compacto (código posterior a 0.9.0)
+### Chat más compacto (0.9.1)
 
 Los mensajes aprovechan el ancho del panel. El encabezado reúne título y pestañas en una fila cuando hay espacio; la conexión ChatGPT se muestra una sola vez, en la barra superior. El campo de mensaje comienza en una línea, crece hasta siete y luego permite desplazamiento vertical. Conserva Enter para enviar, Shift+Enter para un salto, micrófono, lectura, modelo y esfuerzo. Configuración muestra la versión de la app.
 
