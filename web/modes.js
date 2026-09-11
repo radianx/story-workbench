@@ -305,6 +305,7 @@ $("translation-form").onsubmit = action(async (event) => {
     };
   state = await api("/api/translation/config", { project, config });
   $("translation-form").dataset.dirty = "false";
+  renderDocuments();
   renderTranslationDocuments();
   renderAssistant();
   notice(

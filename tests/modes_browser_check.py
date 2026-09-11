@@ -127,6 +127,7 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.locator('#translation-intent').fill('Conservar el vínculo.')
             page.locator('#translation-form button[type=submit]').click()
             page.locator('#translation-dialog #notice-text').get_by_text('Encargo guardado. Marcá el original en las fuentes antes de traducir.',exact=True).wait_for()
+            assert page.locator(f'[data-doc="{source["id"]}"] small').inner_text().endswith('Original del encargo')
             page.locator('#translation-start').click();page.locator('[data-criterion]').wait_for()
             assert len(server.store.snapshot(project)['documents'])==1
             page.locator('[data-nuance]').first.click();page.locator('[data-criterion]').fill('Afecto amistoso, sin romance.')

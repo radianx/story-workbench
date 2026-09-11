@@ -108,7 +108,10 @@ def translation_context(store, data, docs):
     config=data.get('translation_config',{})
     check(config.get('source') and config.get('target_language'), 'Completá el encargo en Traducción antes de comenzar.')
     source=next((d for d in docs if d['id']==config['source']),None)
-    check(source is not None, 'Marcá el original del encargo como fuente para IA.')
+    configured=next((d for d in data['documents'] if d['id']==config['source']),None)
+    check(source is not None,
+          f'El encargo usa «{configured["name"]}», pero esa fuente no está marcada. Marcala o elegí otro original en Preparar encargo.'
+          if configured else 'El original del encargo ya no está en la biblioteca. Elegí otro en Preparar encargo.')
     check(not source.get('translation') and source['role']!='traducción', 'La fuente debe ser un original.')
     check(source['content'].strip(), 'Elegí un original con texto.')
     context=dict(source=source['id'], hash=source['hash'], original=source['content'], config=dict(config),

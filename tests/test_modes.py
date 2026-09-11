@@ -67,7 +67,8 @@ class Modes(unittest.TestCase):
         for invalid in (None,{**self.config,'source_language':''},{**self.config,'target_language':5}):
             with self.assertRaises(Problem):modes.configure_translation(self.store,self.store.load(self.project),invalid)
         data=self.store.load(self.project);data['documents'][0]['selected']=False;self.store.persist(data)
-        with self.assertRaises(Problem):self.assistant.start(self.project,'translate','Prueba')
+        with self.assertRaisesRegex(Problem, r'El encargo usa .*Original\.md.*Preparar encargo'):
+            self.assistant.start(self.project,'translate','Prueba')
         with self.assertRaises(Problem):self.assistant.start(self.project,'draft','No esquivar revisión')
         data['documents'][0]['selected']=True;self.store.persist(data)
         original = 'Capítulo completo. ' * 20000

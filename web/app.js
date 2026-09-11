@@ -572,7 +572,7 @@ function renderDocuments() {
     docs
       .map(
         (d) =>
-          `<div class="document-item ${d.id === current?.id ? "active" : ""}"><button data-doc="${d.id}" title="${escapeHTML(d.name)}"><span class="document-icon" aria-hidden="true">${d.role === "canon" ? "◇" : d.role === "estilo" ? "✧" : "≡"}</span><span><strong>${escapeHTML(d.name.replace(/\.md$/i, ""))}</strong><small>${labels[d.role]} · ${wordCount(d.content)} palabras</small></span></button><input type="checkbox" data-context="${d.id}" ${d.selected ? "checked" : ""} aria-label="Compartir ${escapeHTML(d.name)} con Codex"></div>`,
+          `<div class="document-item ${d.id === current?.id ? "active" : ""}"><button data-doc="${d.id}" title="${escapeHTML(d.name)}"><span class="document-icon" aria-hidden="true">${d.role === "canon" ? "◇" : d.role === "estilo" ? "✧" : "≡"}</span><span><strong>${escapeHTML(d.name.replace(/\.md$/i, ""))}</strong><small>${labels[d.role]} · ${wordCount(d.content)} palabras${state.purpose === "translation" && d.id === state.translation_config?.source ? " · Original del encargo" : ""}</small></span></button><input type="checkbox" data-context="${d.id}" ${d.selected ? "checked" : ""} aria-label="Compartir ${escapeHTML(d.name)} con Codex"></div>`,
       )
       .join("") ||
     `<p class="assistant-empty">${term ? "No hay coincidencias. Probá otra palabra o limpiá la búsqueda." : "Todavía no hay documentos. Podés continuar la entrevista sin fuentes o crear una ficha."}</p>`;

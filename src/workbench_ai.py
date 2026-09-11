@@ -142,13 +142,13 @@ class Assistant:
             if engine['provider'] != 'codex':
                 check(engine['provider']=='local' or self.providers.status()[engine['provider']], 'Configurá la clave del proveedor editorial.')
             docs = [self.store.document(data, d['id']) for d in data['documents'] if d['selected']]
+            translation = translation_context(self.store,data,docs) if mode=='translate' else None
             check(docs or mode in ('interview', 'draft', 'chat'), 'Seleccioná al menos una fuente.')
             if mode=='panel':
                 check(any(d['role'] in ('manuscrito','traducción') for d in docs), 'Seleccioná manuscritos o traducciones para el panel ciego.')
                 check(len(team_settings['readers'])<=team_settings['max_agents'], 'El panel supera tu límite de colaboradores.')
             if mode == 'interview':
                 check(use_skill is True, 'La entrevista guiada requiere build-novel.')
-            translation = translation_context(self.store,data,docs) if mode=='translate' else None
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), engine=engine, provider=engine['provider'], sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash'], 'synopsis': d.get('synopsis', ''), 'pov': d.get('pov', '')} for d in docs],
                        source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill) and data['purpose']!='rpg', requested_ai=preferences, purpose=data['purpose'])
