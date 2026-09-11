@@ -167,4 +167,6 @@ El texto recibido se conserva incluso al desconectarse o fallar el formato. Las 
 
 El agente recibe siempre el índice ordenado de documentos de manuscrito, indicando cuál está seleccionado y cuál ya tiene una copia traducida. El contenido completo sigue limitado a las fuentes elegidas por el autor. El orden se controla en Plan y avance y también rige la exportación.
 
+Al aprobar una traducción, el encargo avanza al siguiente manuscrito sin traducción según el índice de Plan y avance, lo marca y conserva idiomas, intención y glosario. Al iniciar una traducción con un único manuscrito marcado, esa selección puede cambiar la unidad actual. Varias unidades marcadas mantienen la elección explícita de Preparar encargo para evitar cambiar el original por ambigüedad.
+
 Las respuestas nuevas se presentan carácter por carácter, a 150 palabras por minuto por defecto. La preferencia y velocidad se guardan por usuario; el efecto puede desactivarse para mostrar inmediatamente todo lo recibido y respeta la reducción de movimiento del sistema. El texto persistido y los chunks del proveedor no se retrasan ni alteran.

@@ -108,6 +108,11 @@ def translation_context(store, data, docs):
     config=data.get('translation_config',{})
     check(config.get('source') and config.get('target_language'), 'Completá el encargo en Traducción antes de comenzar.')
     source=next((d for d in docs if d['id']==config['source']),None)
+    candidates=[d for d in docs if d['role']=='manuscrito' and not d.get('translation') and d['content'].strip()]
+    if source is None and len(candidates)==1:
+        source=candidates[0]
+        config={**config,'source':source['id']}
+        data.update(translation_config=config,thread=None,context_key=None)
     configured=next((d for d in data['documents'] if d['id']==config['source']),None)
     check(source is not None,
           f'El encargo usa «{configured["name"]}», pero esa fuente no está marcada. Marcala o elegí otro original en Preparar encargo.'
@@ -185,6 +190,19 @@ def accept_translation(store, data, run_id, text):
     document=store.add_document(data['id'],name,'traducción',text,selected=False,source_run=run_id,
                                translation=dict(source=context['source'],hash=context['hash'],brief=context['brief'],
                                                 target_language=context['config']['target_language'],review_hash=digest(text)))
+    data=store.load(data['id'])
+    manuscripts=[d for d in data['documents'] if d['role']=='manuscrito']
+    position=next((i for i,d in enumerate(manuscripts) if d['id']==source['id']),None)
+    translated={d.get('translation',{}).get('source') for d in data['documents']
+                if d.get('translation',{}).get('target_language')==context['config']['target_language']}
+    following=next((d for d in manuscripts[(position+1 if position is not None else len(manuscripts)):]
+                    if d['id'] not in translated),None)
+    if following:
+        next(d for d in data['documents'] if d['id']==source['id'])['selected']=False
+        following['selected']=True
+        data['translation_config']={**data['translation_config'],'source':following['id']}
+        data.update(thread=None,context_key=None)
+        store.persist(data)
     return document
 
 

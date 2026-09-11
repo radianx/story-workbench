@@ -20,7 +20,7 @@ Los instaladores todavía no están firmados. Para compatibilidad, ubicaciones d
 
 - **Crear una historia:** elegí la creación guiada y contá tu idea. La entrevista avanza una pregunta por vez para definir personajes, mundo, voz y estructura. También podés elegir escritura directa.
 - **Continuar una obra:** importá copias de tus archivos Markdown, TXT, EPUB sin DRM o DOCX. Elegí qué fuentes compartir con el asistente y abrí **Ver material** para revisarlas o editarlas.
-- **Traducir una obra:** cargá un original y elegí los idiomas de origen y destino. La app puede sugerir el idioma original; vos lo confirmás. La entrevista define intención, registro y criterios antes de preparar una traducción revisable. Si una tarea se interrumpe, podés consultar el texto parcial y usar **Retomar traducción**; el fragmento incompleto no se puede aprobar.
+- **Traducir una obra:** cargá un original y elegí los idiomas de origen y destino. La app puede sugerir el idioma original; vos lo confirmás. La entrevista define intención, registro y criterios antes de preparar una traducción revisable. Al aprobar una unidad, la app prepara el siguiente manuscrito sin traducción según **Plan y avance**; también podés marcar solo otro manuscrito para elegirlo. Si una tarea se interrumpe, podés consultar el texto parcial y usar **Retomar traducción**; el fragmento incompleto no se puede aprobar.
 
 Las importaciones trabajan con copias y dejan los originales en su lugar. EPUB y DOCX se importan como texto: revisá el resultado, porque no se conserva su maquetación ni sus imágenes. **Importar carpeta** permite seleccionar Markdown/TXT de una carpeta y sus subcarpetas.
 

@@ -231,8 +231,12 @@ $("runs").addEventListener(
       renderDocuments();
       lastRuns = "";
       renderAssistant();
+      const completedSource = state.runs.find((item) => item.id === run)?.translation_context?.source,
+        nextSource = state.documents.find((item) => item.id === state.translation_config?.source);
       notice(
-        "Traducción aprobada como copia independiente. El original se conserva.",
+        nextSource && nextSource.id !== completedSource
+          ? `Traducción aprobada. Siguiente unidad preparada: ${nextSource.name}.`
+          : "Traducción aprobada como copia independiente. El original se conserva.",
       );
     }
     if (button.dataset.openTranslation) {

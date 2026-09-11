@@ -83,6 +83,31 @@ class Modes(unittest.TestCase):
         prompt = task_text(run, [self.store.document(self.store.load(self.project),self.source['id'])], {}, [])
         self.assertEqual(prompt.count(original), 1)
 
+    def test_single_selected_manuscript_becomes_the_next_unit(self):
+        next_source=self.store.add_document(self.project,'02 · Siguiente.md','manuscrito','Texto siguiente.',selected=True)
+        data=self.store.load(self.project);data['documents'][0]['selected']=False;self.store.persist(data)
+        with patch('src.workbench_ai.threading.Thread.start'):
+            result=self.assistant.start(self.project,'translate','Continuar')
+        saved=self.store.load(self.project)
+        run=next(r for r in saved['runs'] if r['id']==result['id'])
+        self.assertEqual(saved['translation_config']['source'],next_source['id'])
+        self.assertEqual(run['translation_context']['source'],next_source['id'])
+        self.assertIsNone(saved['thread'])
+        self.assistant.active=None
+
+    def test_approval_advances_to_the_next_untranslated_manuscript(self):
+        already=self.store.add_document(self.project,'02 · Ya traducido.md','manuscrito','Segunda unidad.',selected=False)
+        following=self.store.add_document(self.project,'03 · Siguiente.md','manuscrito','Tercera unidad.',selected=False)
+        self.store.add_document(self.project,'02 · English.md','traducción','Second unit.',selected=False,
+                                translation=dict(source=already['id'],hash=already['hash'],brief=modes.brief_hash(self.config),
+                                                 target_language=self.config['target_language'],review_hash=modes.digest('Second unit.')))
+        run=self.result(DRAFT)
+        modes.accept_translation(self.store,self.store.load(self.project),run['id'],DRAFT['draft'])
+        saved=self.store.load(self.project)
+        self.assertEqual(saved['translation_config']['source'],following['id'])
+        self.assertFalse(next(d for d in saved['documents'] if d['id']==self.source['id'])['selected'])
+        self.assertTrue(next(d for d in saved['documents'] if d['id']==following['id'])['selected'])
+
     def test_rpg_and_legacy_defaults(self):
         data=self.store.create('Mesa ficticia',workflow='guided',purpose='rpg');project=data['id']
         self.assertEqual(data['documents'],[])
