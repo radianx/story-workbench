@@ -1,4 +1,4 @@
-import asyncio,json,tempfile,threading,unittest
+import asyncio,json,os,sys,tempfile,threading,unittest
 from unittest.mock import patch
 from src.workbench_ai import Assistant
 from src.workbench_store import Store,Problem
@@ -35,6 +35,10 @@ class FakeServer:
 
 class TeamTests(unittest.TestCase):
     def setUp(self):
+        # FakeServer never executes this path; permissions still need a stable
+        # executable reference on machines where Codex is not installed.
+        executable = patch.dict(os.environ, {'STORY_CODEX_BINARY': sys.executable})
+        executable.start(); self.addCleanup(executable.stop)
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.store=Store(self.temp.name);self.project=self.store.create('Ficción ciega',True)['id'];self.assistant=Assistant(self.store)
         data=self.store.load(self.project)

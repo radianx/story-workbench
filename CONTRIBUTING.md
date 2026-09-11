@@ -49,7 +49,7 @@ python3 -m unittest discover -s scripts
 node tests/pcm_playback_check.js
 ```
 
-Para los archivos JavaScript modificados: `node --check web/app.js` (sustituí la ruta). El CI comprueba la sintaxis de todos los JavaScript de `web/` y `tests/`. Los tests HTTP abren sockets en loopback y usan directorios temporales.
+Para los archivos JavaScript modificados: `node --check web/app.js` (sustituí la ruta). El CI comprueba la sintaxis de todos los JavaScript de `web/` y `tests/`. Los tests HTTP abren sockets en loopback y usan directorios temporales. Las pruebas de equipo sustituyen App Server por un doble y usan el ejecutable de Python como referencia para construir los permisos: no requieren encontrar Codex ni ejecutan ese proceso.
 
 Para cambios de interfaz, instalá Playwright en un entorno de desarrollo y Google Chrome en Linux, donde los recorridos actuales buscan `/usr/bin/google-chrome`:
 
@@ -61,9 +61,10 @@ python3 -m venv .venv
 .venv/bin/python tests/modes_browser_check.py
 .venv/bin/python tests/markdown_browser_check.py
 .venv/bin/python tests/formats_browser_check.py
+.venv/bin/python tests/codex_images_browser_check.py
 ```
 
-Instalar solo el Chromium de Playwright no satisface esa ruta. El CI verifica Chrome antes de ejecutar esos cuatro recorridos. No usan proveedores reales; otros recorridos por área están en `tests/` y en [README.md](README.md#comprobar).
+Instalar solo el Chromium de Playwright no satisface esa ruta. El CI verifica Chrome antes de ejecutar esos cinco recorridos. No usan proveedores reales; otros recorridos por área están en `tests/` y en [esta sección](#comprobar-un-cambio).
 
 Las pruebas `live_*` son optativas: algunas usan cuentas, cuota o APIs facturables. Leé su encabezado y configuración antes de ejecutarlas. No forman parte del CI. Las pruebas nativas de audio requieren sesión gráfica/dispositivos y pueden afectar el volumen del sistema: sus requisitos están en [DESKTOP.md](DESKTOP.md). No necesitás construir instaladores para un cambio de documentación o web; si tocás escritorio o empaquetado, seguí ese documento y ejecutá las builds secuencialmente.
 
@@ -89,7 +90,7 @@ Estas son áreas candidatas, no issues ya asignados ni funciones prometidas:
 - Probar instalación y actualización en Windows real, documentando versión y pasos.
 - Reducir un bug a un ejemplo ficticio y añadirlo a la comprobación existente.
 
-Las funciones grandes pendientes se describen en [README.md](README.md#datos-y-límites); conviene acordar un corte pequeño antes de implementarlas.
+Las funciones grandes pendientes se describen en [PRODUCT.md](PRODUCT.md); conviene acordar un corte pequeño antes de implementarlas.
 
 ## Al abrir el repositorio en GitHub — mantenedor
 
