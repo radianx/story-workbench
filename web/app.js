@@ -488,7 +488,7 @@ function renderDocuments() {
   $("context-count").textContent =
     `${selected.length} fuente${selected.length === 1 ? "" : "s"} seleccionada${selected.length === 1 ? "" : "s"}`;
   $("context-size").textContent =
-    `${chars.toLocaleString("es")} / 60.000 caracteres`;
+    `${chars.toLocaleString("es")} caracteres seleccionados`;
 }
 function openDocument(id, force = false) {
   if (!force && !confirmLeave()) return;
@@ -777,6 +777,7 @@ function imageAttachmentsHTML(run) {
 }
 function renderAssistant() {
   resizePrompt();
+  renderContextWarning();
   renderTranslationNext();
   renderAISettings();
   renderProgress();
@@ -1720,6 +1721,7 @@ async function saveAISettings(changeModel) {
     if (state.id === project) state.ai_preferences = updated.ai_preferences;
   } finally {
     renderAISettings();
+    renderContextWarning();
   }
 }
 $("ai-model").onchange = action(() => saveAISettings(true));

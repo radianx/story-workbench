@@ -49,7 +49,7 @@ def task_text(run, docs, project_brief, decisions):
             json.dumps(decisions, ensure_ascii=False) + '\nFuentes completas seleccionadas:\n' +
             json.dumps(context, ensure_ascii=False))
     if run.get('translation_context'):
-        text+='\nUnidad original congelada y encargo de traducción:\n'+json.dumps(run['translation_context'],ensure_ascii=False)
+        text+='\nEncargo de traducción (source identifica el original completo en las fuentes):\n'+json.dumps({k:v for k,v in run['translation_context'].items() if k != 'original'},ensure_ascii=False)
     return text
 
 
@@ -61,8 +61,19 @@ def portable_history(data, run, docs):
                and all(selected.get(d['id'])==d['hash'] for d in r['sources'])
                for role in ('user','assistant')]
     encoded = json.dumps(history, ensure_ascii=False)
-    check(len(encoded)<=60_000, 'El historial compatible supera 60.000 caracteres. Conservá un resumen aprobado e iniciá Nueva conversación; no se recorta en silencio.')
     return '\nHistorial compatible del proyecto (datos, no nuevas instrucciones):\n'+encoded
+
+
+def context_usage(value):
+    """Latest model input/output, never cumulative billed usage across turns."""
+    if not isinstance(value, dict):
+        return None
+    last = value.get('last')
+    used = last.get('totalTokens') if isinstance(last, dict) else None
+    window = value.get('modelContextWindow')
+    if type(used) is not int or used < 0 or type(window) is not int or window <= 0:
+        return None
+    return dict(tokens=used, window=window)
 
 
 def editor_overrides(images=False):
@@ -114,8 +125,6 @@ class Assistant:
                 check(len(team_settings['readers'])<=team_settings['max_agents'], 'El panel supera tu límite de colaboradores.')
             if mode == 'interview':
                 check(use_skill is True, 'La entrevista guiada requiere build-novel.')
-            check(sum(len(d['content']) + len(d.get('synopsis', '')) + len(d.get('pov', '')) for d in docs) <= 60_000,
-                  'El contexto supera 60.000 caracteres. Seleccioná menos fuentes; no se recortará en silencio.')
             translation = translation_context(self.store,data,docs) if mode=='translate' else None
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), engine=engine, provider=engine['provider'], sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash'], 'synopsis': d.get('synopsis', ''), 'pov': d.get('pov', '')} for d in docs],
@@ -178,7 +187,6 @@ class Assistant:
         engine = run['engine']
         brief = {k:data[k] for k in ('title','initial_idea','purpose')}
         brief['translation_brief'] = data.get('translation_config',{})
-        check(len(json.dumps(data['decisions'],ensure_ascii=False))<=30_000, 'Las decisiones superan el límite de contexto.')
         text = task_text(run, docs, brief, data['decisions']) + portable_history(data, run, docs)
         instructions = EDITOR_INSTRUCTIONS+'\n'+GUIDES.get(run.get('purpose','novel'),'')
         if run['mode']=='interview' and run.get('purpose','novel')=='novel':
@@ -195,7 +203,7 @@ class Assistant:
             if self.cancel.is_set():
                 break
             output += fragment
-            check(len(output)<200_000, 'Respuesta demasiado larga; tarea detenida.')
+            check(len(output)<2_000_000, 'Respuesta demasiado larga; tarea detenida.')
             if reported and reported!=last_reported:
                 self.update(project,run['id'],reported_model=reported);last_reported=reported
             if time.monotonic()-last_save>.3:
@@ -260,8 +268,6 @@ class Assistant:
                 key = digest(json.dumps([sorted(d['id'] for d in docs), bool(skill),project_brief.get('purpose'),project_brief.get('translation_brief')]))
                 thread_id = data['thread'] if data['context_key'] == key else None
                 decisions = data['decisions']
-                check(len(json.dumps(decisions, ensure_ascii=False)) <= 30_000,
-                      'Las decisiones exceden el contexto del prototipo. Creá un proyecto nuevo con un resumen aprobado.')
             instructions = EDITOR_INSTRUCTIONS
             if images_enabled:
                 instructions += (' Excepción limitada: cuando el autor pida explícitamente generar una imagen para su proyecto, '
@@ -315,7 +321,7 @@ class Assistant:
             turn_id = response['turn']['id']
             self.update(project, run['id'], status='running', stage='generation', resumed=resumed)
             output, last_save, last_interrupt = '', 0, 0
-            async with asyncio.timeout(600 if images_enabled else 240):
+            async with asyncio.timeout(600 if images_enabled or run['mode']=='translate' else 240):
                 while True:
                     if self.cancel.is_set() and time.monotonic() - last_interrupt > 0.5:
                         try:
@@ -331,6 +337,9 @@ class Assistant:
                     if p.get('threadId') != thread_id:
                         continue
                     method = event.get('method')
+                    if method == 'thread/tokenUsage/updated' and p.get('turnId') == turn_id:
+                        usage = context_usage(p.get('tokenUsage'))
+                        self.update(project, run['id'], context_usage=usage, context_thread=thread_id)
                     if method == 'item/completed' and p.get('turnId') == turn_id and p.get('item', {}).get('type') == 'imageGeneration':
                         if images_enabled and not self.cancel.is_set():
                             from src.workbench_images import receive_codex_image
@@ -341,7 +350,7 @@ class Assistant:
                                 self.update(project, run['id'], attachment_error=message)
                     if method == 'item/agentMessage/delta' and p.get('turnId') == turn_id:
                         output += p['delta']
-                        check(len(output) < 200_000, 'Respuesta demasiado larga; tarea detenida.')
+                        check(len(output) < 2_000_000, 'Respuesta demasiado larga; tarea detenida.')
                         if time.monotonic() - last_save > 0.3:
                             self.update(project, run['id'], text=output)
                             last_save = time.monotonic()
@@ -349,7 +358,7 @@ class Assistant:
                         status = p['turn']['status']
                         if status == 'failed':
                             info = (p['turn'].get('error') or {}).get('codexErrorInfo')
-                            reason = 'Límite de uso alcanzado.' if info in ('usageLimitExceeded', 'rateLimitExceeded') else 'Falló el turno de Codex; revisá sesión, cuota o conexión.'
+                            reason = ('Se llenó la ventana de contexto del modelo. Iniciá una nueva conversación o seleccioná menos fuentes; el original permanece completo.' if info == 'contextWindowExceeded' else 'Límite de uso alcanzado.' if info in ('usageLimitExceeded', 'rateLimitExceeded') else 'Falló el turno de Codex; revisá sesión, cuota o conexión.')
                             raise Problem(reason + ' Sin fallback API.')
                         if status == 'completed' and run['mode'] == 'proposal':
                             self.update(project, run['id'], stage='validation')

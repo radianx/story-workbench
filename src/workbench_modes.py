@@ -2,7 +2,7 @@
 import json
 import re
 import time
-from src.workbench_store import check, text_value, digest, uid
+from src.workbench_store import check, text_value, digest, uid, MAX_TEXT
 
 PURPOSES = ('novel', 'translation', 'rpg')
 GUIDES = {
@@ -79,18 +79,6 @@ def detect_language(text):
     return scores[0][1] if scores[0][0] >= 5 and scores[0][0] >= scores[1][0] + 3 else ''
 
 
-def translation_units(content):
-    """Particiones reversibles: no se quitan espacios ni se reescribe el original."""
-    units = []
-    while len(content) > 12000:
-        cut = content.rfind('\n\n', 6000, 12000)
-        cut = cut + 2 if cut != -1 else 12000
-        units.append(content[:cut]);content = content[cut:]
-    if content:
-        units.append(content)
-    return units
-
-
 def configure_translation(store, data, values):
     check(data['purpose']=='translation', 'Elegí el modo Traducción.')
     check(isinstance(values, dict), 'Encargo inválido.')
@@ -99,8 +87,7 @@ def configure_translation(store, data, values):
     config.update(translation_languages(config))
     source=store.document(data, values.get('source'))
     check(not source.get('translation') and source['role']!='traducción', 'Elegí un original, no una traducción.')
-    check(0 < len(source['content'].strip()) and len(source['content'])<=12000,
-          'Elegí una unidad de hasta 12.000 caracteres. Importá fragmentos o capítulos cortos como copias.')
+    check(source['content'].strip(), 'Elegí un original con texto.')
     config['source']=source['id']
     data.update(translation_config=config, thread=None, context_key=None)
     store.persist(data)
@@ -112,7 +99,7 @@ def translation_context(store, data, docs):
     source=next((d for d in docs if d['id']==config['source']),None)
     check(source is not None, 'Marcá el original del encargo como fuente para IA.')
     check(not source.get('translation') and source['role']!='traducción', 'La fuente debe ser un original.')
-    check(0 < len(source['content'].strip()) and len(source['content'])<=12000, 'La unidad original debe tener entre 1 y 12.000 caracteres.')
+    check(source['content'].strip(), 'Elegí un original con texto.')
     context=dict(source=source['id'], hash=source['hash'], original=source['content'], config=dict(config),
                  brief=brief_hash(config), criteria=digest(json.dumps(data['decisions'],sort_keys=True)))
     pending=[r for r in data['runs'] if r.get('translation_context',{}).get('source')==source['id']
@@ -126,7 +113,7 @@ def translation_context(store, data, docs):
 def validate_translation(result, context):
     check(isinstance(result,dict), 'Respuesta de traducción inválida.')
     prepared={k:text_value(result.get(k), limit, k!='message') for k,limit in
-              [('message',6000),('question',3000),('quote',2000),('draft',100000)]}
+              [('message',6000),('question',3000),('quote',2000),('draft',MAX_TEXT)]}
     options=result.get('options');check(isinstance(options,list) and len(options)<=3,'Alternativas inválidas.')
     prepared['options']=[]
     for option in options:

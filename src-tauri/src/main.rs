@@ -92,7 +92,7 @@ fn forward(backend: &Backend, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     result.unwrap_or_else(|_|error_response(502,"No se pudo completar la petición al servicio local."))
 }
 fn request_limit(path: &str) -> usize {
-    if ["/api/import/file", "/api/projects", "/api/document/import"].contains(&path) {40_000_000} else {2_000_000}
+    if ["/api/import/file", "/api/projects", "/api/document/import"].contains(&path) {40_000_000} else {8_000_000}
 }
 fn export_name(url: &tauri::Url) -> Option<String> {
     let name=url.query_pairs().find(|(key,_)|key=="name")?.1.into_owned();
@@ -251,7 +251,7 @@ mod tests {
     #[test] fn export_boundary_and_atomic_replace() {
         for name in ["../secret.md","a%2Fsecret.zip","a%5Cb.md","bad.exe","a%00.md"] {assert!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).is_none());}
         assert_eq!(request_limit("/api/import/file"), 40_000_000);
-        assert_eq!(request_limit("/api/engine/key"), 2_000_000);
+        assert_eq!(request_limit("/api/engine/key"), 8_000_000);
         for name in ["libro.pdf", "imagen.png", "imagen.jpg"] {
             assert_eq!(export_name(&format!("workbench://app/api/desktop/save?name={name}").parse().unwrap()).as_deref(),Some(name));
         }

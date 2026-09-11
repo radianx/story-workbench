@@ -70,7 +70,7 @@ Para verificar la integridad del contenido extraído: `python3 tests/installer_c
 
 El formato Markdown usa una copia local de [markdown-it 15.0.1](https://github.com/markdown-it/markdown-it), obtenida de su paquete npm oficial. `web/markdown-it.min.js` es el bundle UMD sin modificar; `web/MARKDOWN-IT-LICENSE.txt` incluye su licencia MIT y los avisos de dependencias incluidas. No descarga código ni estilos al abrir la app. Los enlaces HTTP/HTTPS se abren por acción del usuario en el navegador externo; archivos y protocolos ejecutables no se permiten.
 
-En 0.9.0 el runtime incluye ReportLab, Pillow y charset-normalizer con sus metadatos y licencias; Vera incluye su licencia de fuente. El diálogo nativo Guardar acepta también PDF, PNG y JPEG. La API de importación tiene un límite específico de 40 MB por solicitud JSON; el límite general de otros mensajes sigue en 2 MB. Descargas y ZIP permanecen limitados a 32 MB; imágenes individuales a 15 MB.
+En 0.9.0 el runtime incluye ReportLab, Pillow y charset-normalizer con sus metadatos y licencias; Vera incluye su licencia de fuente. El diálogo nativo Guardar acepta también PDF, PNG y JPEG. La API de importación tiene un límite específico de 40 MB por solicitud JSON; el límite general de otros mensajes es de 8 MB para admitir documentos de 1 MB incluso con escapes JSON. Descargas y ZIP permanecen limitados a 32 MB; imágenes individuales a 15 MB.
 
 Para comprobar los cambios de interfaz, módulos y PDF en WebKit sin pruebas de audio ni claves: `.venv/bin/python tests/tauri_check.py --binary src-tauri/target/release/story-workbench --formats-only`.
 

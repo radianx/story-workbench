@@ -3362,3 +3362,13 @@ dialog #notice {
   margin-left: auto;
   align-self: end;
 }
+
+#context-warning {
+  flex: 0 0 auto;
+  padding: 5px 16px;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--pale);
+  white-space: nowrap;
+  overflow-x: auto;
+}

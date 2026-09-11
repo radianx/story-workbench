@@ -162,9 +162,9 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(restarted.load(self.project)['runs'][0]['status'],'interrupted')
         self.store.add_document(self.project,'Grande','referencia','x'*60001)
         assistant=Assistant(self.store)
-        with self.assertRaises(Problem):
+        with patch('src.workbench_ai.threading.Thread.start'):
             assistant.start(self.project,'chat','Pregunta')
-        self.assertIsNone(assistant.active)
+        self.assertIn('x'*60001, self.store.load(self.project)['runs'][-1]['source_texts'].values())
 
 
 class HTTPTests(unittest.TestCase):

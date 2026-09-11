@@ -106,7 +106,6 @@ function renderTranslationNext() {
     last?.mode !== "interview" ||
     last.status !== "completed" ||
     !source?.content?.trim() ||
-    source.content.length > 12000 ||
     !config.source_language ||
     !config.target_language;
 }
@@ -480,7 +479,7 @@ $("wizard-folder-scan").onclick = action(async () => {
     );
     wizardFolder = folder;
     for (const file of folder.files) {
-      file.selected = file.size > 0 && file.size <= 250000;
+      file.selected = file.size > 0 && file.size <= 1000000;
       const label = document.createElement("label");
       label.className = "check-row";
       const checkbox = document.createElement("input");
@@ -488,7 +487,7 @@ $("wizard-folder-scan").onclick = action(async () => {
       checkbox.checked = file.selected;
       checkbox.disabled = !file.selected;
       const text = document.createElement("span");
-      text.textContent = `${file.name} · ${Math.ceil(file.size / 1000)} KB${checkbox.disabled ? " · vacío o supera 250 KB" : ""}`;
+      text.textContent = `${file.name} · ${Math.ceil(file.size / 1000)} KB${checkbox.disabled ? " · vacío o supera 1 MB" : ""}`;
       checkbox.onchange = () => {
         file.selected = checkbox.checked;
         wizardMaterialEpoch++;

@@ -173,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
             self.gate(True)
             check(self.headers.get('Content-Type', '').split(';')[0] == 'application/json', 'Se requiere JSON.', 415)
             length = int(self.headers.get('Content-Length', '0'))
-            check(0 < length <= (40_000_000 if urlsplit(self.path).path in ('/api/import/file', '/api/projects', '/api/document/import') else 2_000_000), 'Solicitud demasiado grande.', 413)
+            check(0 < length <= (40_000_000 if urlsplit(self.path).path in ('/api/import/file', '/api/projects', '/api/document/import') else 8_000_000), 'Solicitud demasiado grande.', 413)
             body = json.loads(self.rfile.read(length))
             check(isinstance(body, dict), 'Solicitud inválida.')
             path = urlsplit(self.path).path

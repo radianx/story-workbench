@@ -40,6 +40,31 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.locator('#wizard-create').click();page.locator('.run-text').wait_for()
             project=server.store.list_projects()[0]['id']
             source=server.store.snapshot(project)['documents'][0]
+            # Reported context, threshold persistence, decreases and conversation reset.
+            page.evaluate("""() => {
+              state.thread = 'context-test';
+              const run = currentRuns().at(-1);
+              run.context_thread = state.thread;
+              run.context_usage = {tokens: 840, window: 1000};
+              renderContextWarning();
+            }""")
+            assert page.locator('#context-warning').is_hidden()
+            page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=850;renderContextWarning()}")
+            assert page.locator('#context-warning').is_visible()
+            assert '85%' in page.locator('#context-warning').inner_text()
+            page.evaluate("() => {$('context-warning-enabled').checked=false;$('context-warning-enabled').onchange()}")
+            assert page.locator('#context-warning').is_hidden()
+            assert page.evaluate("localStorage.getItem('sw-context-warning')") == 'false'
+            page.evaluate("() => {$('context-warning-enabled').checked=true;$('context-warning-enabled').onchange();$('context-warning-threshold').value=90;$('context-warning-threshold').onchange()}")
+            assert page.locator('#context-warning').is_hidden()
+            assert page.evaluate("localStorage.getItem('sw-context-threshold')") == '90'
+            page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=950;renderContextWarning()}")
+            assert page.locator('#context-warning').is_visible()
+            page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=200;renderContextWarning()}")
+            assert page.locator('#context-warning').is_hidden()
+            page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=950;state.thread=null;renderContextWarning()}")
+            assert page.locator('#context-warning').is_hidden()
+
             assert server.store.load(project)['translation_config']['source_language']=='es-AR'
             page.locator('#translation-next-start').wait_for()
             count = len(server.store.load(project)['runs'])
@@ -157,6 +182,8 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.reload();page.locator('#settings-open').click()
             page.wait_for_function('()=>workspaceInfo?.restart===true')
             assert page.locator('#workspace-path').input_value()==str(Path(directory)/'Biblioteca nueva')
+            assert page.locator('#context-warning-threshold').input_value() == '90'
+            assert page.locator('#context-warning-enabled').is_checked()
             page.locator('#workspace-default').click();page.wait_for_function('()=>workspaceInfo?.restart===false')
             page.locator('#settings-close').click()
             # Volver atrás, cambiar de modo y errores no deben crear proyectos vacíos.

@@ -53,6 +53,7 @@ Elegí la tarea, el modelo y el esfuerzo debajo del mensaje. El campo crece hast
 - **Micrófono:** clic para alternar la escucha; mantené Espacio para hablar cuando el mensaje esté vacío.
 - **Leer respuestas:** activar o detener la lectura automática.
 - **Nueva conversación:** limpiar el chat y el contexto de conversación, conservando fuentes, decisiones y propuestas.
+- **Contexto:** el aviso de una línea aparece desde el 85% de la última medición de Codex; podés desactivarlo o cambiar el umbral en Configuración. No incluye el mensaje sin enviar y no aparece sin datos del proveedor.
 - **Avisos:** consultar notificaciones y progreso de las tareas.
 - **F1:** abrir la ayuda. **Ctrl/Cmd+K:** navegar entre secciones.
 

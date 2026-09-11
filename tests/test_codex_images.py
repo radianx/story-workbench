@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from src.workbench_ai import Assistant, editor_overrides
+from src.workbench_ai import Assistant, editor_overrides, context_usage
 from src.workbench_images import receive_codex_image
 from src.workbench_store import Store, Problem
 from test_desktop_features import MODELS
@@ -33,6 +33,9 @@ class ImageServer:
                 dict(method='item/completed', params={**event['params'], 'threadId':'wrong-thread'}),
                 dict(method='item/completed', params={**event['params'], 'turnId':'wrong-turn'}),
                 event, event,
+                dict(method='thread/tokenUsage/updated', params=dict(threadId='thread-test', turnId='turn-test', tokenUsage=dict(last=dict(totalTokens=900),total=dict(totalTokens=999999),modelContextWindow=1000))),
+                dict(method='thread/tokenUsage/updated', params=dict(threadId='wrong-thread', turnId='turn-test', tokenUsage={})),
+                dict(method='thread/tokenUsage/updated', params=dict(threadId='thread-test', turnId='wrong-turn', tokenUsage={})),
                 dict(method='item/agentMessage/delta', params=dict(threadId='thread-test', turnId='turn-test', delta='Imagen provisional.')),
                 dict(method='turn/completed', params=dict(threadId='thread-test', turn=dict(id='turn-test', status='completed')))]
             return {'turn': {'id': 'turn-test'}}
@@ -51,6 +54,9 @@ class CodexImagesTest(unittest.TestCase):
                 self.assertNotIn('features.image_generation=true', editor_overrides())
             data = store.snapshot(project)
             self.assertEqual(data['runs'][-1]['status'], 'completed')
+            self.assertEqual(data['runs'][-1]['context_usage'], dict(tokens=900, window=1000))
+            for invalid in (None, {}, {'last': {}}, {'last': {'totalTokens': -1}, 'modelContextWindow': 100}, {'last': {'totalTokens': 20}, 'modelContextWindow': None}):
+                self.assertIsNone(context_usage(invalid))
             self.assertEqual(len(data['images']), 1)
             image = data['images'][0]
             self.assertEqual(data['runs'][-1]['attachments'], [image['id']])

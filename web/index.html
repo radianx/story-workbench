@@ -373,6 +373,7 @@
           </div>
         </div>
         <section class="assistant-panel" id="conversation-panel">
+          <div id="context-warning" role="status" hidden></div>
           <div class="runs" id="runs"></div>
           <details hidden="" id="voice-session" open="">
             <summary>Conversación de voz</summary>
@@ -667,10 +668,9 @@
               type="file"
             />
             <p>
-              Importamos copias Markdown/TXT UTF-8, EPUB o DOCX, hasta 250 KB
-              por archivo. Podés elegir una obra o capítulo; para traducción se
-              divide en unidades de hasta 12.000 caracteres conservando todo el
-              texto.
+              Importamos copias Markdown/TXT UTF-8, EPUB o DOCX, hasta 15 MB
+              por archivo y 1 MB de texto por documento. Los capítulos se conservan
+              completos dentro de ese límite; no se dividen por elegir traducción.
             </p>
             <details id="wizard-folder-options">
               <summary>Importar una carpeta de proyecto</summary>
@@ -1099,8 +1099,8 @@
         </button>
       </div>
       <p>
-        Elegí un original importado como copia (hasta 12.000 caracteres por
-        unidad) y marcá su casilla en las fuentes. El autor resuelve los matices
+        Elegí un capítulo original importado como copia
+        y marcá su casilla en las fuentes. El autor resuelve los matices
         y aprueba el texto. No modificamos el original.
       </p>
       <form id="translation-form">
@@ -1256,6 +1256,13 @@
               Ayuda para continuar
             </button>
           </div>
+        </section>
+        <section id="settings-context">
+          <h3>Contexto del chat</h3>
+          <label><input type="checkbox" id="context-warning-enabled" checked> Mostrar aviso de contexto</label>
+          <label for="context-warning-threshold">Mostrar desde este porcentaje</label>
+          <input id="context-warning-threshold" type="number" min="1" max="100" step="1" value="85">
+          <p>Última medición reportada por Codex, actualizada durante la tarea. No incluye el mensaje sin enviar. Sin medición disponible no se muestra un porcentaje. Los adaptadores experimentales todavía no reportan este dato.</p>
         </section>
         <section id="settings-model">
           <h3>Inteligencia artificial</h3>

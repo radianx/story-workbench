@@ -68,7 +68,9 @@ class Planning(unittest.TestCase):
             data=store.load(project);d=store.document(data,first['id']);store.save_document(data,d['id'],'x'*59000,d['hash'])
             data=store.load(project);d=store.document(data,first['id']);store.planning(data,d['id'],dict(synopsis='s'*2000,pov='',stage='drafting',hash=d['hash']))
             assistant.active=None
-            with self.assertRaises(Problem):assistant.start(project,'draft','Exceso')
+            with patch('src.workbench_ai.threading.Thread.start'):
+                assistant.start(project,'draft','Capítulo completo')
+            self.assertIn('x'*59000, store.load(project)['runs'][-1]['source_texts'].values())
 
 
 class PlanningHTTP(unittest.TestCase):

@@ -209,3 +209,37 @@ window.addEventListener("storage", (event) => {
 });
 renderCustomTheme();
 renderBackgroundOpacity();
+
+function renderContextWarning() {
+  const enabled = storedAppearance('sw-context-warning', 'true') !== 'false';
+  const saved = Number(storedAppearance('sw-context-threshold', '85'));
+  const threshold = Number.isInteger(saved) && saved >= 1 && saved <= 100 ? saved : 85;
+  $('context-warning-enabled').checked = enabled;
+  $('context-warning-threshold').value = threshold;
+  const run = state ? currentRuns().at(-1) : null;
+  const usage = run?.context_usage;
+  const selected = state?.documents.filter(d => d.selected) || [];
+  const sameSources = run && selected.length === run.sources.length && selected.every(d =>
+    run.sources.some(source => source.id === d.id && source.hash === d.hash));
+  const percent = usage ? usage.tokens / usage.window * 100 : 0;
+  const warning = $('context-warning');
+  warning.hidden = !(enabled && sameSources && state.thread === run.context_thread && percent >= threshold &&
+    (state.engine?.provider || 'codex') === 'codex' &&
+    (!state.ai_preferences?.model || state.ai_preferences.model === run.model));
+  warning.textContent = warning.hidden ? '' :
+    `Contexto: ${Math.round(percent)}% · ${usage.tokens.toLocaleString('es')} / ${usage.window.toLocaleString('es')} tokens · última medición de Codex`;
+}
+$('context-warning-enabled').onchange = action(() => {
+  localStorage.setItem('sw-context-warning', $('context-warning-enabled').checked);
+  renderContextWarning();
+});
+$('context-warning-threshold').onchange = action(() => {
+  const input = $('context-warning-threshold');
+  if (!input.reportValidity()) return;
+  localStorage.setItem('sw-context-threshold', input.value);
+  renderContextWarning();
+});
+window.addEventListener('storage', event => {
+  if (event.key === null || event.key?.startsWith('sw-context-')) renderContextWarning();
+});
+renderContextWarning();

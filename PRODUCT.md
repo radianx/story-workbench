@@ -142,3 +142,9 @@ La generación nativa de imágenes de Codex queda conectada al chat individual d
 ## Chat compacto (posterior a 0.9.0)
 
 Mensajes al ancho del panel y encabezado con título/pestañas distribuidos horizontalmente, adaptable a ventanas estrechas. Sin duplicar la conexión ChatGPT. Compositor de una a siete líneas con scroll posterior, versión visible en Configuración y acceso a preparar traducción desde la conversación cuando hay encargo y una respuesta de entrevista. El autor conserva el envío y la aprobación; el acceso no interpreta frases del modelo como estados editoriales confirmados.
+
+## Capítulos y contexto (posterior a 0.9.1)
+
+La traducción conserva capítulos completos sin dividirlos a 12.000 caracteres. Almacenamiento de hasta 1 MB UTF-8 por documento, separado de la capacidad del modelo; se mantienen las protecciones de importación. Se quitaron los topes editoriales fijos de fuentes, historial y decisiones: no se recortan silenciosamente. El contexto de traducción referencia el original sin duplicarlo en la petición. Una respuesta extensa sigue dependiendo de la capacidad de salida del modelo y necesita revisión humana.
+
+Aviso de una línea sobre el chat, desde el 85% por defecto, configurable y persistido por usuario. Usa la última medición de tokens y ventana reportada por Codex, no el consumo acumulado. Se oculta por debajo del umbral o sin medición válida; no estima el mensaje sin enviar ni ofrece porcentajes de adaptadores que todavía no reportan esta información. Las unidades de proyectos existentes no se fusionan automáticamente.

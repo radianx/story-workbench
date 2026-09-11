@@ -70,8 +70,17 @@ class Modes(unittest.TestCase):
         with self.assertRaises(Problem):self.assistant.start(self.project,'translate','Prueba')
         with self.assertRaises(Problem):self.assistant.start(self.project,'draft','No esquivar revisión')
         data['documents'][0]['selected']=True;self.store.persist(data)
-        self.store.save_document(data,self.source['id'],'x'*12001,self.source['hash'])
-        with self.assertRaises(Problem):self.assistant.start(self.project,'translate','Exceso')
+        original = 'Capítulo completo. ' * 20000
+        self.store.save_document(data,self.source['id'],original,self.source['hash'])
+        translated = 'Complete chapter. ' * 22000
+        run = self.result({**DRAFT, 'draft': translated})
+        self.assertEqual(run['translation_context']['original'], original)
+        copy = modes.accept_translation(self.store,self.store.load(self.project),run['id'],translated)
+        self.assertEqual(copy['content'], translated)
+        self.assertEqual(self.store.document(self.store.load(self.project),self.source['id'])['content'], original)
+        from src.workbench_ai import task_text
+        prompt = task_text(run, [self.store.document(self.store.load(self.project),self.source['id'])], {}, [])
+        self.assertEqual(prompt.count(original), 1)
 
     def test_rpg_and_legacy_defaults(self):
         data=self.store.create('Mesa ficticia',workflow='guided',purpose='rpg');project=data['id']

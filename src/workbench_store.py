@@ -10,7 +10,7 @@ import threading
 import time
 import uuid
 
-MAX_TEXT = 250_000
+MAX_TEXT = 1_000_000  # UTF-8 storage bound, not a model context or translation-unit limit.
 WORKFLOWS = ('writing', 'guided')
 ROLES = ('manuscrito', 'canon', 'estilo', 'referencia', 'plan', 'traducción')
 STAGES = ('planned', 'drafting', 'revise', 'reviewed')
@@ -142,7 +142,7 @@ class Store:
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
     def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel', documents=None, translation=None):
-        from src.workbench_modes import PURPOSES, translation_languages, translation_units, configure_translation
+        from src.workbench_modes import PURPOSES, translation_languages, configure_translation
         check(purpose in PURPOSES, 'Objetivo de proyecto inválido.')
         check(not demo or purpose=='novel', 'El ejemplo es un proyecto de historia.')
         text_value(title, 160, False)
@@ -164,11 +164,7 @@ class Store:
             index=translation.get('source')
             check(type(index) is int and 0<=index<len(prepared), 'Importá una obra existente y elegí el original.')
             original=prepared[index];text_value(original['content'],empty=False)
-            units=translation_units(original['content'])
-            parts=[dict(name=original['name'] if len(units)==1 else f"{original['name'].encode('utf-8')[:160].decode('utf-8',errors='ignore')} · Unidad {i+1}",
-                        content=content,role='manuscrito',selected=i==0) for i,content in enumerate(units)]
-            prepared[index:index+1]=parts
-            check(len(prepared)<=100, 'El original dividido y las referencias superan 100 documentos. Importá una parte de la obra.')
+            original.update(role='manuscrito', selected=True)
             workflow='guided';initial_idea=''
         project = uid()
         path = self.path(project)

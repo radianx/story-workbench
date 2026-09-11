@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from src.workbench_store import Store, Problem
+from src.workbench_store import Store, Problem, MAX_TEXT
 from src.workbench_workspace import Workspace, import_preview, import_documents
 from src.workbench_modes import detect_language
 from src.app import AppServer
@@ -37,7 +37,7 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaises(Problem):import_documents(str(self.original),['linked.md'])
         (self.original/'invalid.txt').write_bytes(b'\xff')
         with self.assertRaises(UnicodeError):import_documents(str(self.original),['invalid.txt'])
-        (self.original/'large.txt').write_bytes(b'x'*250001)
+        (self.original/'large.txt').write_bytes(b'x'*(MAX_TEXT+1))
         with self.assertRaises(Problem):import_documents(str(self.original),['large.txt'])
 
     def test_translation_requires_original_and_preserves_partition(self):
@@ -45,7 +45,7 @@ class WorkspaceTests(unittest.TestCase):
         data=self.store.create('Edición',purpose='translation',initial_idea='Ignorar',documents=[dict(name='Obra.md',content=text)],translation=dict(source=0,source_language='Español',target_language='Inglés'))
         docs=self.store.snapshot(data['id'])['documents']
         self.assertEqual(''.join(d['content'] for d in docs),text)
-        self.assertTrue(all(len(d['content'])<=12000 for d in docs))
+        self.assertEqual(len(docs), 1)
         self.assertEqual(sum(d['selected'] for d in docs),1)
         self.assertEqual(data['translation_config']['source'],docs[0]['id'])
         self.assertEqual((data['workflow'],data['initial_idea']),('guided',''))
