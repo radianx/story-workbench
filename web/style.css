@@ -3386,22 +3386,6 @@ dialog #notice {
   background: #941c29;
   border-color: #941c29;
 }
-.run-text.is-streaming::after {
-  content: "";
-  display: inline-block;
-  width: 0.45em;
-  height: 1em;
-  background: currentColor;
-  vertical-align: text-bottom;
-  animation: writing-cursor 1s steps(2, jump-none) infinite;
-}
-@keyframes writing-cursor {
-  to { opacity: 0.25; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .run-text.is-streaming::after { animation: none; }
-}
-
 #team-settings { width: min(680px, calc(100vw - 32px)); }
 #team-workers { display: grid; gap: 12px; margin-top: 16px; }
 #team-workers fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; }

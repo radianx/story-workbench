@@ -1202,6 +1202,14 @@
               El tema se guarda automáticamente para tu usuario en este equipo.
               Sistema sigue los cambios de apariencia del equipo.
             </p>
+            <label><input id="typing-enabled" type="checkbox" checked /> Mostrar las respuestas carácter por carácter</label>
+            <label for="typing-wpm">Velocidad de escritura (palabras por minuto)</label>
+            <input id="typing-wpm" type="number" min="30" max="1200" step="10" value="150" />
+            <p>
+              Se aplica a respuestas nuevas. Al desactivarlo, el texto recibido
+              aparece inmediatamente. Reducir movimiento en el sistema también
+              desactiva este efecto.
+            </p>
           </div>
           <button class="quiet" id="inspire">◐ Ambiente</button>
         </section>

@@ -47,10 +47,10 @@ with tempfile.TemporaryDirectory(prefix='sw-markdown-') as directory:
             page=browser.new_page(viewport=dict(width=1440,height=1000));errors=[];external=[]
             page.on('pageerror',lambda e:errors.append(str(e)))
             page.on('request',lambda r:external.append(r.url) if not r.url.startswith(server.origin+'/') else None)
-            page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
+            page.add_init_script("localStorage.setItem('sw-setup-seen','1');localStorage.setItem('sw-typing-enabled','false')")
             page.goto(server.origin+'/#token='+server.token)
             page.locator('.run-text').wait_for()
-            assert '**Parcial' in page.locator('.run-text').inner_text()
+            page.wait_for_function("() => document.querySelector('.run-text').textContent.includes('**Parcial')")
             with server.store.lock:
                 data=server.store.load(project);data['runs'][0].update(text=TEXT,status='completed',team=dict(model='ficticio',effort='low'),team_workers=[dict(title='Lector',assignment='Opinar',status='completed',text='**Aporte**')])
                 server.store.persist(data)

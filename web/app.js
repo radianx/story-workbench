@@ -159,6 +159,8 @@ let stateEpoch = 0;
 let lastRuns = "",
   lastProposals = "",
   lastDecisions = "";
+const typingRuns = new Map();
+let typingTimer = null;
 const notices = [];
 const busy = () =>
   state?.runs.findLast((r) =>
@@ -166,6 +168,99 @@ const busy = () =>
   );
 const currentRuns = () => state?.runs.slice(state.history_start || 0) || [];
 const draftKey = () => `sw-draft-${state.id}-${current.id}`;
+
+function typingEnabled() {
+  return storedAppearance("sw-typing-enabled", "true") !== "false" &&
+    !matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function typingWpm() {
+  const value = Number(storedAppearance("sw-typing-wpm", "150"));
+  return Number.isInteger(value) && value >= 30 && value <= 1200 ? value : 150;
+}
+function startTyping(id) {
+  if (id && typingEnabled() && !typingRuns.has(id))
+    typingRuns.set(id, { target: "", shown: 0, credit: 0, updated: performance.now() });
+}
+function advanceCharacters(text, start, count) {
+  let end = start;
+  while (count-- > 0 && end < text.length)
+    end += text.codePointAt(end) > 0xffff ? 2 : 1;
+  return end;
+}
+function scheduleTyping() {
+  if (!typingTimer && typingEnabled())
+    typingTimer = setTimeout(updateTyping, Math.max(16, 12000 / typingWpm()));
+}
+function typedRunText(run) {
+  if (!typingEnabled() || run.mode === "translate") {
+    if (!["connecting", "running"].includes(run.status)) typingRuns.delete(run.id);
+    return run.text || "";
+  }
+  let entry = typingRuns.get(run.id);
+  if (!entry && ["connecting", "running"].includes(run.status)) {
+    startTyping(run.id);
+    entry = typingRuns.get(run.id);
+  }
+  if (!entry) return run.text;
+  const target = run.text || "";
+  if (!target.startsWith(entry.target.slice(0, entry.shown)))
+    entry.shown = entry.credit = 0;
+  entry.target = target;
+  entry.shown = Math.min(entry.shown, entry.target.length);
+  if (entry.shown < entry.target.length) scheduleTyping();
+  return entry.target.slice(0, entry.shown);
+}
+function updateTyping() {
+  typingTimer = null;
+  if (!typingEnabled()) return;
+  const now = performance.now();
+  let pending = false;
+  for (const [id, entry] of typingRuns) {
+    const run = state?.runs.find((item) => item.id === id);
+    if (!run) {
+      typingRuns.delete(id);
+      continue;
+    }
+    entry.target = run.text || "";
+    entry.credit += (now - entry.updated) * typingWpm() * 5 / 60000;
+    entry.updated = now;
+    const count = Math.floor(entry.credit);
+    if (count) {
+      entry.shown = advanceCharacters(entry.target, entry.shown, count);
+      entry.credit -= count;
+      const node = document.querySelector(`[data-typing-run="${id}"]`);
+      if (node) {
+        node.innerHTML = markdown(entry.target.slice(0, entry.shown));
+        node.classList.toggle("is-typing", entry.shown < entry.target.length);
+        $("runs").scrollTop = $("runs").scrollHeight;
+      }
+    }
+    if (entry.shown < entry.target.length) pending = true;
+    else if (!["connecting", "running"].includes(run.status)) typingRuns.delete(id);
+  }
+  if (pending) scheduleTyping();
+}
+function refreshTypingPreference() {
+  if (typingTimer) clearTimeout(typingTimer);
+  typingTimer = null;
+  const now = performance.now();
+  if (!typingEnabled())
+    for (const [id, entry] of typingRuns) {
+      entry.shown = entry.target.length;
+      entry.credit = 0;
+      entry.updated = now;
+      const node = document.querySelector(`[data-typing-run="${id}"]`);
+      if (node) {
+        node.innerHTML = markdown(entry.target);
+        node.classList.remove("is-typing");
+      }
+    }
+  else {
+    for (const entry of typingRuns.values()) entry.updated = now;
+    scheduleTyping();
+  }
+}
+matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", refreshTypingPreference);
 
 // El orden del HTML no coincide con el orden de apertura de diálogos anidados.
 let dialogStack = [];
@@ -319,6 +414,9 @@ async function openProject(id, startInterview = true) {
     return;
   }
   await cancelVoice();
+  typingRuns.clear();
+  if (typingTimer) clearTimeout(typingTimer);
+  typingTimer = null;
   const incoming = await api(`/api/projects/${id}`);
   if (incoming.archived)
     throw new Error(
@@ -736,7 +834,8 @@ function setTaskMode() {
 async function beginInterview(retry = false) {
   const project = state.id;
   if (!(await engineReady())) return;
-  await api("/api/interview/start", { project, retry });
+  const run = await api("/api/interview/start", { project, retry });
+  startTyping(run.id);
   if (state.id !== project) return;
   const incoming = await api(`/api/projects/${project}`);
   if (state.id !== project) return;
@@ -796,6 +895,19 @@ function runTimestamp(run) {
   const label = run.finished_at ? (run.status === 'completed' ? 'Última respuesta' : 'Finalizada') : 'Inicio';
   return `<time class="run-time" datetime="${date.toISOString()}" title="${label}">${label}: ${escapeHTML(date.toLocaleString('es', {dateStyle:'short', timeStyle:'medium'}))}</time>`;
 }
+function runTextHTML(run) {
+  const translating = run.mode === "translate" && run.status !== "completed";
+  const fallback = ["connecting", "running"].includes(run.status)
+    ? "Preparando una respuesta…" : "";
+  const text = translating
+    ? (["connecting", "running"].includes(run.status)
+      ? "Preparando la consulta o traducción revisable…"
+      : "La traducción no se completó. El resultado recibido se conserva abajo.")
+    : run.text ? typedRunText(run) : fallback;
+  const typing = !translating && typingEnabled() &&
+    typingRuns.get(run.id)?.shown < (run.text || "").length;
+  return `<div class="run-text markdown${typing ? " is-typing" : ""}"${typingRuns.has(run.id) ? ` data-typing-run="${escapeHTML(run.id)}"` : ""}>${markdown(text)}</div>`;
+}
 function renderAssistant() {
   resizePrompt();
   renderContextWarning();
@@ -805,6 +917,8 @@ function renderAssistant() {
   updateRealtime();
   updateVoice();
   const active = busy();
+  if (active && active.mode !== "translate" &&
+      ["connecting", "running"].includes(active.status)) startTyping(active.id);
   $("cancel").hidden = !active;
   $("send").disabled = !!active || !!recording || transcribing;
   renderEngine();
@@ -847,7 +961,7 @@ function renderAssistant() {
       currentRuns()
         .map(
           (r) =>
-            `<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label"><span>✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status] || r.status}${r.model ? ` · ${escapeHTML(r.provider && r.provider !== "codex" ? r.provider + " · experimental" : "Codex")} · ${escapeHTML(r.reported_model || r.model)}${r.effort ? " · " + escapeHTML(effortLabels[r.effort] || r.effort) : ""}` : ""}</span>${runTimestamp(r)}</div><details class="run-output ${outputPreference(r.id).seen ? "" : "is-new"}" data-output="${r.id}" ${outputPreference(r.id).open !== false ? "open" : ""}><summary>${r.status === "completed" ? "Respuesta lista" : labels[r.status] || r.status}${r.status === "running" ? '<span class="work-spinner" aria-hidden="true"></span>' : ""}${outputPreference(r.id).seen ? "" : '<span class="new-tag">Nuevo</span>'}</summary><div class="run-text markdown${r.status === "running" && r.text && r.mode !== "translate" ? " is-streaming" : ""}">${markdown(r.mode === "translate" && r.status !== "completed" ? (["connecting","running"].includes(r.status) ? "Preparando la consulta o traducción revisable…" : "La traducción no se completó. El resultado recibido se conserva abajo.") : r.text || (["running", "connecting"].includes(r.status) ? "Preparando una respuesta…" : ""))}</div>${imageAttachmentsHTML(r)}${translationHTML(r)}${typeof teamHTML === "function" ? teamHTML(r) : ""}${r.error ? `<div class="run-error">${escapeHTML(r.error)}</div>` : ""}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference("sources-" + r.id).open ? "open" : ""}><summary>${r.sources.length} fuentes enviadas · ${r.guide === "integrated" ? "Guía integrada" : r.skill ? "build-novel" : "Asistente general"}</summary>${r.sources.map((s) => `${escapeHTML(s.name)} · ${s.hash.slice(0, 8)}${s.synopsis || s.pov ? " · incluye ficha del plan" : ""}${state.documents.find((d) => d.id === s.id)?.hash !== s.hash ? " · cambió desde este envío" : ""}`).join("<br>")}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status === "completed" ? `<button class="quiet" data-read="${r.id}">Escuchar</button>` : ""}${r.mode === "draft" && r.status === "completed" ? `<button class="quiet" data-draft="${r.id}">${r.saved_document ? "Abrir borrador guardado" : r.purpose === "rpg" ? "Guardar material de rol provisional" : "Guardar como borrador provisional"}</button>` : ""}${r.mode === "summary" && r.status === "completed" ? `<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>` : ""}${r.status === "completed" && !outputPreference(r.id).seen ? `<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>` : ""}</details></div>`,
+            `<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label"><span>✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status] || r.status}${r.model ? ` · ${escapeHTML(r.provider && r.provider !== "codex" ? r.provider + " · experimental" : "Codex")} · ${escapeHTML(r.reported_model || r.model)}${r.effort ? " · " + escapeHTML(effortLabels[r.effort] || r.effort) : ""}` : ""}</span>${runTimestamp(r)}</div><details class="run-output ${outputPreference(r.id).seen ? "" : "is-new"}" data-output="${r.id}" ${outputPreference(r.id).open !== false ? "open" : ""}><summary>${r.status === "completed" ? "Respuesta lista" : labels[r.status] || r.status}${r.status === "running" ? '<span class="work-spinner" aria-hidden="true"></span>' : ""}${outputPreference(r.id).seen ? "" : '<span class="new-tag">Nuevo</span>'}</summary>${runTextHTML(r)}${imageAttachmentsHTML(r)}${translationHTML(r)}${typeof teamHTML === "function" ? teamHTML(r) : ""}${r.error ? `<div class="run-error">${escapeHTML(r.error)}</div>` : ""}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference("sources-" + r.id).open ? "open" : ""}><summary>${r.sources.length} fuentes enviadas · ${r.guide === "integrated" ? "Guía integrada" : r.skill ? "build-novel" : "Asistente general"}</summary>${r.sources.map((s) => `${escapeHTML(s.name)} · ${s.hash.slice(0, 8)}${s.synopsis || s.pov ? " · incluye ficha del plan" : ""}${state.documents.find((d) => d.id === s.id)?.hash !== s.hash ? " · cambió desde este envío" : ""}`).join("<br>")}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status === "completed" ? `<button class="quiet" data-read="${r.id}">Escuchar</button>` : ""}${r.mode === "draft" && r.status === "completed" ? `<button class="quiet" data-draft="${r.id}">${r.saved_document ? "Abrir borrador guardado" : r.purpose === "rpg" ? "Guardar material de rol provisional" : "Guardar como borrador provisional"}</button>` : ""}${r.mode === "summary" && r.status === "completed" ? `<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>` : ""}${r.status === "completed" && !outputPreference(r.id).seen ? `<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>` : ""}</details></div>`,
         )
         .join("") ||
       '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
@@ -1260,6 +1374,7 @@ async function sendChatMessage(
     skill,
     team,
   });
+  startTyping(run.id);
   if (state.id !== project) return;
   for (const id of previousResponses) saveOutputPreference(id, { seen: true });
   lastRuns = "";

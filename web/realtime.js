@@ -60,6 +60,7 @@ async function realtimeAction(session,args){
   if(realtime!==session||state.id!==session.project||session.signature!==realtimeSignature())throw new Error('La sesión cambió antes del envío.');
   if(session.cancelled?.has(session.currentCall))throw new Error('La petición oral fue interrumpida antes del envío.');
   const run=await api('/api/run',{project:session.project,mode,prompt:text,skill:$('skill').checked});
+  startTyping(run.id);
   if(realtime===session){showPanel('conversation');await poll();}
   return {started:true,run:run.id,next:'El resultado quedará en la conversación editorial. Consultá get_context para leerlo cuando termine; no está aprobado.'};
 }

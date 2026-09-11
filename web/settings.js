@@ -12,6 +12,30 @@ fontSelect.onchange = action(() => {
   applyAppFont(fontSelect.value);
   localStorage.setItem("sw-font", fontSelect.value);
 });
+function renderTypingSettings() {
+  const enabled = storedAppearance("sw-typing-enabled", "true") !== "false";
+  const saved = Number(storedAppearance("sw-typing-wpm", "150"));
+  $("typing-enabled").checked = enabled;
+  $("typing-wpm").value = Number.isInteger(saved) && saved >= 30 && saved <= 1200 ? saved : 150;
+  $("typing-wpm").disabled = !enabled;
+}
+$("typing-enabled").onchange = action(() => {
+  localStorage.setItem("sw-typing-enabled", $("typing-enabled").checked);
+  renderTypingSettings();
+  refreshTypingPreference();
+});
+$("typing-wpm").onchange = action(() => {
+  if (!$("typing-wpm").reportValidity()) return;
+  localStorage.setItem("sw-typing-wpm", $("typing-wpm").value);
+  refreshTypingPreference();
+});
+window.addEventListener("storage", (event) => {
+  if (event.key === null || event.key?.startsWith("sw-typing-")) {
+    renderTypingSettings();
+    refreshTypingPreference();
+  }
+});
+renderTypingSettings();
 $("chat-engine").onclick = action(() => openEngineSettings());
 function openSettings() {
   document.dispatchEvent(new Event("workbench:settings-open"));

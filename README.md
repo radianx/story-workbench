@@ -51,6 +51,8 @@ El PDF y la maqueta 3D sirven para lectura y revisión; no sustituyen la maqueta
 
 Elegí la tarea, el modelo y el esfuerzo debajo del mensaje. El campo crece hasta siete líneas; las respuestas admiten títulos, listas, citas, código y tablas.
 
+Las respuestas nuevas aparecen carácter por carácter a 150 palabras por minuto. En **Configuración → Apariencia e inicio** podés cambiar la velocidad o desactivar el efecto para mostrar cada respuesta inmediatamente.
+
 - **Enter:** enviar. **Shift+Enter:** insertar un salto de línea.
 - **Micrófono:** clic para alternar la escucha; mantené Espacio para hablar cuando el mensaje esté vacío.
 - **Leer respuestas:** activar o detener la lectura automática.

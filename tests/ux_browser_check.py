@@ -119,7 +119,11 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             with server.store.lock:
                 data=server.store.load(project); data['runs']=[run]; server.store.persist(data)
             page.locator('.run').wait_for()
-            page.locator('#settings-open').click();page.locator('#workflow').select_option('guided');page.locator('#settings-close').click()
+            page.locator('#settings-open').click();page.locator('#workflow').select_option('guided')
+            assert page.locator('#typing-enabled').is_checked() and page.locator('#typing-wpm').input_value()=='150'
+            page.locator('#typing-wpm').fill('240');page.locator('#typing-wpm').press('Tab')
+            assert page.evaluate("localStorage.getItem('sw-typing-wpm')")=='240'
+            page.locator('#settings-close').click()
             page.wait_for_function("() => document.body.classList.contains('guided')")
             # Acciones junto al texto; los selectores comparten una fila inferior.
             rects=page.evaluate("() => ['prompt','send','dictate','auto-read','mode','ai-model','ai-effort'].map(id=>{const r=$(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width};})")
@@ -135,8 +139,11 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             assert max(r['bottom'] for r in rects[4:])-min(r['bottom'] for r in rects[4:])<3,rects
             page.screenshot(path='/tmp/sw-composer-wide.png',full_page=True)
             with server.store.lock:
-                data=server.store.load(project);data['runs'][0]['status']='running';server.store.persist(data)
-            page.locator('.run-text.is-streaming').wait_for()
+                data=server.store.load(project);data['runs'][0].update(status='running',text='Texto inicial para animar.');server.store.persist(data)
+            page.locator('.run-text.is-typing').wait_for()
+            first_typed=page.locator('.run-text').inner_text()
+            assert len(first_typed)<len('Texto inicial para animar.')
+            page.wait_for_function('(length)=>document.querySelector(".run-text").textContent.length>length',arg=len(first_typed))
             assert page.locator('#cancel').is_visible()
             assert 'presioná Escape' in page.locator('[data-working-since]').inner_text()
             first_elapsed=page.locator('[data-working-since]').inner_text()
@@ -160,20 +167,29 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             assert page.locator('.run-output > summary .work-spinner').is_visible()
             assert page.locator('.work-spinner').evaluate('el=>getComputedStyle(el).animationName')=='workbench-wait'
             assert page.locator('#cancel').evaluate('el=>getComputedStyle(el).backgroundColor')=='rgb(180, 35, 50)'
-            assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='writing-cursor'
+            page.locator('#settings-open').click();page.locator('#typing-enabled').uncheck()
+            page.wait_for_function("() => document.querySelector('.run-text').textContent.trimEnd()==='Texto inicial para animar.'")
+            assert page.evaluate("localStorage.getItem('sw-typing-enabled')")=='false'
+            page.locator('#typing-enabled').check();page.locator('#settings-close').click()
             page.emulate_media(reduced_motion='reduce')
             assert page.locator('.work-spinner').evaluate('el=>getComputedStyle(el).animationName')=='none'
-            assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='none'
-            page.emulate_media(reduced_motion='no-preference')
             with server.store.lock:
                 data=server.store.load(project);data['runs'][0]['text']+='Nuevo fragmento';server.store.persist(data)
-            page.wait_for_function("() => document.querySelector('.is-streaming').textContent.trimEnd().endsWith('Nuevo fragmento')")
+            page.wait_for_function("() => document.querySelector('.run-text').textContent.trimEnd().endsWith('Nuevo fragmento')")
+            assert not page.locator('.is-typing').count()
+            page.emulate_media(reduced_motion='no-preference')
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['text']+=' final animado';server.store.persist(data)
+            page.locator('.run-text.is-typing').wait_for()
             with server.store.lock:
                 data=server.store.load(project);data['runs'][0]['status']='completed';server.store.persist(data)
-            page.wait_for_function("() => !document.querySelector('.is-streaming')")
+            page.wait_for_function("() => !document.querySelector('.is-typing') && document.querySelector('.run-text').textContent.trimEnd().endsWith('final animado')")
             assert page.locator('#cancel').is_hidden()
             assert page.locator('.work-spinner').count()==0
 
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['text']='¿Qué querés explorar?\n'*160;server.store.persist(data)
+            page.wait_for_function("() => document.querySelector('.run-text').textContent.length>3000")
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
             page.locator('#latest-answer').wait_for()
             with server.store.lock:
