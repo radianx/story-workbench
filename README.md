@@ -26,6 +26,8 @@ Las importaciones trabajan con copias y dejan los originales en su lugar. EPUB y
 
 En **Configuración → Carpeta de trabajo** podés elegir o crear el espacio donde guardar tus proyectos. El cambio se aplica al reiniciar y no mueve los proyectos existentes.
 
+En **Plan y avance** podés ordenar los capítulos o cuentos. El asistente recibe siempre ese índice, sabe cuál está seleccionado y si ya existe una copia traducida; el texto de los demás documentos solo se envía cuando los marcás como fuente.
+
 ## Qué podés hacer
 
 | Función | Cómo te ayuda |
