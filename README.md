@@ -33,7 +33,7 @@ En **Configuración → Carpeta de trabajo** podés elegir o crear el espacio do
 | Creación guiada | Desarrollar la historia mediante entrevista, fichas de personajes y mundo, plan de capítulos y borradores que decidís cuándo guardar. |
 | Revisión editorial | Pedir diagnósticos, analizar el impacto de un cambio y comparar propuestas antes/después. Solo tu aprobación modifica el texto. |
 | Traducción literaria | Acordar un encargo y glosario, resolver matices con citas y alternativas, corregir el borrador y aprobar una copia separada. El acceso **Traducir y consultar matices** junto al chat prepara el siguiente paso sin enviar automáticamente. |
-| Biblioteca y conversaciones | Organizar fuentes, buscar contenido, iniciar una conversación con contexto limpio y consultar chats anteriores. Archivar retira un proyecto de la biblioteca sin borrar sus archivos. |
+| Biblioteca y conversaciones | Organizar fuentes, buscar contenido, iniciar una conversación con contexto limpio y consultar chats anteriores. El asistente conoce el índice y orden de los manuscritos sin recibir el texto de fuentes no seleccionadas. Archivar retira un proyecto de la biblioteca sin borrar sus archivos. |
 | Edición y recuperación | Escribir Markdown con vista previa, deshacer/rehacer y recuperar versiones guardadas desde el historial. |
 | Voz | Dictar en español, escuchar respuestas y ajustar el volumen. La voz online opcional conecta el dictado con el mismo chat; también ofrece controles de navegación. |
 | Imágenes | Pedir imágenes en el chat Codex y abrir sus miniaturas con zoom, descargar el original o reutilizarlas como portada 3D. Se conservan en el historial y la galería. |

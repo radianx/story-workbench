@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from src.workbench_store import Store, Problem
-from src.workbench_ai import Assistant
+from src.workbench_ai import Assistant, build_project_brief
 import src.workbench_modes as modes
 import test_workbench
 
@@ -96,6 +96,19 @@ class Modes(unittest.TestCase):
         data=self.store.load(project);data.pop('schema_version');data.pop('purpose');self.store.persist(data)
         self.assertEqual(self.store.load(project)['purpose'],'novel')
         with self.assertRaises(Problem):self.store.create('Inválido',purpose='combat')
+
+    def test_ordered_manuscript_index_is_available_without_unselected_text(self):
+        data=self.store.load(self.project)
+        second=self.store.add_document(self.project,'02 · Siguiente cuento.md','manuscrito','Texto que no debe viajar.',selected=False)
+        data=self.store.load(self.project)
+        data['documents'].append(dict(id='translation',name='First story · English.md',role='traducción',selected=False,
+                                      translation={'source':self.source['id']}))
+        brief=build_project_brief(data,'translation')
+        self.assertEqual([(d['position'],d['name']) for d in brief['manuscript_index']],
+                         [(1,'Original.md'),(2,'02 · Siguiente cuento.md')])
+        self.assertTrue(brief['manuscript_index'][0]['translation_copy_exists'])
+        self.assertFalse(brief['manuscript_index'][1]['selected_as_context'])
+        self.assertNotIn(second['content'],json.dumps(brief))
 
 class ModesHTTP(unittest.TestCase):
     setUp=test_workbench.HTTPTests.setUp
