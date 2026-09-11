@@ -1290,15 +1290,28 @@
           </p>
         </section>
         <section id="settings-images">
-          <h3>Generación de imágenes · experimental</h3>
+          <h3>Generación de imágenes</h3>
+          <h4>Con Codex y tu sesión ChatGPT</h4>
           <p>
-            Adaptadores opcionales de OpenAI API y Google Gemini. Estas APIs
-            tienen condiciones y facturación propias, separadas de ChatGPT.
-            Configurar una clave aquí no cambia el motor editorial Codex elegido
-            para el proyecto.
+            Disponible en el chat sin configurar una clave API adicional.
+            Pedí una imagen explícitamente, por ejemplo: «Generá una ilustración
+            de este personaje». Usá Entrevista guiada, Conversar o Redactar
+            borrador, con Codex y sin equipo de agentes. La disponibilidad
+            depende de tu cuenta.
+          </p>
+          <p>
+            La imagen aparecerá en el chat y en la galería, con zoom y descarga.
+            Para pedirla desde un proyecto de traducción, elegí Conversar.
+          </p>
+          <h4>Proveedores por API · experimental</h4>
+          <p>
+            Alternativa opcional para el formulario de la galería: OpenAI API
+            o Google Gemini, con clave y facturación propias, separadas de
+            ChatGPT. Estos ajustes solo se aplican a ese formulario; no son
+            necesarios para generar imágenes en el chat Codex.
           </p>
           <label for="image-settings-provider"
-            >Proveedor de imágenes preferido</label
+            >Proveedor API preferido para la galería</label
           ><select id="image-settings-provider">
             <option value="openai">OpenAI API · experimental</option>
             <option value="gemini">Google Gemini · experimental</option>
@@ -1675,7 +1688,7 @@
           ><label for="image-model">ID de modelo</label
           ><input id="image-model" maxlength="160" required="" />
           <button class="secondary" id="image-settings-open" type="button">
-            Configurar proveedor y clave…
+            Configurar proveedor API y clave…
           </button>
           <label for="image-prompt">Descripción de la imagen</label
           ><textarea
