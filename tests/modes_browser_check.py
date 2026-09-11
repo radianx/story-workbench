@@ -60,7 +60,12 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             assert page.evaluate("localStorage.getItem('sw-context-threshold')") == '90'
             page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=950;renderContextWarning()}")
             assert page.locator('#context-warning').is_visible()
-            page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=200;renderContextWarning()}")
+            page.evaluate("() => {currentRuns().at(-1).context_pending=true;currentRuns().at(-1).context_usage=null;renderContextWarning()}")
+            assert 'Actualizando contexto' in page.locator('#context-warning').inner_text()
+            assert '%' not in page.locator('#context-warning').inner_text()
+            page.evaluate("() => {$('context-warning-enabled').checked=false;$('context-warning-enabled').onchange()}")
+            assert page.locator('#context-warning').is_hidden()
+            page.evaluate("() => {$('context-warning-enabled').checked=true;$('context-warning-enabled').onchange();currentRuns().at(-1).context_pending=false;currentRuns().at(-1).context_usage={tokens:200,window:1000};renderContextWarning()}")
             assert page.locator('#context-warning').is_hidden()
             page.evaluate("() => {currentRuns().at(-1).context_usage.tokens=950;state.thread=null;renderContextWarning()}")
             assert page.locator('#context-warning').is_hidden()

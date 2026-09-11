@@ -321,6 +321,7 @@ class Assistant:
             turn_id = response['turn']['id']
             self.update(project, run['id'], status='running', stage='generation', resumed=resumed)
             output, last_save, last_interrupt = '', 0, 0
+            compacting = False
             async with asyncio.timeout(600 if images_enabled or run['mode']=='translate' else 240):
                 while True:
                     if self.cancel.is_set() and time.monotonic() - last_interrupt > 0.5:
@@ -337,9 +338,16 @@ class Assistant:
                     if p.get('threadId') != thread_id:
                         continue
                     method = event.get('method')
-                    if method == 'thread/tokenUsage/updated' and p.get('turnId') == turn_id:
-                        usage = context_usage(p.get('tokenUsage'))
-                        self.update(project, run['id'], context_usage=usage, context_thread=thread_id)
+                    if p.get('turnId') == turn_id:
+                        if (method in ('item/started', 'item/completed') and
+                                p.get('item', {}).get('type') == 'contextCompaction') or method == 'thread/compacted':
+                            compacting = method == 'item/started'
+                            self.update(project, run['id'], context_usage=None,
+                                        context_pending=True, context_thread=thread_id)
+                        elif method == 'thread/tokenUsage/updated' and not compacting:
+                            usage = context_usage(p.get('tokenUsage'))
+                            self.update(project, run['id'], context_usage=usage,
+                                        context_pending=usage is None, context_thread=thread_id)
                     if method == 'item/completed' and p.get('turnId') == turn_id and p.get('item', {}).get('type') == 'imageGeneration':
                         if images_enabled and not self.cancel.is_set():
                             from src.workbench_images import receive_codex_image

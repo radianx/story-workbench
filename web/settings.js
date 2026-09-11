@@ -223,10 +223,11 @@ function renderContextWarning() {
     run.sources.some(source => source.id === d.id && source.hash === d.hash));
   const percent = usage ? usage.tokens / usage.window * 100 : 0;
   const warning = $('context-warning');
-  warning.hidden = !(enabled && sameSources && state.thread === run.context_thread && percent >= threshold &&
+  warning.hidden = !(enabled && sameSources && state.thread === run.context_thread && (run.context_pending || percent >= threshold) &&
     (state.engine?.provider || 'codex') === 'codex' &&
     (!state.ai_preferences?.model || state.ai_preferences.model === run.model));
-  warning.textContent = warning.hidden ? '' :
+  warning.textContent = warning.hidden ? '' : run.context_pending ?
+    'Actualizando contexto… · esperando una nueva medición de Codex' :
     `Contexto: ${Math.round(percent)}% · ${usage.tokens.toLocaleString('es')} / ${usage.window.toLocaleString('es')} tokens · última medición de Codex`;
 }
 $('context-warning-enabled').onchange = action(() => {
