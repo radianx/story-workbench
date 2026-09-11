@@ -40,7 +40,7 @@ En **Configuración → Carpeta de trabajo** podés elegir o crear el espacio do
 | Libro 3D | Explorar una maqueta giratoria con portada, contraportada, tamaño de hoja y lomo estimado según páginas y papel. El tamaño inicial es 6 × 9 pulgadas. |
 | Exportación | Descargar documentos y libros en Markdown, DOCX o PDF de lectura; exportar el proyecto como ZIP con documentos e imágenes guardadas. El ZIP no incluye conversaciones. |
 | Personalización | Elegir tema del sistema, paletas claras/oscuras, colores propios, tipografía y opacidad de una imagen de fondo. Las preferencias se recuerdan. |
-| Equipo editorial · experimental | Coordinar hasta tres colaboradores con modelo y esfuerzo propios, incluido un panel ciego de lectores simulados. Puede consumir más cuota que un solo agente. |
+| Equipo editorial · experimental | Activar «Utilizar múltiples agentes simultáneos» para configurar hasta tres colaboradores, cada uno con su modelo y esfuerzo, en un modal propio. Incluye un panel ciego de lectores simulados. Puede consumir más cuota que un solo agente. |
 | Mundos de rol · extra | Preparar personajes, facciones, lugares y reglas para una mesa de rol. No es una plataforma para jugar partidas. |
 
 El PDF y la maqueta 3D sirven para lectura y revisión; no sustituyen la maquetación final ni una prueba de imprenta para KDP. La importación de EPUB no implica exportación a EPUB.

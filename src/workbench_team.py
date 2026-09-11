@@ -22,13 +22,15 @@ BLIND_BRIEF = ('Leé por orden como un lector nuevo. Informá por bloque qué en
 
 def team_preferences(value):
     check(isinstance(value, dict), 'Configuración del equipo inválida.')
-    result = ai_preferences(value)
-    check(all(result.values()), 'Elegí modelo y esfuerzo explícitos para los colaboradores.')
     count = value.get('max_agents', 2)
     check(type(count) is int and 1 <= count <= 3, 'Elegí entre uno y tres colaboradores.')
+    raw = value.get('workers', [value] * count)
+    check(isinstance(raw, list) and len(raw) == count, 'Configurá cada colaborador del equipo.')
+    workers = [ai_preferences(worker) for worker in raw]
+    check(all(all(worker.values()) for worker in workers), 'Elegí modelo y esfuerzo explícitos para cada colaborador.')
     readers=value.get('readers',['impatient','literary'])
     check(isinstance(readers,list) and 1<=len(readers)<=3 and all(isinstance(r,str) and r in READER_PROFILES for r in readers) and len(set(readers))==len(readers), 'Elegí de uno a tres perfiles de lectura distintos.')
-    return {**result, 'max_agents': count, 'readers': readers}
+    return {**workers[0], 'max_agents': count, 'readers': readers, 'workers': workers}
 
 
 def plan_schema(count):
@@ -73,7 +75,6 @@ async def collect(server, thread, turn, limit=12000):
 async def run_team(assistant, server, thread, inputs, chosen, policy, overrides, run, docs, brief, decisions):
     preferences = team_preferences(run['team'])
     # El catálogo ya fue validado antes de gastar el primer turno del principal.
-    worker_ai = {k: preferences[k] for k in ('model', 'effort')}
     project, run_id = run['project_id'], run['id']
     from src.workbench_ai import EDITOR_INSTRUCTIONS, MODES
     from src.workbench_modes import GUIDES
@@ -98,11 +99,12 @@ async def run_team(assistant, server, thread, inputs, chosen, policy, overrides,
         else:
             started = await server.rpc('turn/start', request)
             tasks = validate_plan(await collect(server, thread, started['turn']['id']), preferences['max_agents'], docs)
-        workers = [{**task, **worker_ai, 'status': 'connecting', 'text': ''} for task in tasks]
+        workers = [{**task, **preferences['workers'][i], 'status': 'connecting', 'text': ''} for i, task in enumerate(tasks)]
         assistant.update(project, run_id, team_workers=workers, stage='team_work', team_stage='Colaboradores trabajando')
 
         async def worker(index):
             record = workers[index]
+            worker_ai = preferences['workers'][index]
             worker_policy = {**policy, 'model': worker_ai['model'], 'developerInstructions':
                 EDITOR_INSTRUCTIONS + '\n' + GUIDES.get(run['purpose'], '') +
                 '\nSos un colaborador editorial. Cumplí solo la tarea asignada. No podés delegar, aprobar canon '

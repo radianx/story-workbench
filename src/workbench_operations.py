@@ -74,7 +74,8 @@ def project_operation(services, path, body):
                 from src.workbench_account import resolve_ai
                 check(not services.assistant.active, 'Esperá a que termine la tarea.',409)
                 preferences=team_preferences(body.get('preferences'))
-                resolve_ai(preferences,services.account.snapshot().get('models',[]))
+                for worker in preferences['workers']:
+                    resolve_ai(worker,services.account.snapshot().get('models',[]))
                 data['team_preferences']=preferences;store.persist(data);result=store.snapshot(project)
             elif path == '/api/project/ai':
                 from src.workbench_account import ai_preferences, resolve_ai

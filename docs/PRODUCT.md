@@ -150,3 +150,11 @@ La traducción conserva capítulos completos sin dividirlos a 12.000 caracteres.
 Aviso de una línea sobre el chat, desde el 85% por defecto, configurable y persistido por usuario. Usa la última medición de tokens y ventana reportada por Codex, no el consumo acumulado. Se oculta por debajo del umbral o sin medición válida; no estima el mensaje sin enviar ni ofrece porcentajes de adaptadores que todavía no reportan esta información. Las unidades de proyectos existentes no se fusionan automáticamente.
 
 Al detectar compactación de Codex se invalida la medición anterior y se muestra «Actualizando contexto…» hasta recibir una medición nueva. La preferencia de ocultar el aviso también se respeta durante esa espera.
+
+## Controles del equipo y fecha de respuestas
+
+«Utilizar múltiples agentes simultáneos» abre un modal propio con aviso experimental y de mayor consumo. Configurar equipo aparece solo mientras la opción está activa. Cada colaborador tiene modelo y esfuerzo individuales; las configuraciones anteriores se expanden conservando su selección. Se validan todos los modelos antes del primer turno. El principal conserva los controles del chat y la aprobación editorial sigue siendo humana.
+
+Cada respuesta muestra a la derecha del encabezado la fecha y hora de finalización. Las respuestas antiguas sin ese dato muestran explícitamente Inicio con la fecha existente. La hora no implica detección automática de tareas trabadas.
+
+Durante una tarea, el encabezado muestra el tiempo transcurrido y el atajo Escape para interrumpir. El contador se actualiza cada segundo. Escape conserva el cierre de diálogos; al finalizar aparece la hora de la respuesta.

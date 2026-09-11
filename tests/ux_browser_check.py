@@ -138,6 +138,18 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
                 data=server.store.load(project);data['runs'][0]['status']='running';server.store.persist(data)
             page.locator('.run-text.is-streaming').wait_for()
             assert page.locator('#cancel').is_visible()
+            assert 'presioná Escape' in page.locator('[data-working-since]').inner_text()
+            first_elapsed=page.locator('[data-working-since]').inner_text()
+            page.wait_for_function('(previous)=>document.querySelector("[data-working-since]").textContent!==previous',arg=first_elapsed)
+            interrupts=[]
+            page.route('**/api/run/cancel',lambda route:(interrupts.append(route.request.post_data_json),route.fulfill(status=200,content_type='application/json',body='{}')))
+            page.locator('#settings-open').click();page.keyboard.press('Escape')
+            assert interrupts==[]
+            page.locator('#prompt').focus();page.keyboard.press('Escape')
+            page.wait_for_function("() => !$('cancel').hasAttribute('aria-busy')")
+            assert len(interrupts)==1 and interrupts[0]['run']=='ux-run'
+            page.unroute('**/api/run/cancel')
+
             assert page.locator('.run-output > summary .work-spinner').is_visible()
             assert page.locator('.work-spinner').evaluate('el=>getComputedStyle(el).animationName')=='workbench-wait'
             assert page.locator('#cancel').evaluate('el=>getComputedStyle(el).backgroundColor')=='rgb(180, 35, 50)'

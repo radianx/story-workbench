@@ -49,6 +49,23 @@ class TeamTests(unittest.TestCase):
         data['documents'][0]['synopsis']='SINOPSIS-SECRETA'
         self.store.persist(data)
         FakeServer.calls=[];FakeServer.instances=[];FakeServer.count=0;FakeServer.hold=False;FakeServer.wrong=False;FakeServer.bad_plan=False
+    def test_individual_models_and_legacy_preferences(self):
+        data=self.store.load(self.project)
+        data['team_preferences']=team_preferences(dict(max_agents=2,workers=[dict(model='modelo-b',effort='low'),dict(model='modelo-a',effort='medium')]))
+        self.store.persist(data)
+        run=self.execute()
+        saved=self.store.load(self.project)['runs'][-1]
+        self.assertGreaterEqual(saved['finished_at'],saved['date'])
+        workers=saved['team_workers']
+        self.assertEqual([(w['model'],w['effort']) for w in workers],[('modelo-b','low'),('modelo-a','medium')])
+        turns=[p for n,m,p in FakeServer.calls if n and m=='turn/start']
+        self.assertEqual([(p['model'],p['effort']) for p in turns],[('modelo-b','low'),('modelo-a','medium')])
+        with self.assertRaises(Problem):team_preferences(dict(max_agents=2,workers=[dict(model='modelo-b',effort='low')]))
+        data=self.store.load(self.project);data['team_preferences']['workers'][1]['model']='missing';self.store.persist(data)
+        FakeServer.calls=[]
+        with self.assertRaises(Problem):self.execute()
+        self.assertFalse(any(m=='turn/start' for _,m,_ in FakeServer.calls))
+
     def prepare(self,mode='panel'):
         with patch('threading.Thread.start'):
             self.assistant.start(self.project,mode,'BUSCAR-DEFECTO-SESGADO',False,True)

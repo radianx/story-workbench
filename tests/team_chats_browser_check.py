@@ -1,5 +1,5 @@
 """Equipo acotado y chats archivados con servidores IA simulados, sin cuota real."""
-import sys,tempfile,threading
+import sys,tempfile,threading,os
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
@@ -12,20 +12,33 @@ with tempfile.TemporaryDirectory(prefix='sw-team-chats-') as directory:
     project=server.store.create('Lectores de prueba',True)['id']
     threading.Thread(target=server.serve_forever,daemon=True).start()
     try:
-        with sync_playwright() as p,patch('src.workbench_ai.Server',FakeServer),patch('src.workbench_team.Server',FakeServer):
+        with patch.dict(os.environ, {'STORY_CODEX_BINARY': sys.executable}),sync_playwright() as p,patch('src.workbench_ai.Server',FakeServer),patch('src.workbench_team.Server',FakeServer):
             browser=p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.add_init_script("localStorage.setItem('sw-setup-seen','1')")
             page.goto(server.origin+'/#token='+server.token);page.locator('#workspace').wait_for()
-            page.locator('#team-configure').click();page.locator('#team-model').select_option('modelo-b')
+            assert page.locator('#team-configure').is_hidden()
+            page.locator('#mode').select_option('panel');page.locator('#team-enabled').check()
+            assert page.locator('#team-settings').is_visible()
+            assert not page.locator('#settings-dialog').is_visible()
+            page.locator('#team-model').select_option('modelo-b')
+            page.locator('#team-model-1').select_option('modelo-a')
+            page.locator('#team-effort-1').select_option('medium')
             page.locator('#team-save').click();page.wait_for_function("()=>state.team_preferences?.model==='modelo-b'")
-            page.locator('#settings-close').click();page.locator('#mode').select_option('interview')
+            assert page.locator('#team-settings').is_hidden()
+            assert page.evaluate("state.team_preferences.workers[1]")=={'model':'modelo-a','effort':'medium'}
+            page.locator('#team-configure').click();page.locator('#team-close').click()
+            page.locator('#mode').select_option('interview')
             assert not page.locator('#team-enabled').is_visible()
             page.locator('#mode').select_option('panel');page.locator('#team-enabled').check()
             assert 'más cuota' in page.locator('#team-warning').inner_text()
+            page.locator('#team-close').click()
             page.locator('#settings-open').click();page.locator('#skill').uncheck();page.locator('#settings-close').click();page.locator('#prompt').fill('Primera lectura ciega');page.locator('#send').click()
             page.wait_for_function("()=>state.runs.at(-1)?.status==='completed'")
             assert page.locator('#runs .team-results').count()==1
+            assert page.locator('.run-time').inner_text().startswith('Última respuesta:')
+            assert page.locator('.run-time').get_attribute('datetime')
+            assert page.locator('.run-label').evaluate('el=>{const a=el.firstElementChild.getBoundingClientRect(),b=el.lastElementChild.getBoundingClientRect();return b.left>=a.right}')
             page.locator('#runs .team-results > summary').click()
             assert '2/2' in page.locator('#runs .team-results > summary').inner_text()
             page.locator('#runs .team-results details > summary').first.click()
@@ -55,8 +68,8 @@ with tempfile.TemporaryDirectory(prefix='sw-team-chats-') as directory:
             assert server.store.load(project)['thread']!=old_thread
             assert 'Primera lectura ciega' not in page.locator('#runs').inner_text()
             assert not server.store.load(project)['runs'][-1].get('team')
-            page.set_viewport_size({'width':390,'height':844});page.locator('#team-configure').click()
-            assert page.locator('#settings-dialog').evaluate('e=>e.scrollWidth<=e.clientWidth')
+            page.set_viewport_size({'width':390,'height':844});page.locator('#team-enabled').check()
+            assert page.locator('#team-settings').evaluate('e=>e.scrollWidth<=e.clientWidth')
             page.screenshot(path='/tmp/sw-team-mobile.png')
             assert not errors,errors
             browser.close()

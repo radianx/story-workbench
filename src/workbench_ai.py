@@ -158,6 +158,8 @@ class Assistant:
         with self.store.lock:
             data = self.store.load(project)
             run = next(r for r in data['runs'] if r['id'] == run_id)
+            if values.get('status') in ('completed', 'failed', 'interrupted'):
+                values.setdefault('finished_at', time.time())
             run.update(values)
             self.store.persist(data)
 
@@ -236,7 +238,10 @@ class Assistant:
         async with Server(cwd, overrides, experimental=True) as server:
             models=await list_models(server)
             chosen = resolve_ai(run.get('requested_ai', {}), models)
-            if run.get('team'): resolve_ai(run['team'], models)
+            if run.get('team'):
+                from src.workbench_team import team_preferences
+                for worker in team_preferences(run['team'])['workers']:
+                    resolve_ai(worker, models)
             self.update(project, run['id'], stage='context')
             if self.cancel.is_set():
                 self.update(project, run['id'], status='interrupted')

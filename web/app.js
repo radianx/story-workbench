@@ -775,6 +775,23 @@ function imageAttachmentsHTML(run) {
       : "")
   );
 }
+function workingTime(start) {
+  const seconds = Math.max(0, Math.floor(Date.now()/1000-start));
+  return `Trabajando (${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')} · presioná Escape para interrumpir)`;
+}
+setInterval(() => {
+  for (const node of document.querySelectorAll('[data-working-since]'))
+    node.textContent = workingTime(Number(node.dataset.workingSince));
+}, 1000);
+function runTimestamp(run) {
+  if (['connecting','running'].includes(run.status) && Number.isFinite(run.date))
+    return `<span class="run-time" data-working-since="${run.date}">${workingTime(run.date)}</span>`;
+  const value = run.finished_at ?? run.date;
+  if (!Number.isFinite(value)) return '';
+  const date = new Date(value * 1000);
+  const label = run.finished_at ? (run.status === 'completed' ? 'Última respuesta' : 'Finalizada') : 'Inicio';
+  return `<time class="run-time" datetime="${date.toISOString()}" title="${label}">${label}: ${escapeHTML(date.toLocaleString('es', {dateStyle:'short', timeStyle:'medium'}))}</time>`;
+}
 function renderAssistant() {
   resizePrompt();
   renderContextWarning();
@@ -826,7 +843,7 @@ function renderAssistant() {
       currentRuns()
         .map(
           (r) =>
-            `<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label">✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status] || r.status}${r.model ? ` · ${escapeHTML(r.provider && r.provider !== "codex" ? r.provider + " · experimental" : "Codex")} · ${escapeHTML(r.reported_model || r.model)}${r.effort ? " · " + escapeHTML(effortLabels[r.effort] || r.effort) : ""}` : ""}</div><details class="run-output ${outputPreference(r.id).seen ? "" : "is-new"}" data-output="${r.id}" ${outputPreference(r.id).open !== false ? "open" : ""}><summary>${r.status === "completed" ? "Respuesta lista" : labels[r.status] || r.status}${r.status === "running" ? '<span class="work-spinner" aria-hidden="true"></span>' : ""}${outputPreference(r.id).seen ? "" : '<span class="new-tag">Nuevo</span>'}</summary><div class="run-text markdown${r.status === "running" && r.text && r.mode !== "translate" ? " is-streaming" : ""}">${markdown(r.mode === "translate" && r.status !== "completed" ? "Preparando la consulta o traducción revisable…" : r.text || (["running", "connecting"].includes(r.status) ? "Preparando una respuesta…" : ""))}</div>${imageAttachmentsHTML(r)}${translationHTML(r)}${typeof teamHTML === "function" ? teamHTML(r) : ""}${r.error ? `<div class="run-error">${escapeHTML(r.error)}</div>` : ""}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference("sources-" + r.id).open ? "open" : ""}><summary>${r.sources.length} fuentes enviadas · ${r.guide === "integrated" ? "Guía integrada" : r.skill ? "build-novel" : "Asistente general"}</summary>${r.sources.map((s) => `${escapeHTML(s.name)} · ${s.hash.slice(0, 8)}${s.synopsis || s.pov ? " · incluye ficha del plan" : ""}${state.documents.find((d) => d.id === s.id)?.hash !== s.hash ? " · cambió desde este envío" : ""}`).join("<br>")}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status === "completed" ? `<button class="quiet" data-read="${r.id}">Escuchar</button>` : ""}${r.mode === "draft" && r.status === "completed" ? `<button class="quiet" data-draft="${r.id}">${r.saved_document ? "Abrir borrador guardado" : r.purpose === "rpg" ? "Guardar material de rol provisional" : "Guardar como borrador provisional"}</button>` : ""}${r.mode === "summary" && r.status === "completed" ? `<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>` : ""}${r.status === "completed" && !outputPreference(r.id).seen ? `<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>` : ""}</details></div>`,
+            `<div class="run"><div class="run-prompt">${escapeHTML(r.prompt)}</div><div class="run-label"><span>✧ ${labels[r.mode].toUpperCase()} · ${labels[r.status] || r.status}${r.model ? ` · ${escapeHTML(r.provider && r.provider !== "codex" ? r.provider + " · experimental" : "Codex")} · ${escapeHTML(r.reported_model || r.model)}${r.effort ? " · " + escapeHTML(effortLabels[r.effort] || r.effort) : ""}` : ""}</span>${runTimestamp(r)}</div><details class="run-output ${outputPreference(r.id).seen ? "" : "is-new"}" data-output="${r.id}" ${outputPreference(r.id).open !== false ? "open" : ""}><summary>${r.status === "completed" ? "Respuesta lista" : labels[r.status] || r.status}${r.status === "running" ? '<span class="work-spinner" aria-hidden="true"></span>' : ""}${outputPreference(r.id).seen ? "" : '<span class="new-tag">Nuevo</span>'}</summary><div class="run-text markdown${r.status === "running" && r.text && r.mode !== "translate" ? " is-streaming" : ""}">${markdown(r.mode === "translate" && r.status !== "completed" ? "Preparando la consulta o traducción revisable…" : r.text || (["running", "connecting"].includes(r.status) ? "Preparando una respuesta…" : ""))}</div>${imageAttachmentsHTML(r)}${translationHTML(r)}${typeof teamHTML === "function" ? teamHTML(r) : ""}${r.error ? `<div class="run-error">${escapeHTML(r.error)}</div>` : ""}<details class="run-sources" data-output="sources-${r.id}" ${outputPreference("sources-" + r.id).open ? "open" : ""}><summary>${r.sources.length} fuentes enviadas · ${r.guide === "integrated" ? "Guía integrada" : r.skill ? "build-novel" : "Asistente general"}</summary>${r.sources.map((s) => `${escapeHTML(s.name)} · ${s.hash.slice(0, 8)}${s.synopsis || s.pov ? " · incluye ficha del plan" : ""}${state.documents.find((d) => d.id === s.id)?.hash !== s.hash ? " · cambió desde este envío" : ""}`).join("<br>")}<br>Se enviaron como texto. No afirmamos lectura mediante herramientas.</details>${r.status === "completed" ? `<button class="quiet" data-read="${r.id}">Escuchar</button>` : ""}${r.mode === "draft" && r.status === "completed" ? `<button class="quiet" data-draft="${r.id}">${r.saved_document ? "Abrir borrador guardado" : r.purpose === "rpg" ? "Guardar material de rol provisional" : "Guardar como borrador provisional"}</button>` : ""}${r.mode === "summary" && r.status === "completed" ? `<button class="quiet" data-summary="${r.id}">Guardar resumen como fuente provisional</button>` : ""}${r.status === "completed" && !outputPreference(r.id).seen ? `<button class="quiet run-seen" data-seen="${r.id}">Marcar como visto</button>` : ""}</details></div>`,
         )
         .join("") ||
       '<div class="assistant-empty"><div class="empty-symbol">✧</div><h3>Tu historia, con otra mirada.</h3><p>Las fuentes dan contexto.<br>Vos marcás el rumbo.</p><div class="quick-actions"><button data-quick="diagnosis">◈ Encontrar contradicciones</button><button data-quick="impact">↗ ¿Qué cambia si cambio esto?</button><button data-quick="proposal">≋ Afinar un pasaje</button></div></div>';
@@ -1230,7 +1247,7 @@ async function sendChatMessage(
   if (!message.trim()) return;
   if (!(await engineReady()) || state.id !== project || !valid()) return;
   if (mode === "panel" && !team)
-    throw Error("Activá Usar equipo para ejecutar el panel ciego.");
+    throw Error("Activá múltiples agentes para ejecutar el panel ciego.");
   const previousResponses = currentRuns().filter(r => r.status === "completed").map(r => r.id);
   const run = await api("/api/run", {
     project,
@@ -1259,6 +1276,13 @@ $("cancel").onclick = action(async () => {
     await api("/api/run/cancel", { project: state.id, run: run.id });
     await poll();
   }
+});
+window.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || event.repeat || event.isComposing || event.defaultPrevented ||
+      document.querySelector('dialog[open]') || event.target?.matches('select') || !busy() ||
+      busy().status === 'cancelling') return;
+  event.preventDefault();
+  $('cancel').click();
 });
 $("prompt").onkeydown = (e) => {
   if (
