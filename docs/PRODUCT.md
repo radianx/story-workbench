@@ -158,3 +158,9 @@ Al detectar compactación de Codex se invalida la medición anterior y se muestr
 Cada respuesta muestra a la derecha del encabezado la fecha y hora de finalización. Las respuestas antiguas sin ese dato muestran explícitamente Inicio con la fecha existente. La hora no implica detección automática de tareas trabadas.
 
 Durante una tarea, el encabezado muestra el tiempo transcurrido y el atajo Escape para interrumpir. El contador se actualiza cada segundo. Escape conserva el cierre de diálogos; al finalizar aparece la hora de la respuesta.
+
+## Recuperación de traducciones extensas
+
+Los turnos editoriales de Codex ya no tienen un corte absoluto de 4/10 minutos. Tras 60 segundos sin eventos del turno, se muestra el tiempo sin actividad; el autor puede esperar o interrumpir. La cancelación cierra el proceso si no confirma la interrupción. Las operaciones de conexión conservan sus límites de espera y el equipo experimental conserva sus límites propios.
+
+El texto recibido se conserva incluso al desconectarse o fallar el formato. Las traducciones muestran el fragmento decodificable como incompleto y no aprobable, también para intentos antiguos. Retomar inicia otro turno explícito, verificando original, encargo, decisiones y fuentes; conserva el intento anterior y solicita una versión completa con el fragmento como referencia, sin concatenar JSON ni aprobar automáticamente. Puede consumir cuota y no garantiza que el modelo complete una unidad que exceda su capacidad de salida.

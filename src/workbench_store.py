@@ -216,6 +216,10 @@ class Store:
         # Los snapshots de contexto quedan privados; la UI recibe referencias, no duplicados completos.
         for run in data['runs']:
             run.pop('source_texts', None)
+            run.pop('recovery_text', None)
+            if run.get('mode') == 'translate' and not run.get('translation_result'):
+                from src.workbench_modes import partial_translation
+                run['translation_partial'] = partial_translation(run.get('text', ''))
         return data
 
     def add_documents(self, data, documents):

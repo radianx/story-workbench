@@ -137,7 +137,7 @@ def project_operation(services, path, body):
                 result = store.snapshot(project)
             elif path == '/api/run':
                 result = services.assistant.start(project, body.get('mode'),
-                    text_value(body.get('prompt'), 10_000, False), body.get('skill', True), body.get('team',False))
+                    text_value(body.get('prompt'), 10_000, False), body.get('skill', True), body.get('team',False), body.get('continue_run'))
             elif path == '/api/run/cancel':
                 services.assistant.stop(project, body.get('run'))
                 result = {'ok': True}

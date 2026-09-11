@@ -127,6 +127,10 @@ function translationDraft(run, kind, fallback = "") {
   );
 }
 function translationHTML(run) {
+  if (run.mode === 'translate' && !run.translation_result && run.translation_context) {
+    const interrupted = ['failed','interrupted'].includes(run.status);
+    return `<section class="translation-card"><strong>${interrupted ? 'Traducción incompleta · no aprobable' : 'Traducción en curso · provisional'}</strong>${run.translation_partial ? `<details data-output="partial-${run.id}" ${outputPreference('partial-'+run.id).open ? 'open' : ''}><summary>Ver texto parcial recibido</summary><pre class="translation-partial">${escapeHTML(run.translation_partial)}</pre></details>` : '<p>Todavía no se recibió texto del borrador traducido.</p>'}${interrupted ? `<p>Retomar inicia un nuevo turno con el fragmento como referencia y solicita una versión completa para revisar. Conserva este intento; puede consumir cuota.</p><button class="secondary" data-translation-resume="${run.id}" ${busy() ? 'disabled' : ''}>Retomar traducción</button>` : ''}</section>`;
+  }
   if (run.status !== "completed" || !run.translation_result) return "";
   const result = run.translation_result,
     id = run.id,
@@ -187,6 +191,12 @@ $("runs").addEventListener(
       input.value = option.wording + " — " + option.effect;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
+    }
+    if (button.dataset.translationResume) {
+      if (dirty) throw Error('Guardá el documento antes de retomar.');
+      await api('/api/run', {project, mode:'translate', prompt:'Retomemos la traducción interrumpida respetando el original y los criterios aprobados.', skill:$('skill').checked, team:false, continue_run:button.dataset.translationResume});
+      if (state?.id === project) await poll();
+      return;
     }
     if (button.dataset.translationAnswer) {
       const run = button.dataset.translationAnswer,

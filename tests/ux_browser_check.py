@@ -141,6 +141,13 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             assert 'presioná Escape' in page.locator('[data-working-since]').inner_text()
             first_elapsed=page.locator('[data-working-since]').inner_text()
             page.wait_for_function('(previous)=>document.querySelector("[data-working-since]").textContent!==previous',arg=first_elapsed)
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0].update(waiting=True,last_activity=time.time()-61);server.store.persist(data)
+            page.wait_for_function('()=>document.querySelector("[data-working-since]").textContent.startsWith("Sin actividad")')
+            assert 'podés esperar' in page.locator('[data-working-since]').inner_text()
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['waiting']=False;server.store.persist(data)
+            page.wait_for_function('()=>document.querySelector("[data-working-since]").textContent.startsWith("Trabajando")')
             interrupts=[]
             page.route('**/api/run/cancel',lambda route:(interrupts.append(route.request.post_data_json),route.fulfill(status=200,content_type='application/json',body='{}')))
             page.locator('#settings-open').click();page.keyboard.press('Escape')

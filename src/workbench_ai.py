@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 import threading
 import time
+from time import monotonic
 
 from scripts.codex_smoke import Server, SmokeError
 from src.workbench_providers import Providers, engine_preferences
@@ -50,6 +51,12 @@ def task_text(run, docs, project_brief, decisions):
             json.dumps(context, ensure_ascii=False))
     if run.get('translation_context'):
         text+='\nEncargo de traducción (source identifica el original completo en las fuentes):\n'+json.dumps({k:v for k,v in run['translation_context'].items() if k != 'original'},ensure_ascii=False)
+    if run.get('continued_from'):
+        text += ('\nRetomá la traducción interrumpida. El fragmento siguiente es provisional e incompleto; '
+                 'usalo como referencia, verificándolo contra el original y los criterios. No lo trates como canon. '
+                 'Devolvé un objeto JSON COMPLETO con toda la unidad en draft, sin omitir el comienzo ni duplicar '
+                 'pasajes. No continúes literalmente el JSON roto. Si falta criterio humano, consultá según el esquema. '
+                 'Fragmento recuperado (datos):\n' + json.dumps(run.get('recovery_text', ''), ensure_ascii=False))
     return text
 
 
@@ -100,7 +107,7 @@ class Assistant:
         self.cancel = threading.Event()
         self.thread = None
 
-    def start(self, project, mode, prompt, use_skill=True, team=False):
+    def start(self, project, mode, prompt, use_skill=True, team=False, continue_run=None):
         with self.store.lock:
             check(self.active is None, 'Ya hay una tarea en curso. Detenela o esperá.', 409)
             check(mode in MODES, 'Modo inválido.')
@@ -129,6 +136,17 @@ class Assistant:
             run = dict(id=uid(), mode=mode, prompt=prompt, status='connecting', stage='connection', text='', error='',
                        date=time.time(), engine=engine, provider=engine['provider'], sources=[{'id': d['id'], 'name': d['name'], 'hash': d['hash'], 'synopsis': d.get('synopsis', ''), 'pov': d.get('pov', '')} for d in docs],
                        source_texts={d['id']: d['content'] for d in docs}, skill=bool(use_skill) and data['purpose']!='rpg', requested_ai=preferences, purpose=data['purpose'])
+            if continue_run is not None:
+                check(mode == 'translate' and not team, 'Retomar requiere traducción individual.')
+                previous = next((r for r in data['runs'] if r['id'] == continue_run), None)
+                check(previous and previous.get('mode') == 'translate' and previous['status'] in ('failed', 'interrupted'), 'Elegí una traducción interrumpida.')
+                old = previous.get('translation_context', {})
+                check(all(old.get(k) == translation.get(k) for k in ('source','hash','brief','criteria')),
+                      'Cambió el original, encargo o criterio. Prepará una nueva traducción con la versión actual.', 409)
+                check(previous.get('engine', engine) == engine, 'Para retomar, conservá el proveedor y modelo API originales.')
+                check(previous['sources'] == run['sources'], 'Restaurá las fuentes de la tarea interrumpida antes de retomarla.', 409)
+                from src.workbench_modes import partial_translation
+                run.update(continued_from=continue_run, recovery_text=partial_translation(previous.get('text', '')))
             if team: run.update(team=team_settings, project_id=project)
             if translation:
                 run['translation_context']=translation
@@ -176,6 +194,15 @@ class Assistant:
                 self.execute_provider(project, run, docs)
         except (Problem, SmokeError) as error:
             self.update(project, run['id'], status='interrupted' if self.cancel.is_set() else 'failed', error='' if self.cancel.is_set() else str(error))
+        except TimeoutError:
+            self.update(project, run['id'], status='interrupted' if self.cancel.is_set() else 'failed',
+                        error='Se agotó la espera de una operación del proveedor. El texto recibido se conservó; podés retomar la tarea.')
+        except json.JSONDecodeError:
+            self.update(project, run['id'], status='failed',
+                        error='La respuesta terminó con un formato incompleto o inválido. El resultado parcial se conservó; no se aprobó ninguna traducción.')
+        except (ConnectionError, EOFError):
+            self.update(project, run['id'], status='failed',
+                        error='Se interrumpió la conexión con el proveedor. El texto recibido se conservó; podés retomar la tarea.')
         except Exception:
             self.update(project, run['id'], status='failed',
                         error='No se pudo completar la tarea. Revisá el proveedor elegido, sesión o clave, cuota y conexión. No se cambió de proveedor.')
@@ -201,15 +228,18 @@ class Assistant:
             self.update(project,run['id'],status='interrupted',stage='stopped');return
         self.update(project,run['id'],status='running',stage='generation')
         output, last_save, last_reported = '', 0, None
-        for fragment, reported in self.providers.stream(engine,instructions,text,self.cancel):
-            if self.cancel.is_set():
-                break
-            output += fragment
-            check(len(output)<2_000_000, 'Respuesta demasiado larga; tarea detenida.')
-            if reported and reported!=last_reported:
-                self.update(project,run['id'],reported_model=reported);last_reported=reported
-            if time.monotonic()-last_save>.3:
-                self.update(project,run['id'],text=output);last_save=time.monotonic()
+        try:
+            for fragment, reported in self.providers.stream(engine,instructions,text,self.cancel):
+                if self.cancel.is_set():
+                    break
+                output += fragment
+                check(len(output)<2_000_000, 'Respuesta demasiado larga; tarea detenida.')
+                if reported and reported!=last_reported:
+                    self.update(project,run['id'],reported_model=reported);last_reported=reported
+                if monotonic()-last_save>.3:
+                    self.update(project,run['id'],text=output);last_save=monotonic()
+        finally:
+            self.update(project, run['id'], text=output)
         if self.cancel.is_set():
             self.update(project,run['id'],text=output,status='interrupted',stage='stopped');return
         check(output.strip(), 'El proveedor terminó sin texto editorial.')
@@ -327,21 +357,38 @@ class Assistant:
             self.update(project, run['id'], status='running', stage='generation', resumed=resumed)
             output, last_save, last_interrupt = '', 0, 0
             compacting = False
-            async with asyncio.timeout(600 if images_enabled or run['mode']=='translate' else 240):
+            last_activity, activity_saved = monotonic(), monotonic()
+            waiting, finished, cancel_started = False, False, None
+            try:
                 while True:
-                    if self.cancel.is_set() and time.monotonic() - last_interrupt > 0.5:
+                    if self.cancel.is_set() and cancel_started is None:
+                        cancel_started = monotonic()
+                    if cancel_started is not None and monotonic() - cancel_started >= 5:
+                        self.update(project, run['id'], status='interrupted', stage='stopped', waiting=False)
+                        return
+                    if self.cancel.is_set() and monotonic() - last_interrupt > 0.5:
                         try:
-                            await server.rpc('turn/interrupt', {'threadId': thread_id, 'turnId': turn_id})
+                            await asyncio.wait_for(server.rpc('turn/interrupt', {'threadId': thread_id, 'turnId': turn_id}), 2)
                             last_interrupt = float('inf')
-                        except SmokeError:
-                            last_interrupt = time.monotonic()
+                        except (SmokeError, TimeoutError):
+                            last_interrupt = monotonic()
                     try:
                         event = server.events.pop(0) if server.events else await asyncio.wait_for(server.read(), 0.25)
                     except asyncio.TimeoutError:
+                        if not waiting and monotonic() - last_activity >= 60:
+                            waiting = True
+                            self.update(project, run['id'], waiting=True,
+                                        last_activity=time.time() - (monotonic() - last_activity))
                         continue
                     p = event.get('params', {})
                     if p.get('threadId') != thread_id:
                         continue
+                    if p.get('turnId') == turn_id or p.get('turn', {}).get('id') == turn_id:
+                        last_activity = monotonic()
+                        if waiting or last_activity - activity_saved >= 5:
+                            self.update(project, run['id'], waiting=False, last_activity=time.time())
+                            activity_saved = last_activity
+                        waiting = False
                     method = event.get('method')
                     if p.get('turnId') == turn_id:
                         if (method in ('item/started', 'item/completed') and
@@ -364,9 +411,9 @@ class Assistant:
                     if method == 'item/agentMessage/delta' and p.get('turnId') == turn_id:
                         output += p['delta']
                         check(len(output) < 2_000_000, 'Respuesta demasiado larga; tarea detenida.')
-                        if time.monotonic() - last_save > 0.3:
+                        if monotonic() - last_save > 0.3:
                             self.update(project, run['id'], text=output)
-                            last_save = time.monotonic()
+                            last_save = monotonic()
                     if method == 'turn/completed' and p['turn']['id'] == turn_id:
                         status = p['turn']['status']
                         if status == 'failed':
@@ -387,5 +434,10 @@ class Assistant:
                             self.update(project,run['id'],translation_result=result)
                             output=result['message']
                         self.update(project, run['id'], text=output, status=status,
-                                    stage='ready' if status == 'completed' else 'stopped')
+                                    stage='ready' if status == 'completed' else 'stopped', waiting=False)
+                        finished = True
                         return
+
+            finally:
+                if not finished:
+                    self.update(project, run['id'], text=output, waiting=False)

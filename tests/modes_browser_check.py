@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import tempfile
 import threading
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from src.app import AppServer
 from src.workbench_modes import validate_translation
@@ -208,6 +209,27 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             assert len(server.store.list_projects())==count
             page.locator('#wizard-purpose').select_option('novel');assert page.locator('#wizard-story').is_visible()
             page.locator('#wizard-cancel').click();assert len(server.store.list_projects())==count
+            # Historical partial JSON is readable but cannot be approved; resume is explicit.
+            recovery=server.store.create('Recuperación ficticia',purpose='translation',documents=[dict(name='Original',content='Te quiero')],translation=dict(source=0,source_language='es',target_language='en'))['id']
+            with patch('threading.Thread.start'):
+                requested=server.assistant.start(recovery,'translate','Traducción interrumpida',False)
+            server.assistant.update(recovery,requested['id'],status='failed',text='{"draft":"I care about',error='Conexión interrumpida')
+            server.assistant.active=None
+            with server.store.lock:
+                data=server.store.load(recovery)
+                data['runs'].insert(0,dict(data['runs'][0],id='f'*32,mode='interview',status='completed',text='Entrevista previa.',error=''))
+                server.store.persist(data)
+            page.reload();page.locator('#project').select_option(recovery)
+            old=page.locator('[data-output="'+requested['id']+'"]')
+            old.locator('summary').first.wait_for()
+            old.locator('[data-output^="partial-"] > summary').click()
+            assert old.locator('.translation-partial').inner_text()=='I care about'
+            assert old.locator('[data-translation-accept]').count()==0
+            old.locator('[data-translation-resume]').click()
+            page.wait_for_function('()=>state.runs.at(-1).status==="completed"&&!!state.runs.at(-1).continued_from')
+            assert page.evaluate('state.runs.at(-1).continued_from')==requested['id']
+            assert page.locator('[data-translation-answer]').count()==1
+            assert server.store.load(recovery)['runs'][1]['text']=='{"draft":"I care about'
             assert not errors,errors
             browser.close()
     finally:server.shutdown();server.server_close()

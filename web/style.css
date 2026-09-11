@@ -3413,3 +3413,5 @@ dialog #notice {
 .run-time[data-working-since] { white-space: normal; text-align: right; }
 .run-label > span:first-child { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 701px) { .run-label { flex-wrap: nowrap; } }
+
+.translation-partial { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; font: inherit; }

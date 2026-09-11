@@ -49,6 +49,17 @@ TRANSLATION_SCHEMA = {'type':'object', 'properties': {
     'required':['message','question','quote','draft','options'],'additionalProperties':False}
 
 
+def partial_translation(text):
+    """Decode only the received prefix of draft; never treat it as approved output."""
+    match = re.search(r'(?:^|[,{])\s*"draft"\s*:\s*"', text)
+    if not match:
+        return ''
+    tail = text[match.end():]
+    prefix = re.match(r'(?:[^"\\\x00-\x1f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*', tail)[0]
+    # A stream may stop between the two escapes of a Unicode surrogate pair.
+    return json.loads('"' + prefix + '"').encode('utf-8', errors='ignore').decode('utf-8')
+
+
 def brief_hash(config):
     # La fuente cambia por unidad; idioma, voz y glosario pertenecen a la edición.
     return digest(json.dumps({k:v for k,v in config.items() if k != 'source'}, sort_keys=True))
