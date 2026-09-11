@@ -3372,3 +3372,31 @@ dialog #notice {
   white-space: nowrap;
   overflow-x: auto;
 }
+
+.composer-entry-actions #cancel {
+  background: #b42332;
+  color: #fff;
+  border: 1px solid #b42332;
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 8px;
+}
+.composer-entry-actions #cancel:hover {
+  background: #941c29;
+  border-color: #941c29;
+}
+.run-text.is-streaming::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  background: currentColor;
+  vertical-align: text-bottom;
+  animation: writing-cursor 1s steps(2, jump-none) infinite;
+}
+@keyframes writing-cursor {
+  to { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .run-text.is-streaming::after { animation: none; }
+}

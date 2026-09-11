@@ -134,6 +134,23 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             assert page.locator('#send [aria-hidden=true]').inner_text()=='↵'
             assert max(r['bottom'] for r in rects[4:])-min(r['bottom'] for r in rects[4:])<3,rects
             page.screenshot(path='/tmp/sw-composer-wide.png',full_page=True)
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['status']='running';server.store.persist(data)
+            page.locator('.run-text.is-streaming').wait_for()
+            assert page.locator('#cancel').is_visible()
+            assert page.locator('#cancel').evaluate('el=>getComputedStyle(el).backgroundColor')=='rgb(180, 35, 50)'
+            assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='writing-cursor'
+            page.emulate_media(reduced_motion='reduce')
+            assert page.locator('.is-streaming').evaluate('el=>getComputedStyle(el,"::after").animationName')=='none'
+            page.emulate_media(reduced_motion='no-preference')
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['text']+='Nuevo fragmento';server.store.persist(data)
+            page.wait_for_function("() => document.querySelector('.is-streaming').textContent.trimEnd().endsWith('Nuevo fragmento')")
+            with server.store.lock:
+                data=server.store.load(project);data['runs'][0]['status']='completed';server.store.persist(data)
+            page.wait_for_function("() => !document.querySelector('.is-streaming')")
+            assert page.locator('#cancel').is_hidden()
+
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
             page.locator('#latest-answer').wait_for()
             with server.store.lock:
