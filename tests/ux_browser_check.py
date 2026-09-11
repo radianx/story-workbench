@@ -122,10 +122,13 @@ with tempfile.TemporaryDirectory(prefix='sw-ux-') as directory:
             page.locator('#settings-open').click();page.locator('#workflow').select_option('guided');page.locator('#settings-close').click()
             page.wait_for_function("() => document.body.classList.contains('guided')")
             # Acciones junto al texto; los selectores comparten una fila inferior.
-            rects=page.evaluate("() => ['prompt','send','dictate','auto-read','mode','ai-model','ai-effort'].map(id=>{const r=$(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom};})")
+            rects=page.evaluate("() => ['prompt','send','dictate','auto-read','mode','ai-model','ai-effort'].map(id=>{const r=$(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width};})")
             assert all(r['top']<rects[0]['bottom'] and r['bottom']>rects[0]['top'] for r in rects[1:3]),rects
-            assert rects[3]['top']>=rects[1]['bottom'] and rects[1]['bottom']-rects[1]['top']>=52,rects
-            assert page.locator('#send').inner_text()=='Enviar ↵'
+            assert rects[3]['top']>=rects[1]['bottom'],rects
+            # El compositor compacto conserva un blanco clickeable y nombre accesible.
+            assert rects[1]['bottom']-rects[1]['top']>=36 and rects[1]['width']>=36,rects
+            assert page.get_by_role('button',name='Enviar',exact=True).get_attribute('id')=='send'
+            assert page.locator('#send [aria-hidden=true]').inner_text()=='↵'
             assert max(r['bottom'] for r in rects[4:])-min(r['bottom'] for r in rects[4:])<3,rects
             page.screenshot(path='/tmp/sw-composer-wide.png',full_page=True)
             page.locator('#runs').evaluate('(el)=>el.scrollTop=120')
