@@ -1,6 +1,6 @@
 """Operaciones editoriales independientes del transporte HTTP."""
 from src.workbench_store import Problem, check, text_value, ROLES, WORKFLOWS
-from src.workbench_workspace import import_documents, import_preview
+from src.workbench_workspace import directory, import_documents, import_preview
 import src.workbench_modes as modes
 
 
@@ -9,12 +9,13 @@ def project_operation(services, path, body):
     with store.lock:
         if path == '/api/projects':
             documents=body.get('documents')
+            folder=None
             if body.get('import_folder') is not None:
                 folder=body['import_folder'];check(isinstance(folder,dict) and documents is None,'Importación inválida.')
                 documents=import_documents(folder.get('path'),folder.get('files'))
             result = store.create(body.get('title'), bool(body.get('demo')),
                                   body.get('workflow', 'writing'), body.get('initial_idea', ''), body.get('purpose','novel'),
-                                  documents, body.get('translation'))
+                                  documents, body.get('translation'), folder.get('path') if folder else '')
         elif path == '/api/import/preview':
             result=import_preview(body.get('path'))
         elif path == '/api/translation/detect':
@@ -41,6 +42,9 @@ def project_operation(services, path, body):
                 store.persist(data);result=store.snapshot(project)
             elif path == '/api/translation/config':
                 check(not services.assistant.active,'Esperá a que termine la tarea.',409)
+                if 'export_directory' in body:
+                    value=body['export_directory'];check(isinstance(value,str),'Carpeta de exportación inválida.')
+                    data['translation_export_directory']=str(directory(value)) if value else ''
                 modes.configure_translation(store,data,body.get('config'));result=store.snapshot(project)
             elif path == '/api/translation/answer':
                 modes.answer_translation(store,data,body.get('run'),body.get('answer'));result=store.snapshot(project)

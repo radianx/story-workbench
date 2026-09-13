@@ -18,6 +18,8 @@ El nuevo perfil web está en `webview`: tema y demás preferencias requieren con
 
 Configuración → Carpeta de trabajo permite elegir o crear otro espacio de proyectos. La preferencia está en `projects/.workspace.json` del perfil habitual y se aplica al reiniciar. El destino debe estar vacío o identificado por `.story-workbench`; no se reutiliza una carpeta de manuscritos como almacén. No se mueven bibliotecas existentes ni cuentas. Si el destino deja de estar disponible, se abre la biblioteca predeterminada con un aviso; nunca se recrea automáticamente el destino ausente.
 
+La carpeta desde la que se crea un proyecto con **Importar carpeta** queda vinculada inicialmente para exportar traducciones aprobadas. Esta ruta pertenece al proyecto y puede cambiarse o desactivarse en Traducción. La app escribe archivos Markdown nuevos con nombres legibles y numerados ante conflictos; no reemplaza los originales. El proyecto y su historial continúan en la carpeta de trabajo interna.
+
 Desinstalar conserva los datos. Exportar un proyecto produce un ZIP editorial con documentos y decisiones, sin conversaciones ni imágenes de maqueta; incluye los originales de imágenes generadas que se hayan guardado. Para conservar todo el perfil, usá una copia privada de la carpeta de proyectos. Una copia privada de toda la carpeta `projects` conserva también esos datos; no compartas la carpeta `codex` ni los almacenes de claves.
 
 ## Funciones y límites

@@ -101,3 +101,12 @@ class WorkspaceHTTP(unittest.TestCase):
         self.assertEqual(self.request('/api/workspace')[0],200)
         self.assertEqual(self.request('/api/import/preview',dict(path='relative'))[0],400)
         self.assertEqual(self.request('/api/projects',dict(title='X',import_folder='invalid'))[0],400)
+        source=Path(self.temp.name)/'source';source.mkdir();(source/'Original.md').write_text('Texto original.')
+        status,payload=self.request('/api/projects',dict(title='Desde carpeta',purpose='translation',
+            import_folder=dict(path=str(source),files=['Original.md']),
+            translation=dict(source=0,source_language='es',target_language='en')))
+        self.assertEqual(status,200)
+        project=json.loads(payload)
+        self.assertEqual(project['translation_export_directory'],str(source))
+        self.assertEqual(self.request('/api/translation/config',dict(project=project['id'],config=project['translation_config'],
+                                                                    export_directory='relative'))[0],400)

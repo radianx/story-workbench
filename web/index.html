@@ -1137,7 +1137,12 @@
             maxlength="6000"
             placeholder="Término → traducción; contexto y alternativas que querés evitar."
             rows="3"
-          ></textarea></label
+          ></textarea></label>
+        <label for="translation-export-folder">Carpeta de exportación vinculada</label>
+        <input id="translation-export-folder" placeholder="Sin exportación automática" />
+        <button class="secondary" id="translation-export-pick" type="button">Elegir carpeta…</button>
+        <button class="quiet" id="translation-export-clear" type="button">No guardar copias externas</button>
+        <p>Las traducciones aprobadas se guardan también allí sin sobrescribir archivos. La copia interna conserva el historial.</p
         ><button class="primary" type="submit">Guardar encargo</button>
       </form>
       <p id="translation-status" role="status"></p>

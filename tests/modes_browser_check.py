@@ -122,6 +122,7 @@ with tempfile.TemporaryDirectory(prefix='sw-modes-browser-') as directory:
             page.locator('#notices-clear').click()
             assert page.locator('#purpose-banner').is_visible() and page.locator('#task-progress').is_visible()
             page.locator('[data-translation-setup]').click()
+            assert page.locator('#translation-export-folder').input_value()==''
             page.locator('#translation-source').select_option(source['id'])
             page.locator('#translation-from').fill('es-AR');page.locator('#translation-to').fill('en-US')
             page.locator('#translation-intent').fill('Conservar el vínculo.')

@@ -24,6 +24,8 @@ Los instaladores todavía no están firmados. Para compatibilidad, ubicaciones d
 
 Las importaciones trabajan con copias y dejan los originales en su lugar. EPUB y DOCX se importan como texto: revisá el resultado, porque no se conserva su maquetación ni sus imágenes. **Importar carpeta** permite seleccionar Markdown/TXT de una carpeta y sus subcarpetas.
 
+Al importar una carpeta, queda vinculada inicialmente como destino de traducciones aprobadas. Podés cambiarla o desactivar ese guardado desde **Traducción**. Story Workbench conserva además su copia interna con historial y nunca sobrescribe un archivo externo existente.
+
 En **Configuración → Carpeta de trabajo** podés elegir o crear el espacio donde guardar tus proyectos. El cambio se aplica al reiniciar y no mueve los proyectos existentes.
 
 En **Plan y avance** podés ordenar los capítulos o cuentos. El asistente recibe siempre ese índice, sabe cuál está seleccionado y si ya existe una copia traducida; el texto de los demás documentos solo se envía cuando los marcás como fuente.

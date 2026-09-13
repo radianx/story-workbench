@@ -169,4 +169,6 @@ El agente recibe siempre el índice ordenado de documentos de manuscrito, indica
 
 Al aprobar una traducción, el encargo avanza al siguiente manuscrito sin traducción según el índice de Plan y avance, lo marca y conserva idiomas, intención y glosario. Al iniciar una traducción con un único manuscrito marcado, esa selección puede cambiar la unidad actual. Varias unidades marcadas mantienen la elección explícita de Preparar encargo para evitar cambiar el original por ambigüedad.
 
+Los proyectos creados mediante Importar carpeta vinculan inicialmente esa ubicación como carpeta de exportación. Cada traducción aprobada conserva la copia interna y escribe además un Markdown externo con nombre legible; nunca reemplaza un archivo existente y usa una variante numerada si hay conflicto. La ruta puede cambiarse o quedar vacía desde Traducción. Un fallo del destino externo no pierde la copia interna.
+
 Las respuestas nuevas se presentan carácter por carácter, a 150 palabras por minuto por defecto. La preferencia y velocidad se guardan por usuario; el efecto puede desactivarse para mostrar inmediatamente todo lo recibido y respeta la reducción de movimiento del sistema. El texto persistido y los chunks del proveedor no se retrasan ni alteran.

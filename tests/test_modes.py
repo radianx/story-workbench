@@ -108,6 +108,17 @@ class Modes(unittest.TestCase):
         self.assertFalse(next(d for d in saved['documents'] if d['id']==self.source['id'])['selected'])
         self.assertTrue(next(d for d in saved['documents'] if d['id']==following['id'])['selected'])
 
+    def test_approval_exports_without_overwriting_an_existing_file(self):
+        folder=self.store.root/'exports';folder.mkdir()
+        existing=folder/'Original · Inglés estadounidense.md';existing.write_text('No sobrescribir.')
+        data=self.store.load(self.project);data['translation_export_directory']=str(folder);self.store.persist(data)
+        run=self.result(DRAFT)
+        document=modes.accept_translation(self.store,self.store.load(self.project),run['id'],DRAFT['draft'])
+        exported=folder/'Original · Inglés estadounidense (2).md'
+        self.assertEqual(document['external_export'],str(exported))
+        self.assertEqual(exported.read_text(),DRAFT['draft'])
+        self.assertEqual(existing.read_text(),'No sobrescribir.')
+
     def test_rpg_and_legacy_defaults(self):
         data=self.store.create('Mesa ficticia',workflow='guided',purpose='rpg');project=data['id']
         self.assertEqual(data['documents'],[])

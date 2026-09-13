@@ -141,14 +141,17 @@ class Store:
         data['updated'] = time.time()
         atomic(self.path(data['id'], 'project.json'), json.dumps(data, ensure_ascii=False))
 
-    def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel', documents=None, translation=None):
+    def create(self, title, demo=False, workflow='writing', initial_idea='', purpose='novel', documents=None, translation=None,
+               translation_export_directory=''):
         from src.workbench_modes import PURPOSES, translation_languages, configure_translation
+        from src.workbench_workspace import directory
         check(purpose in PURPOSES, 'Objetivo de proyecto inválido.')
         check(not demo or purpose=='novel', 'El ejemplo es un proyecto de historia.')
         text_value(title, 160, False)
         check(workflow in WORKFLOWS, 'Forma de trabajo inválida.')
         text_value(initial_idea, 6000)
         check(not demo or workflow == 'writing', 'El ejemplo se abre en modo escritura.')
+        translation_export_directory = str(directory(translation_export_directory)) if translation_export_directory else ''
         documents = [] if documents is None else documents
         check(isinstance(documents,list) and len(documents)<=100 and not (demo and documents), 'Documentos iniciales inválidos.')
         prepared = []
@@ -173,7 +176,8 @@ class Store:
             (path / name).mkdir(mode=0o700)
         data = dict(id=project, title=title, updated=time.time(), documents=[], proposals=[],
                     decisions=[], runs=[], thread=None, context_key=None,
-                    workflow=workflow, initial_idea=initial_idea, purpose=purpose)
+                    workflow=workflow, initial_idea=initial_idea, purpose=purpose,
+                    translation_export_directory=translation_export_directory)
         try:
             self.persist(data)
             for doc in prepared:

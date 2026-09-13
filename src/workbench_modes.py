@@ -1,5 +1,7 @@
 """Traducción con criterio humano y preparación de mundos; reutiliza documentos e historial."""
 import json
+import os
+from pathlib import Path
 import re
 import time
 from src.workbench_store import check, text_value, digest, uid, MAX_TEXT
@@ -47,6 +49,34 @@ TRANSLATION_SCHEMA = {'type':'object', 'properties': {
         'wording':{'type':'string'},'effect':{'type':'string'}},
         'required':['wording','effect'],'additionalProperties':False}}},
     'required':['message','question','quote','draft','options'],'additionalProperties':False}
+
+
+def export_approved_translation(data, document, run):
+    folder=data.get('translation_export_directory')
+    if not folder:
+        return
+    from src.workbench_workspace import directory
+    root=directory(folder)
+    source=next(d for d in data['documents'] if d['id']==run['translation_context']['source'])
+    invalid=r'[\\/:<>"|?*\x00-\x1f]'
+    stem=re.sub(invalid,'-',re.split(r'[/\\]',source['name'])[-1].removesuffix('.md')).strip(' .')
+    language=re.sub(invalid,'-',run['translation_context']['config']['target_language']).strip(' .')
+    name=f'{(stem or "traducción")[:120]} · {language[:60] or "traducción"}.md'
+    for number in range(1,1001):
+        path=root/(name if number==1 else f'{Path(name).stem} ({number}).md')
+        try:
+            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        except FileExistsError:
+            continue
+        try:
+            with os.fdopen(fd,'w',encoding='utf-8',newline='') as output:
+                output.write(document['content']);output.flush();os.fsync(output.fileno())
+            document['external_export']=str(path)
+            return
+        except BaseException:
+            path.unlink(missing_ok=True)
+            raise
+    raise OSError('No hay un nombre de archivo disponible.')
 
 
 def partial_translation(text):
@@ -191,6 +221,10 @@ def accept_translation(store, data, run_id, text):
                                translation=dict(source=context['source'],hash=context['hash'],brief=context['brief'],
                                                 target_language=context['config']['target_language'],review_hash=digest(text)))
     data=store.load(data['id'])
+    try:
+        export_approved_translation(data,document,run)
+    except (OSError,Problem):
+        document['external_export_error']='La copia interna se guardó, pero no se pudo escribir en la carpeta de exportación.'
     manuscripts=[d for d in data['documents'] if d['role']=='manuscrito']
     position=next((i for i,d in enumerate(manuscripts) if d['id']==source['id']),None)
     translated={d.get('translation',{}).get('source') for d in data['documents']

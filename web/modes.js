@@ -223,7 +223,7 @@ $("runs").addEventListener(
         );
       const run = button.dataset.translationAccept,
         text = document.querySelector(`[data-translation-text="${run}"]`).value;
-      await api("/api/translation/accept", { project, run, text });
+      const accepted = await api("/api/translation/accept", { project, run, text });
       if (state.id !== project) return;
       const incoming = await api(`/api/projects/${project}`);
       if (state.id !== project) return;
@@ -232,11 +232,17 @@ $("runs").addEventListener(
       lastRuns = "";
       renderAssistant();
       const completedSource = state.runs.find((item) => item.id === run)?.translation_context?.source,
-        nextSource = state.documents.find((item) => item.id === state.translation_config?.source);
+        nextSource = state.documents.find((item) => item.id === state.translation_config?.source),
+        nextMessage = nextSource && nextSource.id !== completedSource
+          ? ` Siguiente unidad preparada: ${nextSource.name}.`
+          : "";
       notice(
-        nextSource && nextSource.id !== completedSource
-          ? `Traducción aprobada. Siguiente unidad preparada: ${nextSource.name}.`
-          : "Traducción aprobada como copia independiente. El original se conserva.",
+        accepted.external_export_error
+          ? accepted.external_export_error + nextMessage
+          : accepted.external_export
+            ? `Traducción aprobada y guardada también en ${accepted.external_export}.` + nextMessage
+            : "Traducción aprobada como copia independiente. El original se conserva." + nextMessage,
+        !!accepted.external_export_error,
       );
     }
     if (button.dataset.openTranslation) {
@@ -274,10 +280,23 @@ function openTranslation() {
     ["glossary", "glossary"],
   ])
     $("translation-" + id).value = config[key] || "";
+  $("translation-export-folder").value = state.translation_export_directory || "";
   renderTranslationDocuments();
   showDialog($("translation-dialog"));
 }
 $("translation-open").onclick = openTranslation;
+$("translation-export-pick").hidden = !window.storyDesktop;
+$("translation-export-pick").onclick = action(async () => {
+  const result = await api("/api/desktop/folder", {});
+  if (result.path) {
+    $("translation-export-folder").value = result.path;
+    $("translation-form").dataset.dirty = "true";
+  }
+});
+$("translation-export-clear").onclick = () => {
+  $("translation-export-folder").value = "";
+  $("translation-form").dataset.dirty = "true";
+};
 $("translation-form").oninput = () =>
   ($("translation-form").dataset.dirty = "true");
 function checkTranslationEdits() {
@@ -307,7 +326,11 @@ $("translation-form").onsubmit = action(async (event) => {
       intent: $("translation-intent").value,
       glossary: $("translation-glossary").value,
     };
-  state = await api("/api/translation/config", { project, config });
+  state = await api("/api/translation/config", {
+    project,
+    config,
+    export_directory: $("translation-export-folder").value.trim(),
+  });
   $("translation-form").dataset.dirty = "false";
   renderDocuments();
   renderTranslationDocuments();
